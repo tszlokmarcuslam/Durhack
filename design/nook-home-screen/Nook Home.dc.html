@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#F3EEE6}a{color:#2B2A27}a:hover{color:#5E683C}input::placeholder{color:#6B665E}</style>
+</helmet>
+<div ref="{{ rootRef }}" style="position:relative;width:100%;height:100vh;min-height:540px;overflow:hidden;background:#F3EEE6;font-family:'Figtree',system-ui,sans-serif;color:#2B2A27">
+  <canvas ref="{{ worldRef }}"></canvas>
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 85% at 50% 50%,rgba(243,238,230,.96),rgba(243,238,230,.62) 68%,rgba(243,238,230,.45));opacity:{{ veil }}"></div>
+  </sc-if>
+  <canvas ref="{{ avatarRef }}"></canvas>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Home" style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"></rect><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"></path><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"></circle></svg><span style="display:flex;align-items:baseline;gap:6px;font-size:25px;letter-spacing:-.02em;white-space:nowrap"><span style="font-weight:700">nook</span><span style="font-weight:500;color:#5E683C">meet</span></span></div>
+        <button type="button" title="Edit your look" style="pointer-events:auto;height:44px;padding:0 14px 0 6px;display:flex;align-items:center;gap:10px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
+          <span style="width:32px;height:32px;border-radius:50%;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ pfp }};flex:none"></span>
+          <span style="white-space:nowrap">Your name</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20z"></path></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{ isMain }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,38vw);display:flex;flex-direction:column;gap:10px;pointer-events:auto">
+        <button type="button" onClick="{{ openCall }}" onMouseEnter="{{ waveOn }}" onMouseLeave="{{ waveOff }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:20px;box-shadow:0 10px 26px rgba(60,66,38,.28);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 14px 30px rgba(60,66,38,.34)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:rgba(248,244,236,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg></span>
+          <span style="flex:1">Call</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openFriends }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"></path><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.8.8 2.8 2.6 3 5.2"></path></svg></span>
+          <span style="flex:1">Friends</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openWorld }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"></path></svg></span>
+          <span style="flex:1">World</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openSettings }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>
+          <span style="flex:1">Settings</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+
+      </sc-if>
+
+      <sc-if value="{{ isSub }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,38vw);max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;pointer-events:auto">
+        <div style="font-weight:700;font-size:28px;letter-spacing:-.02em;text-align:center;padding-bottom:6px">{{ menuTitle }}</div>
+        <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0">
+            <sc-for list="{{ friends }}" as="f" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;height:50px;flex:none;padding:0 14px 0 8px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:16px">
+                <span style="width:34px;height:34px;border-radius:50%;background-color:#ECE6D9;background-size:cover;background-position:center;background-image:{{ f.bg }};flex:none"></span>
+                <span style="font-weight:600;font-size:16px;flex:1;min-width:0">{{ f.name }}</span>
+                <span style="font-size:13px;color:#6B665E">{{ f.status }}</span>
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ f.dot }};flex:none"></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-for list="{{ menuItems }}" as="it" hint-placeholder-count="2">
+          <button type="button" onClick="{{ it.pick }}" style="height:clamp(52px,9vh,66px);flex:none;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ it.bg }};color:{{ it.fg }};border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;transition:transform .2s ease" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px)">{{ it.label }}</button>
+        </sc-for>
+        <button type="button" onClick="{{ closeMenu }}" style="height:clamp(46px,8vh,56px);flex:none;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid rgba(43,42,39,.22);cursor:pointer;background:rgba(251,248,241,.7);color:#2B2A27;border-radius:20px;font:600 18px 'Figtree',sans-serif;transition:background .15s ease" style-hover="background:#FBF8F1">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+          <span>Back</span>
+        </button>
+      </div>
+      </sc-if>
+
+      <div style="position:absolute;right:3vw;bottom:20px;width:calc(min(76vh,54vw) * .72);display:flex;justify-content:center">
+        <button type="button" onClick="{{ toggleCam }}" aria-label="Toggle camera" title="Camera" style="pointer-events:auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:50%;box-shadow:0 8px 22px rgba(43,42,39,.14);transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mapFade&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;default&quot;:70,&quot;tsType&quot;:&quot;number&quot;},&quot;droneOrbit&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { view: null, cfg: { skin: 1, face: 0, eyes: 0, nose: 0, lips: 1, facialHair: 0, hairStyle: 2, hairTexture: 0, hairColor: 0, build: 1, top: 0, topColor: 0, bottom: 0, bottomColor: 0, shoes: 0 }, tab: 'Face', thumbs: [], pfp: '', msgs: [], nearby: [], friendsOpen: false, draft: '', camOn: false };
+  rootRef = React.createRef(); worldRef = React.createRef(); avatarRef = React.createRef(); labelsRef = React.createRef();
+
+  view() { return this.state.view || ({ 'Home': 'home', 'Character creator': 'creator', 'Courtyard': 'world' })[this.props.screen] || 'home'; }
+  componentDidMount() {
+    this.alive = true;
+    Promise.all([import('https://unpkg.com/three@0.184.0/build/three.module.js'), import(new URL('nook3d.js', document.baseURI).href)]).then(([T, N]) => {
+      if (!this.alive) return;
+      this.N = N;
+      this.nook = N.createNook(T, { root: this.rootRef.current, world: this.worldRef.current, avatar: this.avatarRef.current, labels: this.labelsRef.current }, {
+        onPresets: thumbs => this.setState({ thumbs }),
+        onAvatar: pfp => this.setState({ pfp }),
+        onNearby: nearby => this.setState({ nearby }),
+        onMessage: (who, text) => this.setState(s => ({ msgs: s.msgs.concat({ who, text }).slice(-5) }))
+      });
+      this.nook.setAvatar(this.state.cfg); this.sync(true); this.forceUpdate();
+    });
+  }
+  componentDidUpdate(pp) {
+    if (pp.screen !== this.props.screen && this.state.view) this.setState({ view: null });
+    if (this.nook) this.sync();
+  }
+  componentWillUnmount() { this.alive = false; if (this.nook) this.nook.dispose(); }
+  sync(force) {
+    const v = this.view();
+    if (force || v !== this.lastView) { this.nook.setView(v); this.lastView = v; }
+    this.nook.setZoom(v === 'creator' && this.state.tab !== 'Outfit' ? 1 : 0);
+    this.nook.setOrbit((this.props.droneOrbit ?? true) && !this.state.orbitOff);
+  }
+  go(v) { const cur = this.view(); if (v === 'creator' && cur !== 'creator') this.prev = cur; this.setState({ view: v, friendsOpen: false }); }
+  setCfg(patch) { const cfg = Object.assign({}, this.state.cfg, patch); this.setState({ cfg }); if (this.nook) this.nook.setAvatar(cfg); }
+
+  renderVals() {
+    const st = this.state, v = this.view(), c = st.cfg, O = this.N ? this.N.OPTIONS : null, PR = this.N ? this.N.PRESETS : [];
+    const chip = (key, i, label) => ({ label, pick: () => this.setCfg({ [key]: i }), bg: c[key] === i ? '#5E683C' : '#ECE6D9', fg: c[key] === i ? '#F8F4EC' : '#2B2A27' });
+    const sw = (key, i, color) => ({ color, pick: () => this.setCfg({ [key]: i }), ring: c[key] === i ? '0 0 0 2px #FBF8F1, 0 0 0 4px #5E683C' : 'inset 0 0 0 1px rgba(43,42,39,.14)' });
+    const grp = (label, key, kind) => ({ label, chips: O && kind === 'chip' ? O[key].map((l, i) => chip(key, i, l)) : [], swatches: O && kind === 'sw' ? O[key].map((col, i) => sw(key, i, col)) : [] });
+    const TABS = {
+      Face: [grp('Skin tone', 'skin', 'sw'), grp('Face shape', 'face', 'chip'), grp('Eyes', 'eyes', 'chip'), grp('Nose', 'nose', 'chip'), grp('Lips', 'lips', 'chip'), grp('Facial hair', 'facialHair', 'chip')],
+      Hair: [grp('Style', 'hairStyle', 'chip'), grp('Texture', 'hairTexture', 'chip'), grp('Colour', 'hairColor', 'sw')],
+      Outfit: [grp('Build', 'build', 'chip'), grp('Top', 'top', 'chip'), grp('Top colour', 'topColor', 'sw'), grp('Bottom', 'bottom', 'chip'), grp('Bottom colour', 'bottomColor', 'sw'), grp('Shoes', 'shoes', 'chip')]
+    };
+    const send = () => { const text = st.draft.trim(); if (!text) return; this.setState(s => ({ msgs: s.msgs.concat({ who: 'You', text }).slice(-5), draft: '' })); if (this.nook) this.nook.say(text); };
+    const url = u => u ? 'url(' + u + ')' : 'none';
+    return {
+      rootRef: this.rootRef, worldRef: this.worldRef, avatarRef: this.avatarRef, labelsRef: this.labelsRef,
+      isHome: v === 'home', isCreator: v === 'creator', isWorld: v === 'world',
+      veil: (this.props.mapFade ?? 70) / 100, pfp: url(st.pfp),
+      goCreator: () => this.go('creator'), goWorld: () => this.go('world'), goHome: () => this.go('home'), goBack: () => this.go(this.prev || 'home'),
+      waveOn: () => this.nook && this.nook.wave(true), waveOff: () => this.nook && this.nook.wave(false),
+      
+      ...(() => {
+        const menu = st.menu || null, open = m => () => this.setState({ menu: m }), it = (label, pick, primary) => ({ label, pick, bg: primary ? '#5E683C' : '#FBF8F1', fg: primary ? '#F8F4EC' : '#2B2A27' }), no = () => {};
+        const ITEMS = {
+          call: [it('Start a call', no, true), it('Join with a code', no)],
+          friends: [it('Add a friend', no)],
+          world: [it('Join the world', no, true)],
+          settings: [it('Camera: ' + (st.camOn ? 'On' : 'Off'), () => this.setState(s => ({ camOn: !s.camOn }))), it('Island motion: ' + (st.orbitOff ? 'Off' : 'On'), () => this.setState(s => ({ orbitOff: !s.orbitOff })))]
+        };
+        return { isMain: !menu, isSub: !!menu, isFriends: menu === 'friends', menuTitle: ({ call: 'Call', friends: 'Friends', world: 'World', settings: 'Settings' })[menu] || '', menuItems: ITEMS[menu] || [], openCall: open('call'), openFriends: open('friends'), openWorld: open('world'), openSettings: open('settings'), closeMenu: open(null) };
+      })(),
+      toggleCam: () => this.setState(s => ({ camOn: !s.camOn })), camBg: st.camOn ? '#5E683C' : '#FBF8F1', camFg: st.camOn ? '#F8F4EC' : '#2B2A27',
+      presets: PR.map((p, i) => ({ name: p.name, bg: url(st.thumbs[i]), pick: () => { const r = Object.assign({}, p); delete r.name; this.setCfg(r); } })),
+      tabs: [['Face', 'Face'], ['Hair', 'Hair'], ['Outfit', 'Body & outfit']].map(t => ({ label: t[1], pick: () => this.setState({ tab: t[0] }), bg: st.tab === t[0] ? '#FBF8F1' : 'transparent', shadow: st.tab === t[0] ? '0 1px 4px rgba(43,42,39,.14)' : 'none' })),
+      groups: TABS[st.tab],
+      randomise: () => { if (!O) return; const r = {}; Object.keys(O).forEach(k => { r[k] = Math.floor(Math.random() * O[k].length); }); if (r.hairStyle === 6) r.hairStyle = 1; this.setCfg(r); },
+      friends: PR.slice(1).map((p, i) => ({ name: p.name, bg: url(st.thumbs[i + 1]), status: i < 3 ? 'Online' : 'Offline', dot: i < 3 ? '#5E683C' : '#B8B0A2' })),
+      msgs: st.msgs.map(m => ({ who: m.who, text: m.text, color: m.who === 'You' ? '#5E683C' : '#2B2A27' })),
+      nearbyLabel: st.nearby.length ? 'Nearby: ' + st.nearby.join(', ') : 'No one nearby',
+      placeholder: st.nearby.length ? 'Say something' : 'Walk up to someone to chat',
+      draft: st.draft, onDraft: e => this.setState({ draft: e.target.value }), onKey: e => { if (e.key === 'Enter') send(); }, send
+    };
+  }
+}
+</script>
+</body>
+</html>
