@@ -11,11 +11,11 @@ export function stopSpeaking() {
  * Speaks text with the server's ElevenLabs voice. Resolves when playback ends.
  * Throws with a user-facing message if voice is unavailable.
  */
-export async function speak(text: string, onStart?: () => void): Promise<void> {
+export async function speak(text: string, voiceId: string, onStart?: () => void): Promise<void> {
   stopSpeaking();
   let res: Response;
   try {
-    res = await fetch('/api/tts', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ text }) });
+    res = await fetch('/api/tts', { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ text, voiceId }) });
   } catch {
     throw new Error("Can't reach the voice service.");
   }

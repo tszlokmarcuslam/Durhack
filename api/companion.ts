@@ -55,6 +55,8 @@ export default async function handler(req: Request): Promise<Response> {
     return json(200, {
       mode: 'dev',
       players: [],
+      expression: 'neutral',
+      board: [],
       reply: 'Local dev mode: GEMINI_API_KEY is not set, so no AI was called. Your message reached the server fine.',
     });
   }

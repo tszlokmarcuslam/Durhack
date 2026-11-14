@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { CompanionApiError, sendCompanionMessage, type CompanionErrorKind } from '../services/companionApi';
 import { speak, stopSpeaking } from '../services/voice';
-import type { ChatTurn, PublicPlayer } from '../types/companion';
+import type { ChatTurn, Expression, PublicPlayer } from '../types/companion';
 import { usePetStore } from './petStore';
 
 export interface ChatMessage extends ChatTurn {
   id: number;
   players?: PublicPlayer[];
   devMode?: boolean;
+  expression?: Expression;
+  board?: string[];
 }
 
 interface CompanionState {
@@ -55,11 +57,20 @@ export const useCompanionStore = create<CompanionState>((set, get) => ({
         status: 'idle',
         messages: [
           ...s.messages,
-          { id: nextId++, role: 'assistant', text: res.reply, players: res.players, devMode: res.mode === 'dev' },
+          {
+            id: nextId++,
+            role: 'assistant',
+            text: res.reply,
+            players: res.players,
+            devMode: res.mode === 'dev',
+            expression: res.expression,
+            board: res.board,
+          },
         ],
       }));
-      if (res.mode === 'live' && usePetStore.getState().voiceEnabled) {
-        speak(res.reply, () => set({ speaking: true, voiceError: null }))
+      const pet = usePetStore.getState();
+      if (res.mode === 'live' && pet.voiceEnabled) {
+        speak(res.reply, pet.voiceId, () => set({ speaking: true, voiceError: null }))
           .catch((err: Error) => set({ voiceError: err.message }))
           .finally(() => set({ speaking: false }));
       }

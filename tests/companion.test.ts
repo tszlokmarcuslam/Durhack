@@ -84,7 +84,7 @@ describe('runCompanionTurn', () => {
     const result = await runCompanionTurn({ apiKey: 'k', model: 'm', search, fetchImpl }, [], 'find someone');
 
     expect(search).toHaveBeenCalledWith({ city: 'Manchester', subject: 'maths', limit: 5 });
-    expect(result).toEqual({ reply: 'Meet Ada!', players: [ada] });
+    expect(result).toEqual({ reply: 'Meet Ada!', players: [ada], expression: 'happy', board: [] });
     // key travels in a header, and the tool result is fed back to the model
     expect(fetchImpl.mock.calls[0][0]).not.toContain('k=');
     const secondBody = JSON.parse(fetchImpl.mock.calls[1][1].body);
@@ -125,10 +125,42 @@ describe('runCompanionTurn', () => {
 describe('parseTtsRequest', () => {
   it('accepts trimmed text and rejects empty, oversized or non-string text', async () => {
     const { parseTtsRequest } = await import('../api/tts');
-    expect(parseTtsRequest({ text: ' hi ' })).toBe('hi');
+    expect(parseTtsRequest({ text: ' hi ' })).toEqual({ text: 'hi' });
+    expect(parseTtsRequest({ text: 'hi', voiceId: 'EXAVITQu4vr4xnSDxMaL' })).toEqual({ text: 'hi', voiceId: 'EXAVITQu4vr4xnSDxMaL' });
+    expect(parseTtsRequest({ text: 'hi', voiceId: 'some-paid-voice' })).toBeNull();
+    expect(parseTtsRequest({ text: 'hi', voiceId: '../../v1/user' })).toBeNull();
     expect(parseTtsRequest({ text: '   ' })).toBeNull();
     expect(parseTtsRequest({ text: 'x'.repeat(601) })).toBeNull();
     expect(parseTtsRequest({ text: 5 })).toBeNull();
     expect(parseTtsRequest(null)).toBeNull();
+  });
+});
+
+describe('parseReplyTags', () => {
+  it('extracts mood and board lines and strips the tags', async () => {
+    const { parseReplyTags } = await import('../server/lib/replyTags');
+    expect(parseReplyTags('<mood>surprised</mood><board>a² + b² = c²| c = √(a²+b²) </board> Pythagoras!')).toEqual({
+      reply: 'Pythagoras!',
+      expression: 'surprised',
+      board: ['a² + b² = c²', 'c = √(a²+b²)'],
+    });
+  });
+  it('falls back safely on missing, unknown or oversized tags', async () => {
+    const { parseReplyTags } = await import('../server/lib/replyTags');
+    expect(parseReplyTags('Hi there')).toEqual({ reply: 'Hi there', expression: 'happy', board: [] });
+    expect(parseReplyTags('<mood>evil</mood>Hi').expression).toBe('happy');
+    const long = parseReplyTags(`<board>${'x'.repeat(50)}|b|c|d</board>ok`);
+    expect(long.board).toEqual(['x'.repeat(32), 'b', 'c']);
+    expect(parseReplyTags('ok </mood> <board>').reply).toBe('ok');
+  });
+});
+
+describe('toSpeech', () => {
+  it('reads maths symbols as words and leaves plain text alone', async () => {
+    const { toSpeech } = await import('../server/lib/speech');
+    expect(toSpeech('a² + b² = c²')).toBe('a squared plus b squared equals c squared');
+    expect(toSpeech('x = (−b ± √(b² − 4ac)) / 2a')).toBe('x equals (minus b plus or minus the square root of (b squared minus 4ac)) over 2a');
+    expect(toSpeech('Study for 25 minutes, then a 5-minute break.')).toBe('Study for 25 minutes, then a 5-minute break.');
+    expect(toSpeech('3 × 4 = 12 and 90°')).toBe('3 times 4 equals 12 and 90 degrees');
   });
 });
