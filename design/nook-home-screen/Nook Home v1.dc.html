@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#2E9CC0}a{color:#3B2A20}a:hover{color:#6F7F3A}</style>
+</helmet>
+<div ref="{{ rootRef }}" data-screen-label="Home" style="position:relative;width:100%;height:100vh;min-height:520px;overflow:hidden;font-family:'Fredoka',ui-rounded,system-ui,sans-serif;color:#3B2A20;background:radial-gradient(circle at 42% 45%,#9FE8DA 0,#4CC3CF 22%,#2E9CC0 60%,#2488B8 100%)">
+  <canvas ref="{{ islandRef }}" style="position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none"></canvas>
+  <canvas ref="{{ charRef }}" style="position:absolute;right:1.5vw;bottom:0;height:min(84vh,54vw);aspect-ratio:0.62;display:block;pointer-events:none"></canvas>
+
+  <div style="position:absolute;top:28px;left:32px;right:32px;display:flex;justify-content:space-between;align-items:center;gap:12px;pointer-events:none">
+    <div style="pointer-events:auto;height:56px;padding:0 26px;display:flex;align-items:center;background:#FFFBF2;border-radius:999px;box-shadow:0 8px 22px rgba(20,70,90,.2);font-weight:600;font-size:27px;letter-spacing:.01em">nook</div>
+    <div style="display:flex;align-items:center;gap:12px;pointer-events:auto">
+      <div style="height:56px;padding:0 22px 0 7px;display:flex;align-items:center;gap:11px;background:#FFFBF2;border-radius:999px;box-shadow:0 8px 22px rgba(20,70,90,.2)">
+        <div ref="{{ avatarRef }}" style="width:42px;height:42px;border-radius:50%;background:#FFE39A center/cover no-repeat;flex:none"></div>
+        <div style="display:flex;flex-direction:column;line-height:1.1">
+          <span style="font-weight:600;font-size:17px">Your name</span>
+          <span style="font-size:13px;color:#7A6455">@username</span>
+        </div>
+      </div>
+      <button type="button" onMouseEnter="{{ waveOn }}" onMouseLeave="{{ waveOff }}" style="height:56px;padding:0 24px 0 20px;display:flex;align-items:center;gap:10px;border:none;cursor:pointer;background:#E6D6F8;color:#3B2A20;border-radius:999px;box-shadow:0 8px 22px rgba(20,70,90,.2);font:600 18px 'Fredoka',sans-serif;transition:transform .18s cubic-bezier(.3,1.5,.5,1)" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px) scale(.98)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20z"></path></svg>
+        <span>Edit</span>
+      </button>
+      <button type="button" onClick="{{ cycleTime }}" aria-label="Change time of day" title="Change time of day" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#FFFBF2;color:#3B2A20;border-radius:50%;box-shadow:0 8px 22px rgba(20,70,90,.2);transition:transform .18s cubic-bezier(.3,1.5,.5,1)" style-hover="transform:translateY(-2px) rotate(30deg)" style-active="transform:scale(.94)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.6"></circle><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:46%;bottom:4.5vh;transform:translateX(-50%);width:min(400px,40vw);display:flex;flex-direction:column;gap:14px">
+    <button type="button" onMouseEnter="{{ waveOn }}" onMouseLeave="{{ waveOff }}" style="height:clamp(60px,11vh,78px);padding:0 22px 0 15px;display:flex;align-items:center;gap:16px;border:none;cursor:pointer;background:#FFE39A;color:#3B2A20;border-radius:28px;box-shadow:inset 0 -4px 0 rgba(59,42,32,.08),inset 0 2px 0 rgba(255,255,255,.55),0 12px 28px rgba(20,70,90,.26);font:600 25px 'Fredoka',sans-serif;text-align:left;transition:transform .2s cubic-bezier(.3,1.5,.5,1),box-shadow .2s" style-hover="transform:translateY(-3px);box-shadow:inset 0 -4px 0 rgba(59,42,32,.08),inset 0 2px 0 rgba(255,255,255,.55),0 18px 34px rgba(20,70,90,.3)" style-active="transform:translateY(2px) scale(.985)">
+      <span style="width:48px;height:48px;border-radius:50%;background:rgba(255,251,242,.75);display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+      </span>
+      <span style="flex:1">Call</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.45"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <button type="button" style="height:clamp(60px,11vh,78px);padding:0 22px 0 15px;display:flex;align-items:center;gap:16px;border:none;cursor:pointer;background:#FFFBF2;color:#3B2A20;border-radius:28px;box-shadow:inset 0 -4px 0 rgba(59,42,32,.06),0 12px 28px rgba(20,70,90,.26);font:600 25px 'Fredoka',sans-serif;text-align:left;transition:transform .2s cubic-bezier(.3,1.5,.5,1),box-shadow .2s" style-hover="transform:translateY(-3px);box-shadow:inset 0 -4px 0 rgba(59,42,32,.06),0 18px 34px rgba(20,70,90,.3)" style-active="transform:translateY(2px) scale(.985)">
+      <span style="width:48px;height:48px;border-radius:50%;background:#DDEFD2;display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"></path></svg>
+      </span>
+      <span style="flex:1">World</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.45"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+  </div>
+
+  <div style="position:absolute;left:32px;bottom:28px;height:36px;padding:0 16px 0 12px;display:flex;align-items:center;gap:8px;background:rgba(255,251,242,.9);border-radius:999px;font-size:14px;font-weight:500;white-space:nowrap;pointer-events:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"></path><path d="M18 3v4h-4M6 21v-4h4"></path></svg>
+    <span>Drag to look around</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;timeOfDay&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Day&quot;,&quot;Golden hour&quot;,&quot;Night&quot;],&quot;default&quot;:&quot;Day&quot;,&quot;tsType&quot;:&quot;'Day'|'Golden hour'|'Night'&quot;,&quot;section&quot;:&quot;World&quot;},&quot;droneOrbit&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;World&quot;},&quot;cardigan&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#6F7F3A&quot;,&quot;options&quot;:[&quot;#6F7F3A&quot;,&quot;#5C7FA3&quot;,&quot;#C96A4A&quot;,&quot;#D9A441&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Character&quot;}}">
+class Component extends DCLogic {
+  state = { tod: null };
+  rootRef = React.createRef(); islandRef = React.createRef(); charRef = React.createRef(); avatarRef = React.createRef();
+  wave = false; orbit = 0.55; mx = 0; my = 0;
+
+  tod() { return this.state.tod || this.props.timeOfDay || 'Day'; }
+  componentDidMount() {
+    this.alive = true;
+    import('https://unpkg.com/three@0.184.0/build/three.module.js').then(T => { if (this.alive) this.start(T); });
+  }
+  componentDidUpdate(pp) {
+    if (pp.timeOfDay !== this.props.timeOfDay && this.state.tod) this.setState({ tod: null });
+    if (this.applyLook) this.applyLook();
+  }
+  componentWillUnmount() {
+    this.alive = false; cancelAnimationFrame(this.raf);
+    if (this.ro) this.ro.disconnect();
+    if (this.off) this.off();
+    (this.renderers || []).forEach(r => r.dispose());
+  }
+
+  start(T) {
+    const root = this.rootRef.current, cvI = this.islandRef.current, cvC = this.charRef.current;
+    if (!root || !cvI || !cvC) return;
+    const PI = Math.PI, sin = Math.sin, cos = Math.cos;
+    let seed = 11;
+    const rng = () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const mats = {};
+    const M = (c, o) => { const k = c + (o ? JSON.stringify(o) : ''); return mats[k] || (mats[k] = new T.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.95 }, o))); };
+    const SPH = new T.SphereGeometry(1, 24, 16), CYL = new T.CylinderGeometry(1, 1, 1, 18), BOX = new T.BoxGeometry(1, 1, 1), CONE = new T.ConeGeometry(1, 1, 18);
+    const P = (par, g, mat, p, s, r) => { const me = new T.Mesh(g, mat); me.position.set(p[0], p[1], p[2]); if (s != null) Array.isArray(s) ? me.scale.set(s[0], s[1], s[2]) : me.scale.setScalar(s); if (r) me.rotation.set(r[0], r[1], r[2]); me.castShadow = me.receiveShadow = true; par.add(me); return me; };
+    const G3 = (par, x, y, z, s) => { const g = new T.Group(); g.position.set(x, y, z); if (s) g.scale.setScalar(s); par.add(g); return g; };
+
+    /* ---------- island world ---------- */
+    const scene = new T.Scene();
+    const R = 11, GY = 1.05, SY = 0.4;
+    const rAt = a => 1 + 0.11 * sin(2 * a + 1) + 0.07 * sin(3 * a + 2.4) + 0.04 * sin(5 * a + 0.3);
+    const blob = s => { const sh = new T.Shape(); for (let i = 0; i <= 140; i++) { const a = i / 140 * PI * 2, r = R * s * rAt(a), x = r * cos(a), y = -r * sin(a); i ? sh.lineTo(x, y) : sh.moveTo(x, y); } return sh; };
+    const flat = g => { g.rotateX(-PI / 2); return g; };
+    const grassEdge = a => R * 0.76 * rAt(a) + 0.3, sandR = a => R * rAt(a) * 0.9;
+    const groundY = (x, z) => { const hx = (x + 4.2) / 4.6, hz = (z + 3.2) / 4.2, q = 1 - hx * hx - hz * hz; return q > 0 ? Math.max(GY, GY - 0.05 + 2.3 * Math.sqrt(q)) : GY; };
+    const surfY = (x, z) => Math.hypot(x, z) < grassEdge(Math.atan2(z, x)) - 0.15 ? groundY(x, z) : SY;
+
+    // water
+    const wc = document.createElement('canvas'); wc.width = wc.height = 1024;
+    const wx = wc.getContext('2d'), wg = wx.createRadialGradient(512, 512, 0, 512, 512, 512);
+    [[0, '#86DDD0'], [0.05, '#6CD2CE'], [0.085, '#41B9C8'], [0.16, '#2C9DC0'], [0.4, '#2389B6'], [1, '#1D78A8']].forEach(s => wg.addColorStop(s[0], s[1]));
+    wx.fillStyle = wg; wx.fillRect(0, 0, 1024, 1024);
+    const wt = new T.CanvasTexture(wc); wt.colorSpace = T.SRGBColorSpace;
+    const waterMat = new T.MeshStandardMaterial({ map: wt, roughness: 1 });
+    const water = new T.Mesh(flat(new T.CircleGeometry(300, 72)), waterMat); water.receiveShadow = true; scene.add(water);
+    const ring = (s, col, op, y) => { const me = new T.Mesh(flat(new T.ShapeGeometry(blob(s))), new T.MeshStandardMaterial({ color: col, transparent: true, opacity: op, roughness: 1, depthWrite: false })); me.position.y = y; me.receiveShadow = true; scene.add(me); return me; };
+    ring(1.42, '#C9F5E6', 0.16, 0.01); ring(1.22, '#D8FAEC', 0.3, 0.02);
+    const foam = ring(1.07, '#FFFFFF', 0.85, 0.03);
+
+    // land
+    const isl = new T.Group(); scene.add(isl);
+    const sand = M('#F6E2B3'), grass = M('#8ECC74'), grass2 = M('#7DBF6C');
+    const sandMesh = P(isl, flat(new T.ExtrudeGeometry(blob(1), { depth: 0.5, bevelEnabled: true, bevelThickness: 0.35, bevelSize: 0.6, bevelSegments: 5 })), sand, [0, -0.45, 0]); sandMesh.castShadow = false;
+    P(isl, flat(new T.ExtrudeGeometry(blob(0.76), { depth: 0.4, bevelEnabled: true, bevelThickness: 0.3, bevelSize: 0.4, bevelSegments: 5 })), grass, [0, 0.35, 0]);
+    P(isl, new T.SphereGeometry(1, 40, 16, 0, PI * 2, 0, PI / 2), grass2, [-4.2, GY - 0.05, -3.2], [4.6, 2.3, 4.2]);
+    [[4.6, 4.6, 1.9], [-1.5, 5.2, 1.5], [6.2, -1.2, 1.2], [-6.4, 2.4, 1.3]].forEach(c => { const me = P(isl, CYL, M('#9BD57C'), [c[0], GY + 0.005, c[1]], [c[2], 0.01, c[2] * 0.8]); me.castShadow = false; });
+
+    // house
+    const house = G3(isl, 2.2, GY, -0.8); house.rotation.y = 0.3;
+    const wall = M('#FFF3DC'), roof = M('#DB6E50'), wood = M('#8A5A3C'), stone = M('#DCD0C0'), white = M('#FFFDF6');
+    const winMat = new T.MeshStandardMaterial({ color: '#BFE6F2', emissive: '#FFC766', emissiveIntensity: 0, roughness: 0.5 });
+    P(house, BOX, stone, [0, 0.1, 0], [4.4, 0.2, 3.4]);
+    P(house, BOX, wall, [0, 1.2, 0], [4, 2, 3]);
+    const tri = new T.Shape(); tri.moveTo(-1.5, 0); tri.lineTo(1.5, 0); tri.lineTo(0, 1.3); tri.closePath();
+    const gab = new T.ExtrudeGeometry(tri, { depth: 4, bevelEnabled: false }); gab.translate(0, 0, -2);
+    P(house, gab, wall, [0, 2.2, 0], null, [0, PI / 2, 0]);
+    const ang = Math.atan2(1.3, 1.5), L = 2.5;
+    [1, -1].forEach(s => P(house, BOX, roof, [0, 3.59 - sin(ang) * (L / 2 - 0.12), s * cos(ang) * (L / 2 - 0.12)], [4.8, 0.2, L], [s * ang, 0, 0]));
+    P(house, CYL, M('#C65C42'), [0, 3.62, 0], [0.15, 4.8, 0.15], [0, 0, PI / 2]);
+    P(house, BOX, M('#CFA88E'), [1.2, 3.3, -0.7], [0.5, 1.3, 0.5]); P(house, BOX, stone, [1.2, 3.98, -0.7], [0.66, 0.12, 0.66]);
+    P(house, BOX, M('#6F7F3A'), [-0.7, 0.92, 1.52], [0.78, 1.44, 0.08]); P(house, SPH, M('#FFE39A'), [-0.45, 0.9, 1.58], 0.05);
+    P(house, BOX, stone, [-0.7, 0.08, 1.95], [1.3, 0.16, 0.7]);
+    P(house, BOX, roof, [-0.7, 1.86, 1.82], [1.25, 0.1, 0.75], [0.35, 0, 0]);
+    const win = (x, y, z, ry) => { const g = G3(house, x, y, z); g.rotation.y = ry; P(g, BOX, white, [0, 0, 0], [0.9, 0.9, 0.06]); P(g, BOX, winMat, [0, 0, 0.02], [0.7, 0.7, 0.06]); P(g, BOX, white, [0, 0, 0.04], [0.06, 0.7, 0.05]); P(g, BOX, white, [0, 0, 0.04], [0.7, 0.06, 0.05]); };
+    win(0.9, 1.3, 1.5, 0); win(-0.9, 1.3, -1.5, PI); win(0.9, 1.3, -1.5, PI); win(2, 1.3, 0, PI / 2); win(-2, 1.3, 0, -PI / 2);
+    [2.01, -2.01].forEach(x => P(house, CYL, winMat, [x, 2.7, 0], [0.26, 0.05, 0.26], [0, 0, PI / 2]));
+    P(house, BOX, wood, [0.9, 0.76, 1.62], [0.95, 0.16, 0.22]);
+    const petals = ['#F58FA6', '#FFFFFF', '#FFD166', '#F58FA6', '#C9A5F2'];
+    petals.forEach((c, i) => P(house, SPH, M(c), [0.52 + i * 0.19, 0.9, 1.64], 0.09));
+    const lamp = new T.PointLight('#FFB45C', 0, 14, 1.6); lamp.position.set(-0.7, 1.5, 2.6); house.add(lamp);
+    scene.updateMatrixWorld(true);
+    const door = house.localToWorld(new T.Vector3(-0.7, 0, 2.7)), chim = house.localToWorld(new T.Vector3(1.2, 3.1, -0.7));
+
+    // dock + boat
+    const fd = 1.0, dock = G3(isl, cos(fd) * 9.3, 0, sin(fd) * 9.3); dock.rotation.y = -fd;
+    const pl = [M('#C99A6B'), M('#BC8C5E')];
+    for (let i = 0; i < 11; i++) P(dock, BOX, pl[i % 2], [i * 0.55, 0.52, 0], [0.49, 0.1, i > 8 ? 2.8 : 1.5]);
+    [[1.4, 0.72], [1.4, -0.72], [3.6, 0.72], [3.6, -0.72], [5.6, 1.35], [5.6, -1.35]].forEach(p => P(dock, CYL, wood, [p[0], 0.25, p[1]], [0.09, 1.1, 0.09]));
+    const boat = G3(dock, 3.2, 0.1, 1.9);
+    P(boat, SPH, M('#E8795A'), [0, 0, 0], [1.25, 0.42, 0.58]); P(boat, SPH, wall, [0, 0.14, 0], [1.05, 0.3, 0.44]); P(boat, BOX, wood, [0, 0.36, 0], [0.16, 0.05, 0.8]);
+
+    // stepping-stone path
+    const taken = [{ x: 2.2, z: -0.8, r: 3.3 }, { x: 6, z: -4.3, r: 1.5 }, { x: -2.2, z: 1.2, r: 1.5 }, { x: 5.2, z: 2.8, r: 1.2 }];
+    const pe = [cos(fd) * 9.0, sin(fd) * 9.0], pc = [door.x + 0.2, door.z + 3.4];
+    for (let i = 0; i <= 13; i++) { const t = i / 13, u = 1 - t, x = u * u * door.x + 2 * u * t * pc[0] + t * t * pe[0], z = u * u * door.z + 2 * u * t * pc[1] + t * t * pe[1]; const me = P(isl, CYL, stone, [x, surfY(x, z) + 0.03, z], [0.36, 0.08, 0.3], [0, rng() * 3, 0]); me.castShadow = false; taken.push({ x, z, r: 0.7 }); }
+
+    // pond, veggie patch, picnic
+    const pond = P(isl, CYL, M('#86DCE4', { roughness: 0.3 }), [6, GY + 0.02, -4.3], [1.2, 0.04, 0.95]); pond.castShadow = false;
+    const rock = M('#B4B9B2', { flatShading: true }), ICO = new T.IcosahedronGeometry(1, 0);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * PI * 2 + 0.2; P(isl, ICO, rock, [6 + cos(a) * 1.3, GY + 0.08, -4.3 + sin(a) * 1.05], 0.16 + rng() * 0.14, [rng(), rng(), 0]); }
+    P(isl, CYL, M('#6FB36B'), [5.7, GY + 0.05, -4.1], [0.22, 0.02, 0.22]); P(isl, CYL, M('#6FB36B'), [6.4, GY + 0.05, -4.6], [0.17, 0.02, 0.17]); P(isl, SPH, M('#F58FA6'), [5.7, GY + 0.09, -4.1], 0.07);
+    P(isl, BOX, M('#9A6B4A'), [-2.2, GY + 0.05, 1.2], [2.2, 0.12, 1.5]);
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) P(isl, SPH, M(j === 1 && i % 2 ? '#F0853F' : '#5FA85E'), [-3 + i * 0.4, GY + 0.17, 0.75 + j * 0.45], [0.14, 0.12, 0.14]);
+    const blanket = P(isl, BOX, M('#F29C86'), [5.2, GY + 0.02, 2.8], [1.5, 0.03, 1.5], [0, 0.5, 0]); blanket.castShadow = false;
+    P(isl, BOX, white, [5.2, GY + 0.03, 2.8], [1.5, 0.03, 0.3], [0, 0.5, 0]).castShadow = false;
+    P(isl, BOX, M('#C99A6B'), [5.45, GY + 0.16, 2.6], [0.4, 0.26, 0.3], [0, 0.5, 0]);
+
+    // trees
+    const trunk = M('#8A5A3C'), greens = [M('#6FB36B'), M('#5CA568'), M('#84C46C')], pineM = [M('#3F8F6B'), M('#4B9B74')];
+    const tree = (x, z, s) => { const g = G3(isl, x, surfY(x, z), z, s), c = greens[Math.floor(rng() * 3)], c2 = greens[Math.floor(rng() * 3)]; P(g, CYL, trunk, [0, 0.45, 0], [0.13, 0.9, 0.13]); P(g, SPH, c, [0, 1.35, 0], 0.8); P(g, SPH, c2, [0.45, 1.05, 0.2], 0.5); P(g, SPH, c2, [-0.4, 1.15, -0.25], 0.55); P(g, SPH, c, [0.1, 1.9, 0.1], 0.5); };
+    const pine = (x, z, s) => { const g = G3(isl, x, surfY(x, z) - 0.05, z, s); P(g, CYL, trunk, [0, 0.3, 0], [0.11, 0.6, 0.11]); [[0.75, 0.9], [0.58, 1.5], [0.4, 2.05]].forEach((c, i) => P(g, CONE, pineM[i % 2], [0, c[1], 0], [c[0], 0.95, c[0]])); taken.push({ x, z, r: 0.9 }); };
+    [[-4.9, -3.7, 1.15], [-3.2, -4.4, 0.95], [-5.8, -2.1, 0.9], [-3.6, -2.2, 1.05], [-2.4, -5.9, 0.85]].forEach(p => pine(p[0], p[1], p[2]));
+    const spot = (minR, frac) => { for (let i = 0; i < 80; i++) { const a = rng() * PI * 2, d = Math.sqrt(rng()) * grassEdge(a) * frac, x = d * cos(a), z = d * sin(a); if (taken.every(o => Math.hypot(o.x - x, o.z - z) > o.r + minR)) { taken.push({ x, z, r: minR }); return [x, z]; } } return null; };
+    for (let i = 0; i < 9; i++) { const p = spot(1.0, 0.86); if (p) tree(p[0], p[1], 0.85 + rng() * 0.4); }
+    for (let i = 0; i < 12; i++) { const p = spot(0.45, 0.93); if (p) { const g = G3(isl, p[0], surfY(p[0], p[1]), p[1], 0.7 + rng() * 0.5), c = greens[i % 3]; P(g, SPH, c, [0, 0.22, 0], [0.42, 0.34, 0.42]); P(g, SPH, c, [0.3, 0.16, 0.1], [0.28, 0.24, 0.28]); } }
+    const fcol = ['#F58FA6', '#FFFFFF', '#FFD166', '#C9A5F2'];
+    for (let i = 0; i < 60; i++) { const p = spot(0.12, 0.95); if (p) P(isl, SPH, M(fcol[i % 4]), [p[0], surfY(p[0], p[1]) + 0.07, p[1]], 0.075).castShadow = false; }
+
+    // palms + beach
+    const pTrunk = M('#B98A5E'), leaf = [M('#5FAE62'), M('#74BE66')];
+    const palm = (par, x, y, z, dir, s) => { const g = G3(par, x, y, z, s); g.rotation.y = dir; for (let i = 0; i < 6; i++) { const t = i / 5; P(g, CYL, pTrunk, [0.9 * t * t, 0.22 + i * 0.42, 0], [0.14 - 0.012 * i, 0.5, 0.14 - 0.012 * i], [0, 0, -t * 0.55]); } const top = G3(g, 0.95, 2.52, 0); for (let k = 0; k < 7; k++) { const lg = G3(top, 0, 0, 0); lg.rotation.y = k / 7 * PI * 2; P(lg, SPH, leaf[k % 2], [0.78, -0.14, 0], [0.9, 0.06, 0.27], [0, 0, -0.38]); } P(top, SPH, wood, [0.1, -0.1, 0.08], 0.1); P(top, SPH, wood, [-0.08, -0.12, -0.06], 0.1); return g; };
+    [[0.62, 1.1], [1.5, 0.95], [2.25, 1.15], [3.45, 1], [4.1, 0.9], [5.45, 1.1], [5.9, 0.95]].forEach(p => { const r = sandR(p[0]); palm(isl, cos(p[0]) * r, SY - 0.05, sin(p[0]) * r, -p[0] + (rng() - 0.5), p[1]); });
+    const ua = 1.9, ur = sandR(ua), um = G3(isl, cos(ua) * ur, SY, sin(ua) * ur); um.rotation.y = -ua;
+    P(um, CYL, white, [0, 0.8, 0], [0.04, 1.6, 0.04]); P(um, CONE, M('#F29C86'), [0, 1.6, 0], [1.15, 0.45, 1.15]); P(um, SPH, white, [0, 1.85, 0], 0.07);
+    P(um, BOX, M('#8FCBE8'), [0.3, 0.02, 0.9], [1.3, 0.03, 0.6]).castShadow = false; P(um, BOX, M('#FFE39A'), [0.3, 0.02, -0.9], [1.3, 0.03, 0.6]).castShadow = false;
+    const ca = 0.2, cr = sandR(ca) - 0.3, camp = G3(isl, cos(ca) * cr, SY, sin(ca) * cr);
+    for (let i = 0; i < 7; i++) { const a = i / 7 * PI * 2; P(camp, ICO, rock, [cos(a) * 0.36, 0.06, sin(a) * 0.36], 0.11, [rng(), rng(), 0]); }
+    const flame = P(camp, CONE, new T.MeshStandardMaterial({ color: '#FFA53D', emissive: '#FF8A2B', emissiveIntensity: 0.6 }), [0, 0.28, 0], [0.17, 0.5, 0.17]); flame.castShadow = false;
+    P(camp, CYL, wood, [0.95, 0.14, 0.2], [0.15, 1.1, 0.15], [PI / 2, 0.3, 0]); P(camp, CYL, wood, [-0.5, 0.14, -0.85], [0.15, 1.1, 0.15], [PI / 2, 1.9, 0]);
+    const fire = new T.PointLight('#FF9A4A', 0, 10, 1.6); fire.position.set(0, 0.8, 0); camp.add(fire);
+
+    // sea: rocks, islet, sailboat, sparkles, clouds, smoke
+    [[15.5, 2.2], [17, 3.9], [14.5, 5.2], [19, 0.3]].forEach(p => { const x = cos(p[1]) * p[0], z = sin(p[1]) * p[0]; P(scene, ICO, rock, [x, 0.15, z], [0.9, 0.5, 0.7], [0, rng() * 3, 0]); P(scene, ICO, rock, [x + 0.9, 0.05, z + 0.4], 0.35, [rng(), rng(), 0]); });
+    const islet = G3(scene, -16, 0, 9.5); P(islet, SPH, sand, [0, -0.1, 0], [2.4, 0.5, 1.8]).castShadow = false; palm(islet, -0.3, 0.3, 0, 0.8, 0.9);
+    const sail = G3(scene, 0, 0, 0), sb = G3(sail, 23, 0.12, 0);
+    P(sb, SPH, white, [0, 0, 0], [0.5, 0.3, 1.15]); P(sb, CYL, wood, [0, 0.9, 0], [0.035, 1.8, 0.035]); P(sb, new T.ConeGeometry(1, 1, 3), wall, [0, 1.05, 0.28], [0.06, 1.4, 0.65]);
+    const sparkM = [0, 1, 2].map(() => new T.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.4, depthWrite: false }));
+    for (let i = 0; i < 70; i++) { const a = rng() * PI * 2, d = 14 + rng() * 34; const me = new T.Mesh(BOX, sparkM[i % 3]); me.position.set(cos(a) * d, 0.04, sin(a) * d); me.scale.set(0.5 + rng() * 0.9, 0.01, 0.07); me.rotation.y = 0.3 + (rng() - 0.5) * 0.3; scene.add(me); }
+    const cloudM = M('#FFFFFF'), clouds = [];
+    for (let i = 0; i < 6; i++) { const a = i / 6 * PI * 2 + 0.6, d = 24 + rng() * 9, g = G3(scene, cos(a) * d, 6 + rng() * 3, sin(a) * d, 0.8 + rng() * 0.4); P(g, SPH, cloudM, [0, 0, 0], [1.6, 0.9, 1.2]); P(g, SPH, cloudM, [1.5, -0.15, 0.2], [1.2, 0.7, 1]); P(g, SPH, cloudM, [-1.4, -0.2, -0.1], [1.1, 0.65, 0.9]); P(g, SPH, cloudM, [0.5, 0.45, -0.3], [1, 0.7, 0.9]); g.children.forEach(c => c.receiveShadow = false); clouds.push(g); }
+    const smoke = [0, 1, 2, 3].map(i => { const me = new T.Mesh(SPH, new T.MeshStandardMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.6, depthWrite: false })); scene.add(me); me.userData.ph = i / 4; return me; });
+
+    // lights + camera
+    const hemi = new T.HemisphereLight('#fff', '#BFE3D0', 2); scene.add(hemi);
+    const sun = new T.DirectionalLight('#FFF1D8', 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 110 }); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.05; scene.add(sun);
+    const cam = new T.PerspectiveCamera(30, 1, 1, 400);
+    const rI = new T.WebGLRenderer({ canvas: cvI, antialias: true, preserveDrawingBuffer: true });
+    rI.shadowMap.enabled = true; rI.shadowMap.type = T.PCFShadowMap;
+
+    /* ---------- character ---------- */
+    const sc = new T.Scene(), ch = G3(sc, 0, 0.03, 0);
+    const skin = M('#F3B286'), hair = M('#6A3F2B'), dark = M('#3B2418'), cream = M('#FBF0DA'), pants = M('#7A4A32');
+    const card = this.cardMat = new T.MeshStandardMaterial({ color: '#6F7F3A', roughness: 1, side: T.DoubleSide });
+    const CAP = new T.CapsuleGeometry(0.25, 0.75, 6, 16);
+    const torso = new T.LatheGeometry([[0, 1.2], [0.78, 1.2], [0.85, 1.32], [0.8, 1.7], [0.72, 2.35], [0.6, 2.72], [0.34, 2.86], [0, 2.86]].map(p => new T.Vector2(p[0], p[1])), 36);
+    P(ch, torso, card, [0, 0, 0], [1, 1, 0.82]);
+    P(ch, SPH, cream, [0, 2.02, 0.2], [0.2, 0.9, 0.5], [0.075, 0, 0]); [1, -1].forEach(s => P(ch, CAP, card, [s * 0.27, 2.0, 0.6], [0.34, 1.02, 0.3], [0.075, 0, s * 0.05]));
+    P(ch, SPH, dark, [0.27, 1.95, 0.7], 0.045); P(ch, SPH, dark, [0.27, 1.68, 0.72], 0.045); P(ch, SPH, dark, [0.27, 1.42, 0.735], 0.045);
+    P(ch, new T.TorusGeometry(0.42, 0.13, 12, 32), card, [0, 2.8, 0.02], [1, 0.9, 1], [PI / 2, 0, 0]);
+    P(ch, CYL, skin, [0, 2.86, 0], [0.26, 0.3, 0.26]);
+    const arms = {};
+    [1, -1].forEach(s => { const a = G3(ch, s * 0.7, 2.62, 0); a.rotation.z = s * 0.6; P(a, CAP, card, [0, -0.55, 0]); P(a, CYL, card, [0, -1.04, 0], [0.275, 0.16, 0.275]); P(a, SPH, skin, [0, -1.28, 0], 0.24); P(a, SPH, skin, [0, -1.25, 0.2], 0.1); arms[s] = a;
+      P(ch, CYL, pants, [s * 0.36, 0.82, 0], [0.31, 0.95, 0.31]); P(ch, CYL, M('#6B3F2A'), [s * 0.36, 0.4, 0], [0.34, 0.16, 0.34]);
+      P(ch, SPH, M('#E6D4B4'), [s * 0.36, 0.1, 0.14], [0.38, 0.12, 0.54]); P(ch, SPH, cream, [s * 0.36, 0.2, 0.14], [0.36, 0.24, 0.52]); });
+    const head = G3(ch, 0, 3.78, 0), ha = 1.16, hb = 1.04, hc = 1.06;
+    P(head, new T.SphereGeometry(1, 48, 32), skin, [0, 0, 0], [ha, hb, hc]);
+    const Z = new T.Vector3(0, 0, 1);
+    const onFace = (o, x, y, out) => { const z = hc * Math.sqrt(Math.max(0, 1 - (x / ha) ** 2 - (y / hb) ** 2)); o.position.set(x, y, z + out); o.quaternion.setFromUnitVectors(Z, new T.Vector3(x / ha / ha, y / hb / hb, z / hc / hc).normalize()); return o; };
+    const lidG = new T.TorusGeometry(0.215, 0.042, 8, 20, PI), eyes = [];
+    [1, -1].forEach(s => { const e = onFace(G3(head, 0, 0, 0), s * 0.44, -0.08, 0.0); P(e, SPH, M('#FBF1DC'), [0, 0, 0], [0.2, 0.23, 0.06]); P(e, SPH, M('#7A6B2E'), [0, -0.01, 0.04], [0.14, 0.16, 0.04]); P(e, SPH, dark, [0, -0.01, 0.065], [0.075, 0.09, 0.03]); P(e, SPH, new T.MeshBasicMaterial({ color: '#fff' }), [0.05, 0.06, 0.09], 0.035); P(e, lidG, dark, [0, 0.03, 0.05]); eyes.push(e);
+      const b = onFace(P(head, new T.CapsuleGeometry(0.045, 0.26, 4, 10), dark, [0, 0, 0]), s * 0.46, 0.34, 0.02); b.rotateZ(PI / 2 - s * 0.15);
+      onFace(P(head, SPH, M('#F2A08A'), [0, 0, 0], [0.15, 0.09, 0.03]), s * 0.74, -0.36, -0.01);
+      P(head, SPH, skin, [s * 1.15, -0.12, 0], [0.15, 0.25, 0.2]); });
+    onFace(P(head, CONE, M('#F0853F'), [0, 0, 0], [0.1, 0.3, 0.1]), 0, -0.3, 0.1).rotateX(PI / 2);
+    onFace(P(head, new T.TorusGeometry(0.19, 0.036, 8, 20, PI), dark, [0, 0, 0]), 0, -0.5, 0.0).rotateZ(PI);
+    for (let i = 0; i < 80; i++) { const y = 1 - 2 * (i + 0.5) / 80, rd = Math.sqrt(1 - y * y), th = i * 2.39996, x = cos(th) * rd, z = sin(th) * rd; const thr = z < 0.3 ? -0.6 + (z + 1) / 1.3 * 0.78 : 0.34 + (z - 0.3) * 0.75; if (y < thr) continue; const r = (0.3 + rng() * 0.14) * (z > 0.3 ? 0.82 : 1); P(head, SPH, hair, [x * ha, y * hb + 0.04, z * hc], [r, r * 0.88, r]); }
+    [[0.25, 1.0, 0.45, 0.42], [-0.32, 1.02, 0.35, 0.4], [0, 0.96, 0.62, 0.33], [0.62, 0.86, 0.5, 0.32], [-0.66, 0.84, 0.46, 0.33], [1.0, 0.3, 0.22, 0.28], [-1.0, 0.3, 0.22, 0.28]].forEach(h => P(head, SPH, hair, [h[0], h[1], h[2]], h[3]));
+    const C48 = new T.CylinderGeometry(1, 1, 1, 56);
+    P(sc, C48, sand, [0, -0.42, 0], [1.8, 0.3, 1.8]); P(sc, C48, grass, [0, -0.17, 0], [1.68, 0.4, 1.68]);
+    [[1.1, 0.6], [-1.2, 0.3], [0.9, -0.8], [-0.8, 1.0], [1.3, -0.1]].forEach((p, i) => P(sc, SPH, M(fcol[i % 4]), [p[0], 0.08, p[1]], 0.08));
+    sc.add(new T.HemisphereLight('#fff', '#E8CDB6', 2.1));
+    const key = new T.DirectionalLight('#FFF3E0', 2.6); key.position.set(3.5, 8, 6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+    Object.assign(key.shadow.camera, { left: -4, right: 4, top: 7, bottom: -2, near: 1, far: 30 }); key.shadow.normalBias = 0.03; sc.add(key);
+    const cC = new T.PerspectiveCamera(26, 0.62, 0.1, 100); cC.position.set(0, 3.3, 15.8); cC.lookAt(0, 2.5, 0);
+    const rC = new T.WebGLRenderer({ canvas: cvC, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    rC.shadowMap.enabled = true; rC.shadowMap.type = T.PCFShadowMap;
+    this.renderers = [rI, rC];
+
+    // avatar snapshot for the profile pill
+    const hcam = new T.PerspectiveCamera(30, 1, 0.1, 50); hcam.position.set(0, 3.95, 6.4); hcam.lookAt(0, 3.9, 0);
+    rC.setPixelRatio(1); rC.setSize(168, 168, false); rC.render(sc, hcam);
+    try { const av = this.avatarRef.current; if (av) av.style.backgroundImage = 'url(' + cvC.toDataURL() + ')'; } catch (e) {}
+
+    /* ---------- looks, sizing, loop ---------- */
+    const LOOKS = {
+      'Day': { sun: '#FFF1D8', si: 3, sp: [14, 26, 10], hs: '#FFFFFF', hg: '#BFE3D0', hi: 2, water: '#FFFFFF', win: 0, lamp: 0, spark: 1 },
+      'Golden hour': { sun: '#FFAE6E', si: 3.3, sp: [24, 13, 7], hs: '#FFD3BD', hg: '#C79AB0', hi: 1.7, water: '#FFF0F2', win: 0.8, lamp: 14, spark: 0.9 },
+      'Night': { sun: '#9DB4FF', si: 1.2, sp: [-10, 24, 14], hs: '#6C7BC4', hg: '#27305C', hi: 1.3, water: '#6A76C0', win: 1.8, lamp: 60, spark: 0.35 }
+    };
+    let look = LOOKS.Day;
+    this.applyLook = () => {
+      look = LOOKS[this.tod()] || LOOKS.Day;
+      sun.color.set(look.sun); sun.intensity = look.si; sun.position.set(look.sp[0], look.sp[1], look.sp[2]).normalize().multiplyScalar(50);
+      hemi.color.set(look.hs); hemi.groundColor.set(look.hg); hemi.intensity = look.hi;
+      waterMat.color.set(look.water); winMat.emissiveIntensity = look.win; lamp.intensity = look.lamp; fire.intensity = look.lamp * 0.8;
+      card.color.set(this.props.cardigan || '#6F7F3A');
+    };
+    this.applyLook();
+    const resize = () => {
+      const w = root.clientWidth, h = root.clientHeight, pr = Math.min(window.devicePixelRatio || 1, 2);
+      rI.setPixelRatio(pr); rI.setSize(w, h, false); cam.aspect = w / h; cam.setViewOffset(w, h, w * 0.09, h * (h < 700 ? 0.2 : 0.15), w, h); cam.updateProjectionMatrix();
+      this.dist = 50 * Math.max(1, 1.5 / (w / h)) * (h < 700 ? 1.22 : 1.08);
+      const cw = cvC.clientWidth, chh = cvC.clientHeight; rC.setPixelRatio(pr); rC.setSize(cw, chh, false); cC.aspect = cw / chh; cC.updateProjectionMatrix();
+    };
+    resize(); this.ro = new ResizeObserver(resize); this.ro.observe(root);
+    let drag = null;
+    const down = e => { drag = { x: e.clientX, o: this.orbit }; cvI.setPointerCapture(e.pointerId); cvI.style.cursor = 'grabbing'; };
+    const move = e => { this.mx = e.clientX / window.innerWidth * 2 - 1; this.my = e.clientY / window.innerHeight * 2 - 1; if (drag) this.orbit = drag.o - (e.clientX - drag.x) * 0.006; };
+    const up = () => { drag = null; cvI.style.cursor = 'grab'; };
+    cvI.addEventListener('pointerdown', down); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    this.off = () => { cvI.removeEventListener('pointerdown', down); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+
+    let last = performance.now() / 1000, waveK = 0, hx = 0, hy = 0;
+    const tick = now => {
+      if (!this.alive) return; this.raf = requestAnimationFrame(tick);
+      const t = now / 1000, dt = Math.min(0.05, t - last); last = t;
+      if (!drag && (this.props.droneOrbit ?? true)) this.orbit += dt * 0.035;
+      const e = 0.68, D = this.dist, a = this.orbit;
+      cam.position.set(D * cos(e) * sin(a), D * sin(e) + sin(t * 0.4) * 0.3, D * cos(e) * cos(a)); cam.lookAt(0, 1, 0);
+      const f = 1.045 + 0.03 * sin(t * 0.9); foam.scale.set(f, 1, f); foam.material.opacity = 0.55 + 0.3 * sin(t * 0.9 + 1.2);
+      sparkM.forEach((m, i) => m.opacity = (0.28 + 0.24 * sin(t * 0.8 + i * 2.1)) * look.spark);
+      clouds.forEach(c => { c.position.x += dt * 0.3; if (c.position.x > 38) c.position.x = -38; });
+      boat.position.y = 0.1 + sin(t * 1.3) * 0.04; boat.rotation.z = sin(t * 1.1) * 0.05;
+      sail.rotation.y = this.orbit + 2.2 + sin(t * 0.05) * 0.5; sb.rotation.z = sin(t) * 0.04;
+      flame.scale.y = 0.5 + sin(t * 9) * 0.06;
+      smoke.forEach(s => { const p = (s.userData.ph + t * 0.12) % 1; s.position.set(chim.x + p * 0.5, chim.y + 1 + p * 2.4, chim.z + sin(p * 5) * 0.12); s.scale.setScalar(0.14 + p * 0.36); s.material.opacity = (1 - p) * 0.6; });
+      rI.render(scene, cam);
+
+      waveK += ((this.wave ? 1 : 0) - waveK) * Math.min(1, dt * 9);
+      hx += (this.mx - hx) * Math.min(1, dt * 4); hy += (this.my - hy) * Math.min(1, dt * 4);
+      ch.rotation.y = -0.32 + hx * 0.12; ch.position.y = 0.03 + sin(t * 1.8) * 0.025;
+      head.rotation.set(hy * 0.12 + sin(t * 0.9) * 0.02, hx * 0.22, sin(t * 0.7) * 0.035 - waveK * 0.1);
+      arms[-1].rotation.z = -0.6 + waveK * (-1.25 + sin(t * 10) * 0.3) + sin(t * 1.8) * 0.02; arms[-1].rotation.x = -waveK * 0.75;
+      arms[1].rotation.z = 0.6 - sin(t * 1.8) * 0.02;
+      const bl = (t % 4.2) < 0.13 ? 0.12 : 1; eyes.forEach(ey => ey.scale.y += (bl - ey.scale.y) * 0.5);
+      rC.render(sc, cC);
+    };
+    this.raf = requestAnimationFrame(tick);
+  }
+
+  renderVals() {
+    const order = ['Day', 'Golden hour', 'Night'];
+    return {
+      rootRef: this.rootRef, islandRef: this.islandRef, charRef: this.charRef,
+      avatarRef: this.avatarRef,
+      waveOn: () => { this.wave = true; }, waveOff: () => { this.wave = false; },
+      cycleTime: () => this.setState({ tod: order[(order.indexOf(this.tod()) + 1) % 3] })
+    };
+  }
+}
+</script>
+</body>
+</html>
