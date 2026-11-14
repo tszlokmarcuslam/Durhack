@@ -50,7 +50,8 @@ tests/                      Vitest
 ## Environment variables
 
 See `.env.example`. Public: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-Server only: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL` (optional), `ECHO_DEV_MODE`.
+Server only: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL` (optional),
+`ELEVENLABS_API_KEY` (voice; optional), `ELEVENLABS_VOICE_ID` and `ELEVENLABS_MODEL` (optional), `ECHO_DEV_MODE`.
 
 `ECHO_DEV_MODE=true` lets the endpoint run without Supabase/Gemini; replies are labelled "Local dev mode"
 and no search results are ever invented. **Never set it in production** — without Supabase it skips authentication.

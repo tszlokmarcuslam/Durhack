@@ -26,11 +26,19 @@ function PlayerCard({ player }: { player: PublicPlayer }) {
 }
 
 export function CompanionChat() {
-  const { messages, status, error, send, retry } = useCompanionStore();
+  const { messages, status, error, send, retry, setChatOpen } = useCompanionStore();
+  const inputRef = useRef<HTMLInputElement>(null);
   const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine);
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
   const thinking = status === 'thinking';
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setChatOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setChatOpen]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
@@ -50,7 +58,17 @@ export function CompanionChat() {
     >
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-2">
         <h2 className="font-semibold">🐾 Echo, your companion</h2>
-        {!online && <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-300">Offline</span>}
+        <div className="flex items-center gap-2">
+          {!online && <span className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-300">Offline</span>}
+          <button
+            type="button"
+            onClick={() => setChatOpen(false)}
+            aria-label="Close chat"
+            className="rounded px-2 text-lg leading-none text-slate-400 hover:bg-white/10 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
@@ -105,6 +123,7 @@ export function CompanionChat() {
         </label>
         <input
           id="companion-input"
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={1000}

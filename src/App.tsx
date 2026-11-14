@@ -4,9 +4,12 @@ import { supabase } from './lib/supabase';
 import { World } from './world/World';
 import { CompanionChat } from './components/CompanionChat';
 import { AuthBar } from './components/AuthBar';
+import { PetCustomizer } from './components/PetCustomizer';
+import { useCompanionStore } from './store/companionStore';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const chatOpen = useCompanionStore((s) => s.chatOpen);
 
   useEffect(() => {
     if (!supabase) return;
@@ -24,12 +27,11 @@ export default function App() {
         <div className="pointer-events-auto flex flex-col items-start gap-2 self-start">
           <AuthBar session={session} />
           <p className="rounded-lg bg-slate-900/70 px-3 py-1.5 text-xs text-slate-200">
-            WASD / arrows to move · drag to look · scroll to zoom
+            WASD / arrows to move · drag to look · scroll to zoom · tap Echo's bubble to chat
           </p>
+          <PetCustomizer />
         </div>
-        <div className="self-end">
-          <CompanionChat />
-        </div>
+        <div className="self-end">{chatOpen && <CompanionChat />}</div>
       </div>
     </div>
   );

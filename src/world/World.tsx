@@ -30,7 +30,7 @@ export function World({ playerName }: { playerName: string }) {
     <Canvas shadows camera={{ position: [0, 5, -8], fov: 55 }}>
       <color attach="background" args={['#bfdbfe']} />
       <fog attach="fog" args={['#bfdbfe', 25, 60]} />
-      <ambientLight intensity={0.7} />
+      <hemisphereLight args={['#ffffff', '#86efac', 0.9]} />
       <directionalLight position={[10, 15, 5]} intensity={1.2} castShadow shadow-mapSize={[1024, 1024]} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { authenticate, fail, jsonResponse, rateLimited, serviceClient } from '../server/lib/auth';
 import { GeminiError, runCompanionTurn } from '../server/lib/gemini';
 import { searchPlayers } from '../server/lib/searchPlayers';
 import type { ApiError, ChatTurn, CompanionRequest, CompanionResponse } from '../src/types/companion';
@@ -9,10 +9,7 @@ const MAX_MESSAGE = 1000;
 const MAX_HISTORY = 12;
 const MAX_BODY_BYTES = 32_000;
 
-function json(status: number, body: CompanionResponse | ApiError): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-}
-const fail = (status: number, error: string, message: string) => json(status, { error, message });
+const json = (status: number, body: CompanionResponse | ApiError) => jsonResponse(status, body);
 
 export function parseCompanionRequest(body: unknown): CompanionRequest | null {
   if (typeof body !== 'object' || body === null) return null;
@@ -30,43 +27,17 @@ export function parseCompanionRequest(body: unknown): CompanionRequest | null {
   return { message: message.trim(), history: turns };
 }
 
-// shortcut: in-memory limiter is per server instance, so the real limit is looser on Vercel;
-// move to a shared store (Upstash/Supabase) before a public launch.
-const RATE_LIMIT = 20;
-const RATE_WINDOW_MS = 60_000;
-const hits = new Map<string, number[]>();
-function rateLimited(userId: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  recent.push(now);
-  hits.set(userId, recent);
-  return recent.length > RATE_LIMIT;
-}
-
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return fail(405, 'method_not_allowed', 'Use POST.');
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
   const devMode = process.env.ECHO_DEV_MODE === 'true';
-  const db = supabaseUrl && serviceKey ? createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) : null;
+  const db = serviceClient();
 
-  // --- Authenticate ---
-  let userId: string;
-  if (db) {
-    const token = req.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
-    if (!token) return fail(401, 'unauthenticated', 'Sign in to talk to your companion.');
-    const { data, error } = await db.auth.getUser(token);
-    if (error || !data.user) return fail(401, 'unauthenticated', 'Your session has expired. Sign in again.');
-    userId = data.user.id;
-  } else if (devMode) {
-    userId = 'local-dev';
-  } else {
-    return fail(503, 'not_configured', 'Supabase is not configured on the server.');
-  }
+  const userId = await authenticate(req, db);
+  if (userId instanceof Response) return userId;
 
-  if (rateLimited(userId)) return fail(429, 'rate_limited', 'Slow down a little — try again in a minute.');
+  if (rateLimited(`chat:${userId}`, 20)) return fail(429, 'rate_limited', 'Slow down a little — try again in a minute.');
 
   // --- Validate input ---
   const raw = await req.text();

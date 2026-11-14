@@ -121,3 +121,14 @@ describe('runCompanionTurn', () => {
     await expect(runCompanionTurn({ apiKey: 'k', model: 'm', search: async () => [], fetchImpl }, [], 'x')).rejects.toThrow();
   });
 });
+
+describe('parseTtsRequest', () => {
+  it('accepts trimmed text and rejects empty, oversized or non-string text', async () => {
+    const { parseTtsRequest } = await import('../api/tts');
+    expect(parseTtsRequest({ text: ' hi ' })).toBe('hi');
+    expect(parseTtsRequest({ text: '   ' })).toBeNull();
+    expect(parseTtsRequest({ text: 'x'.repeat(601) })).toBeNull();
+    expect(parseTtsRequest({ text: 5 })).toBeNull();
+    expect(parseTtsRequest(null)).toBeNull();
+  });
+});

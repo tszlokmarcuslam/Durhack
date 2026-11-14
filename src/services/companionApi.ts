@@ -15,10 +15,15 @@ const KIND_BY_STATUS: Record<number, CompanionErrorKind> = {
   503: 'not_configured',
 };
 
-export async function sendCompanionMessage(request: CompanionRequest): Promise<CompanionResponse> {
+export async function authHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   const token = (await supabase?.auth.getSession())?.data.session?.access_token;
   if (token) headers.authorization = `Bearer ${token}`;
+  return headers;
+}
+
+export async function sendCompanionMessage(request: CompanionRequest): Promise<CompanionResponse> {
+  const headers = await authHeaders();
 
   let res: Response;
   try {
