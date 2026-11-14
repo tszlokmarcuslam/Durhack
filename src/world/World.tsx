@@ -27,7 +27,8 @@ function Tree({ x, z, height }: { x: number; z: number; height: number }) {
 export function World({ playerName }: { playerName: string }) {
   const size = WORLD_HALF_SIZE * 2 + 4;
   return (
-    <Canvas shadows camera={{ position: [0, 5, -8], fov: 55 }}>
+    // the browser's own menu would cover the player right-click menu
+    <Canvas shadows camera={{ position: [0, 5, -8], fov: 55 }} onContextMenu={(e) => e.preventDefault()}>
       <color attach="background" args={['#bfdbfe']} />
       <fog attach="fog" args={['#bfdbfe', 25, 60]} />
       <hemisphereLight args={['#ffffff', '#86efac', 0.9]} />

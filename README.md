@@ -31,6 +31,23 @@ Browser (React + R3F + Zustand)
 - Secrets (`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are read only in `api/` and `server/`.
 - In dev, a small Vite plugin serves `/api/companion` with the same handler Vercel runs, so no Vercel CLI is needed.
 
+## Friends and parties
+
+Run `supabase/migrations/005_friends_parties.sql` once (it prints `ok - friends and parties ready`).
+All friend and party rules live in database functions; the tables can't be read or written directly.
+`npm run e2e:social` checks the rules live with throwaway players.
+
+**Right-click menu for other players' avatars** (for whoever adds multiplayer avatars):
+
+```tsx
+<mesh onContextMenu={(e) => {
+  e.stopPropagation();
+  useSocialStore.getState().openPlayerMenu({ userId, username, displayName }, e.nativeEvent.clientX, e.nativeEvent.clientY);
+}} />
+```
+
+`useSocialStore((s) => s.online)` is the set of online user ids (Supabase Realtime presence).
+
 ## Folder structure
 
 ```
