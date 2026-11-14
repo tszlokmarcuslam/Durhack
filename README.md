@@ -68,6 +68,10 @@ npm run dev
 Open http://localhost:5173. With only `ECHO_DEV_MODE=true` in `.env` you get the world and a labelled dev-mode chat.
 To go live: create a Supabase project, run `supabase/schema.sql` in its SQL editor, fill in `.env`, restart.
 
+**Existing Supabase projects:** don't re-run `schema.sql`. Run the files in `supabase/migrations/` in order
+(each in a fresh SQL Editor tab, whole file, nothing selected). `004` prints `ok - tag rule updated` when it worked.
+`supabase/diagnose_profiles.sql` lists the profile-save rules if tags ever behave oddly.
+
 Checks: `npm run typecheck`, `npm test`, `npm run build`.
 
 ## Deploy to Vercel

@@ -14,13 +14,13 @@ const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persi
 const all = { is_discoverable: true, share_location: true, share_education: true, share_interests: true };
 // The last three exist to prove the privacy rules: they must not leak through search.
 const PLAYERS = [
-  { username: 'ada_l', display_name: 'Ada', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['chess', 'climbing'], bio: 'Number theory nerd.', ...all },
-  { username: 'ben_k', display_name: 'Ben', location_city: 'Manchester', university: 'Durham University', subject: 'Maths and Physics', interests: ['guitar', 'football'], bio: 'Looking for a study group.', ...all },
-  { username: 'chen_w', display_name: 'Chen', location_city: 'Durham', university: 'Durham University', subject: 'Computer Science', interests: ['chess', 'game dev'], bio: 'Hackathon regular.', ...all },
-  { username: 'dina_r', display_name: 'Dina', location_city: 'Leeds', university: 'University of Leeds', subject: 'Music', interests: ['piano', 'running'], bio: 'Jam sessions welcome.', ...all },
-  { username: 'hidden_city', display_name: 'Eli (hides city)', location_city: 'Manchester', university: 'Newcastle University', subject: 'Mathematics', interests: ['chess'], bio: null, ...all, share_location: false },
-  { username: 'hidden_edu', display_name: 'Fay (hides education)', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['yoga'], bio: null, ...all, share_education: false },
-  { username: 'not_discoverable', display_name: 'Gus (opted out)', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['chess'], bio: null, ...all, is_discoverable: false },
+  { username: 'ada_l', display_name: 'Ada', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['Chess', 'Climbing', 'Maths'], bio: 'Number theory nerd.', ...all },
+  { username: 'ben_k', display_name: 'Ben', location_city: 'Manchester', university: 'Durham University', subject: 'Maths and Physics', interests: ['Guitar', 'Football', 'Hackathons'], bio: 'Looking for a study group.', ...all },
+  { username: 'chen_w', display_name: 'Chen', location_city: 'Durham', university: 'Durham University', subject: 'Computer Science', interests: ['Chess', 'GameDev', 'Hackathons', 'InternationalStudents'], bio: 'Hackathon regular.', ...all },
+  { username: 'dina_r', display_name: 'Dina', location_city: 'Leeds', university: 'University of Leeds', subject: 'Music', interests: ['JazzPiano', 'Running', 'LGBTQSociety'], bio: 'Jam sessions welcome.', ...all },
+  { username: 'hidden_city', display_name: 'Eli (hides city)', location_city: 'Manchester', university: 'Newcastle University', subject: 'Mathematics', interests: ['Chess'], bio: null, ...all, share_location: false },
+  { username: 'hidden_edu', display_name: 'Fay (hides education)', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['Yoga'], bio: null, ...all, share_education: false },
+  { username: 'not_discoverable', display_name: 'Gus (opted out)', location_city: 'Manchester', university: 'University of Manchester', subject: 'Mathematics', interests: ['Chess'], bio: null, ...all, is_discoverable: false },
 ];
 const emailFor = (p) => `seed_${p.username}@echoworld.test`;
 

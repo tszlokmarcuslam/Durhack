@@ -164,3 +164,56 @@ describe('toSpeech', () => {
     expect(toSpeech('3 × 4 = 12 and 90°')).toBe('3 times 4 equals 12 and 90 degrees');
   });
 });
+
+describe('profile settings', () => {
+  it('accepts a valid profile and round-trips it through a database row', async () => {
+    const { emptyProfile, validateProfile, toRow, fromRow } = await import('../src/types/profile');
+    const form = {
+      ...emptyProfile(),
+      username: 'ada_l',
+      displayName: ' Ada ',
+      city: 'Manchester',
+      tags: ['Chess', 'JazzPiano'],
+      social: { website: 'https://ada.dev', github: '', linkedin: '', instagram: '' },
+      isDiscoverable: true,
+    };
+    expect(validateProfile(form)).toEqual({});
+    const row = toRow('u1', form);
+    expect(row).toMatchObject({ display_name: 'Ada', interests: ['Chess', 'JazzPiano'], social_links: { website: 'https://ada.dev' }, university: null });
+    expect(fromRow(row)).toMatchObject({ displayName: 'Ada', tags: ['Chess', 'JazzPiano'], isDiscoverable: true });
+  });
+
+  it('starts private and rejects bad input', async () => {
+    const { emptyProfile, validateProfile } = await import('../src/types/profile');
+    const blank = emptyProfile();
+    expect([blank.isDiscoverable, blank.shareLocation, blank.shareEducation, blank.shareInterests]).toEqual([false, false, false, false]);
+    const errors = validateProfile({
+      ...blank,
+      username: 'a b',
+      displayName: '',
+      bio: 'x'.repeat(301),
+      tags: Array.from({ length: 13 }, (_, i) => `Tag${i}`),
+      social: { website: 'javascript:alert(1)', github: 'http://github.com/x', linkedin: '', instagram: '' },
+    });
+    expect(Object.keys(errors).sort()).toEqual(['bio', 'displayName', 'github', 'tags', 'username', 'website']);
+  });
+});
+
+describe('community tags', () => {
+  it('turns free text into display tags and matching keys', async () => {
+    const { toTag, tagKey } = await import('../src/types/tags');
+    expect(toTag('#jazz piano')).toBe('JazzPiano');
+    expect(toTag('LGBTQ Society')).toBe('LGBTQSociety');
+    expect(toTag('#')).toBeNull();
+    expect(toTag('x'.repeat(31))).toBeNull();
+    expect(tagKey('#Jazz Piano')).toBe('jazzpiano');
+    expect(tagKey('JazzPiano')).toBe(tagKey('jazz-piano'));
+  });
+  it('search filters use tag keys, so spelling and case do not matter', () => {
+    expect(validateSearchFilters({ interests: ['#Jazz Piano', 'jazzpiano', 'LGBTQ Society'] })).toEqual({
+      ok: true,
+      value: { interests: ['jazzpiano', 'lgbtqsociety'], limit: 5 },
+    });
+    expect(validateSearchFilters({ interests: ['###'] }).ok).toBe(false);
+  });
+});

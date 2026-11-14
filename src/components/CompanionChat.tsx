@@ -11,7 +11,7 @@ function subscribeOnline(cb: () => void) {
   };
 }
 
-function PlayerCard({ player }: { player: PublicPlayer }) {
+export function PlayerCard({ player }: { player: PublicPlayer }) {
   const education = [player.subject, player.university].filter(Boolean).join(' · ');
   return (
     <li className="rounded-lg border border-white/10 bg-white/5 p-2 text-xs">
@@ -20,7 +20,15 @@ function PlayerCard({ player }: { player: PublicPlayer }) {
       </p>
       {education && <p className="text-slate-300">{education}</p>}
       {player.city && <p className="text-slate-300">{player.city}</p>}
-      {player.interests && <p className="text-slate-400">{player.interests.join(', ')}</p>}
+      {player.interests && (
+        <p className="mt-1 flex flex-wrap gap-1">
+          {player.interests.map((tag) => (
+            <span key={tag} className="rounded-full bg-indigo-500/25 px-1.5 text-[11px] text-indigo-100">
+              #{tag}
+            </span>
+          ))}
+        </p>
+      )}
     </li>
   );
 }

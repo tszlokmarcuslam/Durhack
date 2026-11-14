@@ -54,7 +54,13 @@ const SEARCH_TOOL = {
           'Course or subject studied. Matched as a substring, so pass the shortest stem that covers ' +
           'spelling variants: "math" for maths/mathematics, "comput" for computing/computer science.',
       },
-      interests: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Up to 5 interests; matches any.' },
+      interests: {
+        type: 'ARRAY',
+        items: { type: 'STRING' },
+        description:
+          'Up to 5 community tags: interests, hobbies, societies or communities, e.g. "JazzPiano", "LGBTQSociety", ' +
+          '"InternationalStudents", "Weightlifting". Matches any; spacing and case do not matter.',
+      },
       limit: { type: 'INTEGER', description: 'Max results, 1-10. Default 5.' },
     },
   },

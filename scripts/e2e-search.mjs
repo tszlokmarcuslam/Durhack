@@ -42,6 +42,10 @@ try {
   check('Manchester + maths returns ada_l and ben_k only', names(maths) === 'ada_l,ben_k', names(maths));
   check('reply is live Gemini', maths.body.mode === 'live');
 
+  const tagged = await ask('Is anyone in the LGBTQ society or into jazz piano?', token);
+  console.log('   reply:', tagged.body.reply ?? tagged.body.message);
+  check('community tag search matches regardless of spelling', names(tagged) === 'dina_r', names(tagged));
+
   const chess = await ask('Who is into chess?', token);
   console.log('   reply:', chess.body.reply ?? chess.body.message);
   check('chess excludes the opted-out player', names(chess) === 'ada_l,chen_w,hidden_city', names(chess));
@@ -59,6 +63,30 @@ try {
   });
   const { data: rows, error: rlsError } = await authed.from('profiles').select('username');
   check('RLS hides other profiles from the browser', !rlsError && rows.length === 0, rlsError?.message ?? `${rows.length} rows`);
+
+  // Settings: a player can save their own profile, and only their own.
+  const me = created.user.id;
+  const mine = { id: me, username: `e2e_${Date.now() % 1e9}`, display_name: 'E2E', interests: ['Chess', 'chess'], social_links: { website: 'https://example.com' } };
+  const saveOwn = await authed.from('profiles').upsert(mine);
+  check('player can save their own profile', !saveOwn.error, saveOwn.error?.message);
+  const readBack = await authed.from('profiles').select('interests, interest_keys, is_discoverable').eq('id', me).single();
+  check(
+    'saved profile starts hidden; tags keep spelling, duplicates merged',
+    readBack.data?.is_discoverable === false && readBack.data?.interests.join() === 'Chess' && readBack.data?.interest_keys.join() === 'chess',
+    JSON.stringify(readBack.data),
+  );
+
+  const { data: ada } = await admin.from('profiles').select('id').eq('username', 'ada_l').single();
+  const hijack = await authed.from('profiles').upsert({ id: ada.id, username: 'ada_l', display_name: 'Hacked' });
+  const { data: adaAfter } = await admin.from('profiles').select('display_name').eq('id', ada.id).single();
+  check("player cannot overwrite someone else's profile", !!hijack.error && adaAfter.display_name === 'Ada', hijack.error?.message);
+
+  const taken = await authed.from('profiles').update({ username: 'ada_l' }).eq('id', me);
+  check('taken username is rejected', taken.error?.code === '23505', taken.error?.code);
+
+  const badLink = await authed.from('profiles').update({ social_links: { website: 'javascript:alert(1)' } }).eq('id', me);
+  if (badLink.error?.code === '23514') check('database rejects unsafe social links', true);
+  else console.log('SKIP  database rejects unsafe social links  [run supabase/migrations/002_social_links_check.sql]');
 } finally {
   await admin.auth.admin.deleteUser(created.user.id);
 }

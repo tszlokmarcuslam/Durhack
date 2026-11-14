@@ -35,7 +35,7 @@ export async function searchPlayers(
     query = query.eq('share_education', true).ilike('subject', `%${escapeLike(filters.subject)}%`);
   }
   if (filters.interests) {
-    query = query.eq('share_interests', true).overlaps('interests', filters.interests);
+    query = query.eq('share_interests', true).overlaps('interest_keys', filters.interests);
   }
 
   const { data, error } = await query;

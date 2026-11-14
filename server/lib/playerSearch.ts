@@ -1,4 +1,5 @@
 import type { PublicPlayer } from '../../src/types/companion';
+import { tagKey } from '../../src/types/tags';
 
 export interface PlayerSearchFilters {
   city?: string;
@@ -55,10 +56,11 @@ export function validateSearchFilters(input: unknown): ValidationResult {
     const interests: string[] = [];
     for (const item of raw.interests) {
       const interest = cleanText(item, MAX_INTEREST);
-      if (!interest) return { ok: false, error: `Each interest must be 1-${MAX_INTEREST} plain characters.` };
-      interests.push(interest.toLowerCase()); // profiles store interests lowercased (see schema trigger)
+      const key = interest && tagKey(interest); // matches profiles.interest_keys (see schema trigger)
+      if (!key) return { ok: false, error: `Each interest must be 1-${MAX_INTEREST} plain characters.` };
+      interests.push(key);
     }
-    value.interests = interests;
+    value.interests = [...new Set(interests)];
   }
   if (raw.limit !== undefined) {
     const limit = raw.limit;
