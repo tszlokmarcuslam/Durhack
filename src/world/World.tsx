@@ -24,7 +24,7 @@ function Tree({ x, z, height }: { x: number; z: number; height: number }) {
   );
 }
 
-export function World({ playerName }: { playerName: string }) {
+export function World({ playerName, idle = false }: { playerName: string; idle?: boolean }) {
   const size = WORLD_HALF_SIZE * 2 + 4;
   return (
     // the browser's own menu would cover the player right-click menu
@@ -50,7 +50,8 @@ export function World({ playerName }: { playerName: string }) {
       <Player name={playerName} />
       <Pet />
 
-      <OrbitControls makeDefault enablePan={false} minDistance={4} maxDistance={16} maxPolarAngle={Math.PI / 2 - 0.08} />
+      {/* idle = home screen: the camera slowly circles the scene behind the menu */}
+      <OrbitControls makeDefault autoRotate={idle} autoRotateSpeed={0.5} enableZoom={!idle} enablePan={false} minDistance={4} maxDistance={16} maxPolarAngle={Math.PI / 2 - 0.08} />
     </Canvas>
   );
 }

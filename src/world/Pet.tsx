@@ -385,7 +385,9 @@ export function Pet() {
 
   const leftEye: EyeKind = face === 'wink' ? 'arc' : face;
   const rightEye: EyeKind = face === 'wink' ? 'line' : face;
-  const bubble = thinking
+  const bubble = playerState.frozen // home screen: Echo stays quiet behind the menu
+    ? null
+    : thinking
     ? '…'
     : onStage
       ? onStage.text.length > BUBBLE_CHARS ? `${onStage.text.slice(0, BUBBLE_CHARS)}…` : onStage.text

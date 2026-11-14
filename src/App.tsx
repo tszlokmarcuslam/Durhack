@@ -11,12 +11,16 @@ import { useProfileStore } from './store/profileStore';
 import { FriendsPanel } from './components/FriendsPanel';
 import { PlayerMenu } from './components/PlayerMenu';
 import { useSocialStore } from './store/socialStore';
+import { HomeScreen } from './components/HomeScreen';
+import { playerState } from './world/playerState';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const chatOpen = useCompanionStore((s) => s.chatOpen);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState<false | 'friends' | 'party'>(false);
+  const [screen, setScreen] = useState<'home' | 'world'>('home');
+  playerState.frozen = screen === 'home'; // the avatar only walks once you've joined the world
   const pending = useSocialStore((s) => s.friends.filter((f) => f.status === 'pending' && f.incoming).length + s.invites.length);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const profile = useProfileStore((s) => s.profile);
@@ -45,7 +49,23 @@ export default function App() {
 
   return (
     <div className="relative h-full w-full">
-      <World playerName={playerName} />
+      <World playerName={playerName} idle={screen === 'home'} />
+      {screen === 'home' && (
+        <>
+          <HomeScreen
+            session={session}
+            onEnterWorld={() => setScreen('world')}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenFriends={(tab) => setFriendsOpen(tab)}
+          />
+          {friendsOpen && (
+            <div className="absolute left-6 top-20 z-40">
+              <FriendsPanel initialTab={friendsOpen} onClose={() => setFriendsOpen(false)} />
+            </div>
+          )}
+        </>
+      )}
+      {screen === 'world' && (
       <div className="pointer-events-none absolute inset-0 z-20 p-4">
         <div className="pointer-events-auto flex max-h-full w-fit flex-col items-start gap-2">
           <AuthBar session={session} />
@@ -53,11 +73,21 @@ export default function App() {
             WASD / arrows to move · drag to look · scroll to zoom · tap Echo's bubble to chat
           </p>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFriendsOpen(false);
+                setScreen('home');
+              }}
+              className="rounded-lg bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-900"
+            >
+              ⌂ Home
+            </button>
             {session && (
               <button
                 type="button"
-                aria-expanded={friendsOpen}
-                onClick={() => setFriendsOpen(!friendsOpen)}
+                aria-expanded={!!friendsOpen}
+                onClick={() => setFriendsOpen(friendsOpen ? false : 'friends')}
                 className="relative rounded-lg bg-slate-900/80 px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-900"
               >
                 👥 Friends
@@ -79,11 +109,12 @@ export default function App() {
             )}
           </div>
           <PetCustomizer />
-          {friendsOpen && <FriendsPanel onClose={() => setFriendsOpen(false)} />}
+          {friendsOpen && <FriendsPanel initialTab={friendsOpen} onClose={() => setFriendsOpen(false)} />}
         </div>
         {/* pinned to its own corner so panels on the left can never push it off screen */}
         <div className="absolute bottom-4 right-4 top-4 flex items-end">{chatOpen && <CompanionChat />}</div>
       </div>
+      )}
       {settingsOpen && <SettingsPanel onClose={closeSettings} />}
       <PlayerMenu />
     </div>

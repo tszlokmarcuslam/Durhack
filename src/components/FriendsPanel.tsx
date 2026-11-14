@@ -30,9 +30,9 @@ function Heading({ children }: { children: ReactNode }) {
   return <h3 className="mb-1.5 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400 first:mt-0">{children}</h3>;
 }
 
-export function FriendsPanel({ onClose }: { onClose: () => void }) {
+export function FriendsPanel({ onClose, initialTab = 'friends' }: { onClose: () => void; initialTab?: 'friends' | 'party' }) {
   const s = useSocialStore();
-  const [tab, setTab] = useState<'friends' | 'party'>('friends');
+  const [tab, setTab] = useState<'friends' | 'party'>(initialTab);
   const [username, setUsername] = useState('');
   const [notice, setNotice] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);

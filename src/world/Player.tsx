@@ -9,6 +9,7 @@ const UP = new Vector3(0, 1, 0);
 const forward = new Vector3();
 const right = new Vector3();
 const move = new Vector3();
+const NO_KEYS = new Set<string>();
 
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
@@ -42,7 +43,7 @@ export function Player({ name }: { name: string }) {
   useFrame(({ camera, controls }, dt) => {
     const g = group.current;
     if (!g) return;
-    const k = held.current;
+    const k = playerState.frozen ? NO_KEYS : held.current;
     const z = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
     const x = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
 
