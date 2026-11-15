@@ -8,6 +8,8 @@
 //  - Rock paper scissors, in first person: your webcam reads your hand (rps.js). No camera: keys 1, 2, 3.
 //  - Rocket race: next to your rockets, then the drone flies into your face and you are in the cockpit, racing the
 //    other player through the same asteroid field (rocket.js). Lean or step to steer, crouch to dive. No camera: A/D, W/S.
+//  - 6-7: palms up, hands up and down as fast as you can. The camera counts every time a hand goes up (sixseven.js);
+//    most ups when time runs out wins. No camera: Space or the up arrow is one up.
 //  - Chess: you both sit down at a table with a board between you; the moves are played on a 2D board on the left
 //    of the screen (worldapp.js). Rules and the computer player: chess.js.
 // First-person games fly the camera into your avatar's face like a drone, and back out at the end (fpv.js).
@@ -18,6 +20,7 @@ import * as RPS from './rps.js';
 import * as MV from './moves.js';
 import { createDrone } from './fpv.js';
 import { createRace } from './rocket.js';
+import { createUpCounter } from './sixseven.js';
 import * as CH from './chess.js';
 
 const PI = Math.PI, TAU = PI * 2, sin = Math.sin, cos = Math.cos;
@@ -37,6 +40,7 @@ export const GAMES = {
   rps: { name: 'Rock paper scissors', gap: 1.1, rps: true, fp: true, opts: [2, 3, 5], opt: 3, setup: 'Show your hand to the camera' },
   // rocket: opts are course lengths in metres. chess: opts are minutes on each player's clock (in seconds).
   rocket: { name: 'Rocket race', gap: 1.5, fp: true, rocket: true, opts: [600, 900, 1300], opt: 900, setup: 'Lean or step to steer, crouch to dive' },
+  six: { name: '6-7', gap: 1.5, gym: true, six: true, opts: [10, 20, 30], opt: 20, setup: 'Palms up, hands up and down as fast as you can' },
   chess: { name: 'Chess', gap: 1.2, chess: true, opts: [180, 300, 600], opt: 300, setup: 'Play your moves on the board on the left' }
 };
 // a game's length from a pick (falls back to the usual one), and how to say it: "30 sec", "2 min", "First to 3"
@@ -71,7 +75,7 @@ export function createGames(T, kit, world, cb = {}) {
   const { isl } = kit;
   const U = { uNwFront: { value: -1 }, uNwCenter: { value: new T.Vector3() }, uNwTime: { value: 0 } };
   const DOWN = new T.Vector3(0, -1, 0), tv = new T.Vector3(), tv2 = new T.Vector3(), q1 = new T.Quaternion(), q2 = new T.Quaternion(), qB = new T.Quaternion();
-  const DARK = new T.Color('#10150F'), SPACE = new T.Color('#050814');
+  const DARK = new T.Color('#10150F'), SPACE = new T.Color('#050814'), STUDIO = new T.Color('#E6D9C8');
 
   /* ---------- the dissolve / appear effect ---------- */
   const hooks = new WeakMap();
@@ -93,7 +97,7 @@ export function createGames(T, kit, world, cb = {}) {
   const plain = new Map();
   const protect = av => av.traverse(n => { const mt = n.material; if (!mt || !hooks.has(mt)) return; if (!plain.has(mt)) { const c = mt.clone(); c.userData = {}; plain.set(mt, c); } n.material = plain.get(mt); });
   function scenery(skip) {
-    return isl.children.filter(o => !o.isLight && !skip.has(o)).map(o => {
+    return isl.children.filter(o => !o.isLight && !skip.has(o) && !o.userData.keep).map(o => {   // keep: things that only visit the island (the pet robot)
       o.traverse(n => { if (n.material) fx(n.material, 'dissolve'); });
       const b = new T.Box3().setFromObject(o), c = b.getCenter(tv), r = b.getSize(tv2).length() / 2;
       return { obj: o, was: o.visible, cx: c.x, cz: c.z, r };
@@ -175,6 +179,61 @@ export function createGames(T, kit, world, cb = {}) {
     [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(([sg, c]) => { part(g, CYL, M('#3A3D44'), [sg * h, .14, 0], [.035, .28, .035]); part(g, CYL, M(c), [sg * h, SEAT_Y - .015, 0], [.15, .03, .15]); });
     return g;
   }
+  // 6-7: a little room with "67" everywhere. Both players face the camera on their mats (x -0.75 and 0.75, facing +z);
+  // the back wall (behind them, -z) has a big neon 67, the left wall has posters, and there is a 67 rug in front.
+  // The camera's side stays open, like a stage set.
+  const canvasTex = (w, h, draw) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; };
+  const printed = tex => { const m = new T.MeshStandardMaterial({ map: tex, roughness: .9 }); fx(m, 'reveal'); return m; };
+  const neon = c => { const m = new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.8, roughness: .4 }); fx(m, 'reveal'); return m; };
+  // one glowing digit, 7-segment style. cx, cy: its middle; w, h: its size; z: how far out from the wall
+  function digit(g, ch, cx, cy, w, h, z, mat) {
+    const t = .075, S = { a: [cx, cy + h / 2, w, t], d: [cx, cy - h / 2, w, t], g: [cx, cy, w, t], f: [cx - w / 2, cy + h / 4, t, h / 2], b: [cx + w / 2, cy + h / 4, t, h / 2], e: [cx - w / 2, cy - h / 4, t, h / 2], c: [cx + w / 2, cy - h / 4, t, h / 2] };
+    for (const k of { 6: 'afgedc', 7: 'abc' }[ch]) { const q = S[k]; part(g, BOX, mat, [q[0], q[1], z], [q[2] + t * .6, q[3] + t * .6, .045]).castShadow = false; }
+  }
+  // a poster: big "67" and a line of small text
+  const poster = (bg, fg, sub) => canvasTex(256, 340, (c, w, h) => {
+    c.fillStyle = bg; c.fillRect(0, 0, w, h); c.strokeStyle = fg; c.lineWidth = 10; c.strokeRect(14, 14, w - 28, h - 28);
+    c.fillStyle = fg; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 150px Figtree, system-ui, sans-serif'; c.fillText('67', w / 2, h * .45);
+    c.font = '800 30px Figtree, system-ui, sans-serif'; c.fillText(sub, w / 2, h * .8);
+  });
+  function sixRoom() {
+    const g = new T.Group();
+    part(g, BOX, M('#C9A27A'), [0, -.06, .1], [6.2, .12, 5.2]).castShadow = false;   // wooden floor
+    for (let i = -6; i <= 6; i++) part(g, BOX, M('#B08860'), [i * .48, .002, .1], [.018, .006, 5.2]).castShadow = false;   // the boards
+    // walls: cream, with a sage panel along the bottom and a dark skirting board
+    part(g, BOX, M('#F2E8DA'), [0, 1.4, -2.45], [6.2, 2.9, .12]); part(g, BOX, M('#7E9A62'), [0, .5, -2.375], [6.2, 1, .03]); part(g, BOX, M('#4A3F35'), [0, .04, -2.36], [6.2, .08, .04]);
+    part(g, BOX, M('#EDE0CF'), [-3.05, 1.4, .1], [.12, 2.9, 5.2]); part(g, BOX, M('#7E9A62'), [-2.975, .5, .1], [.03, 1, 5.2]); part(g, BOX, M('#4A3F35'), [-2.96, .04, .1], [.04, .08, 5.2]);
+    // the big neon 67 behind the players, on a dark board
+    const NX = -1.15, NY = 1.3;   // where the camera looks: a little left of the middle, just above head height
+    part(g, BOX, M('#2B2A27'), [NX, NY, -2.37], [1.75, 1.22, .04]).castShadow = false;
+    digit(g, '6', NX - .36, NY, .42, .82, -2.33, neon('#FF5FA2')); digit(g, '7', NX + .36, NY, .42, .82, -2.33, neon('#3FE0C5'));
+    // small neon signs either side
+    [[.75, 1.62, '#9F7BFF'], [2.2, 1.45, '#FFD45F']].forEach(([x, y, c]) => { part(g, BOX, M('#2B2A27'), [x, y, -2.37], [.86, .62, .04]).castShadow = false; digit(g, '6', x - .18, y, .2, .4, -2.33, neon(c)); digit(g, '7', x + .18, y, .2, .4, -2.33, neon(c)); });
+    // posters on the left wall
+    [[-1.3, '#B9694C', '#FBF8F1', 'SIX SEVEN'], [.4, '#4C5FA8', '#FFD45F', 'HANDS UP'], [2.0, '#5E683C', '#F2E8DA', '6 - 7 CLUB']].forEach(([z, bg, fg, sub]) => {
+      const pl = new T.Mesh(new T.PlaneGeometry(.72, .96), printed(poster(bg, fg, sub))); pl.position.set(-2.98, 1.38, z); pl.rotation.y = PI / 2; g.add(pl);
+      part(g, BOX, M('#4A3F35'), [-2.985, 1.38, z], [.01, 1.02, .78]).castShadow = false;   // its frame
+    });
+    // a round rug in front of the players, with 67 on it
+    const rug = canvasTex(512, 512, (c, w) => {
+      const r = w / 2; c.fillStyle = '#E8D3B5'; c.beginPath(); c.arc(r, r, r, 0, PI * 2); c.fill();
+      [[.94, '#C27352'], [.86, '#E8D3B5'], [.8, '#C27352']].forEach(([k, col]) => { c.fillStyle = col; c.beginPath(); c.arc(r, r, r * k, 0, PI * 2); c.fill(); });
+      c.fillStyle = '#F6EADB'; c.beginPath(); c.arc(r, r, r * .72, 0, PI * 2); c.fill();
+      c.fillStyle = '#C27352'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 230px Figtree, system-ui, sans-serif'; c.fillText('67', r, r * 1.04);
+    });
+    const rm = new T.MeshStandardMaterial({ map: rug, roughness: 1, transparent: true, alphaTest: .5 }); fx(rm, 'reveal');
+    const rugMesh = new T.Mesh(new T.CircleGeometry(.85, 48).rotateX(-PI / 2), rm); rugMesh.position.set(0, .006, 1.75); rugMesh.rotation.y = PI + .7;   // the 67 reads the right way up from the camera rugMesh.receiveShadow = true; g.add(rugMesh);
+    // mats for the two players: blue for who asked, red for who accepted
+    [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(c => part(g, BOX, M(c[1]), [c[0] * .75, .01, .55], [.95, .02, 1.5]).castShadow = false);
+    // plants in the back corners, and a floor lamp by the left wall
+    [[-2.55, -1.95], [2.6, -1.95]].forEach(([x, z]) => {
+      part(g, CYL, M('#C27352'), [x, .2, z], [.22, .4, .22]);
+      [[0, .62, 0, .3], [.14, .78, .05, .2], [-.12, .8, -.04, .22], [.02, .95, -.08, .18]].forEach(l => { part(g, BALL, M('#5E8A4A'), [x + l[0], l[1], z + l[2]], [l[3], l[3], l[3]]).castShadow = false; });   // no shadows on the posters
+    });
+    part(g, CYL, M('#2B2A27'), [-2.55, .02, 1.6], [.16, .04, .16]); part(g, CYL, M('#2B2A27'), [-2.55, .75, 1.6], [.02, 1.5, .02]).castShadow = false;
+    part(g, CONE, neon('#FFE2A8'), [-2.55, 1.55, 1.6], [.2, .28, .2]).castShadow = false;
+    return g;
+  }
   // one chess piece, from a few simple shapes (u: one square)
   function pieceMesh(type, white) {
     const g = new T.Group(), m = M(white ? '#F3EEE6' : '#2E2B28'), u = SQ;
@@ -188,7 +247,7 @@ export function createGames(T, kit, world, cb = {}) {
     if (type === 'n') g.rotation.y = white ? 0 : Math.PI;   // the knight's head looks at the other player
     return g;
   }
-  const arenas = {}, arena = game => { const k = GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : k === 'rocket' ? launchPad() : k === 'chess' ? chessTable() : gym()); };
+  const arenas = {}, arena = game => { const k = GAMES[game].six ? 'six' : GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : k === 'rocket' ? launchPad() : k === 'chess' ? chessTable() : k === 'six' ? sixRoom() : gym()); };
   const spot = new T.SpotLight('#FFF1DC', 0, 0, .75, .6, 0); spot.position.set(0, 5.5, 0);
   const sparks = [0, 1, 2].map(() => { const s = new T.Mesh(STAR, new T.MeshBasicMaterial({ color: '#FFF6D8', transparent: true, depthWrite: false })); s.visible = false; s.userData.t = 1; return s; });
   let warm = false;
@@ -393,14 +452,15 @@ export function createGames(T, kit, world, cb = {}) {
     }
     // boxing and dancing: behind you and off to one side, so you see the other player past your shoulder. The gym: in front of you both.
     game.yaw = gymG ? A.face + (play ? .7 : 1.1) : A.face + PI + (play ? .62 : .95);
+    if (m.game === 'six' && m.phase !== 'out') { V.dist = play ? 4.6 : 6.2; V.el = play ? .2 : .32; return; }   // 6-7: see the room and its 67 signs
     V.dist = m.phase === 'out' ? m.view.dist : m.phase === 'over' ? (gymG ? 4.6 : 3.6) : play ? (box ? 2.8 : gymG ? 4.1 : 4.2) : 6.4;
     V.el = m.phase === 'out' ? m.view.el : play ? (gymG ? .3 : .36) : .5;
   }
   function env(e) {   // 0 = the island's daylight, 1 = the arena's dark hall
-    const space = !!m.race, D = space ? SPACE : DARK, nr = space ? 45 : 12, fr = space ? 175 : 58;   // the rocket race is in deep space
+    const space = !!m.race, room = m.game === 'six', D = space ? SPACE : room ? STUDIO : DARK, nr = space ? 45 : room ? 16 : 12, fr = space ? 175 : room ? 70 : 58;   // the rocket race is in deep space; 6-7 is in a room
     isl.background.lerpColors(m.env.bg, D, e); isl.fog.color.lerpColors(m.env.fog, D, e);
     isl.fog.near = m.env.near + (nr - m.env.near) * e; isl.fog.far = m.env.far + (fr - m.env.far) * e;
-    m.env.lights.forEach(l => { l.light.intensity = l.was * (1 - e * (l.light.isDirectionalLight ? .45 : .6)); }); spot.intensity = 2.6 * e;
+    m.env.lights.forEach(l => { l.light.intensity = l.was * (1 - e * (room ? .1 : l.light.isDirectionalLight ? .45 : .6)); }); spot.intensity = 2.6 * e;
   }
   function step(t, dt) {
     if (!m) return;
@@ -434,6 +494,7 @@ export function createGames(T, kit, world, cb = {}) {
       else if (m.game === 'boxing') boxing(A, B, t, dt);
       else if (m.race) raceStep(t, dt);
       else if (m.chess) chessStep(dt);
+      else if (G.six) sixStep(A, B, t, dt);
       else {
         base(A); m.tracking = fromTrack(A); if (!m.tracking) groove(A, t);
         if (!m.remote) groove(B, t);
@@ -444,7 +505,7 @@ export function createGames(T, kit, world, cb = {}) {
     // camera: the middle of the two while the world changes, then just past your shoulder
     const fk = m.phase === 'play' || m.phase === 'over' ? .4 : m.phase === 'out' ? 0 : .5;
     if (m.chess && m.phase !== 'out') game.focus.set(m.C.x, m.y + .48, m.C.z);
-    else if (G.gym && m.phase !== 'out') game.focus.set(m.C.x + sin(A.face) * .6, m.y + .5, m.C.z + cos(A.face) * .6);
+    else if (G.gym && m.phase !== 'out') game.focus.set(m.C.x + sin(A.face) * .6, m.y + (G.six ? .85 : .5), m.C.z + cos(A.face) * .6);
     else game.focus.set(A.p.x + (B.p.x - A.p.x) * fk, m.y + (m.phase === 'out' ? 1.5 * world.S : .9), A.p.z + (B.p.z - A.p.z) * fk);
     sparks.forEach(s => { if (!s.visible) return; s.userData.t += dt * 4; const k = s.userData.t; s.scale.setScalar(s.userData.big * (.4 + k)); s.material.opacity = 1 - k; s.rotation.y += dt * 9; if (k >= 1) s.visible = false; });
   }
@@ -502,6 +563,24 @@ export function createGames(T, kit, world, cb = {}) {
     const R = m.race;
     if (m.phase === 'play' && ev.some(e => e.kind === 'finish')) finish(R.me.done && !R.them.done ? 'win' : R.them.done && !R.me.done ? 'lose' : R.me.z >= R.them.z ? 'win' : 'lose');
   }
+  // 6-7: every time a hand goes up is one. The camera counts yours (sixseven.js); without it, Space or the up arrow is
+  // one up. The computer bobs its hands at its own speed and slows down a little as its arms get tired.
+  // k: how high one hand is, -1 down to 1 up. Palms up in front of you, the forearm tips up and down.
+  const sixLimb = (F, s, k) => setLimb(F.goal[s], s, [[.14, -.96, .2 + .1 * k], [.06, .1 + .6 * k, 1]]);
+  function sixStep(A, B, t, dt) {
+    const S = m.six, tr = kit.track ? kit.track() : null, raw = tr && tr.raw;
+    base(A); m.tracking = fromTrack(A);
+    if (raw && raw.lm && raw.lm.length) A.score += S.counter.update(raw.lm, m.T, raw.aspect || 4 / 3);
+    if (!m.tracking) [1, -1].forEach(s => sixLimb(A, s, s === S.keySide ? -1 + 2 * S.keyK : -.6));   // the keys: the hand you raised goes up
+    S.keyK = Math.max(0, S.keyK - dt * 4.5);
+    if (!m.remote) {
+      const N = S.ai; N.ph += dt * N.rate * PI * (1 - Math.min(.3, m.T * .01));   // half a swing per hand up
+      const ups = Math.floor(N.ph / PI); if (ups > N.n) { B.score += ups - N.n; N.n = ups; }
+      base(B); [1, -1].forEach(s => sixLimb(B, s, sin(N.ph + (s > 0 ? 0 : PI) - PI / 2)));
+      B.bounce = Math.abs(sin(N.ph)) * .012;
+    }
+    if (m.clock <= 0) finish(A.score > B.score ? 'win' : B.score > A.score ? 'lose' : 'draw');
+  }
   // Chess: the clock of whoever's turn it is runs down; the computer answers after a short think.
   function chessStep(dt) {
     const C = m.chess, S = CH.status(C.st); if (S.over) return;
@@ -549,6 +628,7 @@ export function createGames(T, kit, world, cb = {}) {
   function begin() {
     const A = m.mine, B = m.opp; m.phase = 'play'; m.T = 0; m.cue = '';
     if (GAMES[m.game].kind === 'reps') A.counter = new EX.RepCounter();
+    if (GAMES[m.game].six) m.six = { counter: createUpCounter(), keyK: 0, keySide: 1, ai: { rate: 2.4 + Math.random() * .9, ph: 0, n: 0 } };   // the computer: about 2.4 to 3.3 ups a second, fewer as it tires
     if (GAMES[m.game].kind === 'hold') { B.holding = true; B.npc.p = 6 + Math.random() * 8; }
     if (GAMES[m.game].rps) m.rps = RPS.createMatch({ need: m.opt, remote: m.remote, send: p => cb.send && cb.send({ k: 'rps', n: p.n, pick: p.pick }) });
     if (m.game === 'boxing') [A, B].forEach(F => {   // gloves: blue for who asked, red for who accepted
@@ -580,7 +660,7 @@ export function createGames(T, kit, world, cb = {}) {
     prewarm() {
       if (warm) return; warm = true; const skip = new Set(); world.each(p => skip.add(p.av)); scenery(skip);
       spot.intensity = 0; isl.add(spot, spot.target);   // always in the scene (switched off), so lighting is not rebuilt mid-match
-      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps'), arena('rocket'), arena('chess')]; gs.forEach(g => isl.add(g)); let n = 0;
+      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps'), arena('rocket'), arena('chess'), arena('six')]; gs.forEach(g => isl.add(g)); let n = 0;
       const off = () => { if (++n < 3) return requestAnimationFrame(off); gs.forEach(g => { if (!m || m.arena !== g) isl.remove(g); }); }; requestAnimationFrame(off);
     },
     // o: { game, oppId, role (0 = you asked, 1 = you accepted), remote, spec, opt (the length picked) }. Returns the spec so both sides can build the same arena.
@@ -649,7 +729,9 @@ export function createGames(T, kit, world, cb = {}) {
     rpsIn(msg) { if (m && m.rps && m.remote && msg) m.rps.theirs(msg.n, msg.pick); },
     // gym games without a camera: Space (or the button). Reps: hold to go down, let go to count one. Plank: hold to hold.
     press(down) {
-      const F = m && m.mine, G = m && GAMES[m.game]; if (!F || !G.kind || m.phase !== 'play' || m.tracking) return; const now = performance.now();
+      const F = m && m.mine, G = m && GAMES[m.game];
+      if (F && G && G.six) { if (down && !F.keyDown && m.phase === 'play' && !m.tracking && m.six) { F.score++; m.six.keySide = -m.six.keySide; m.six.keyK = 1; } F.keyDown = !!down; return; }   // 6-7: each press is one up
+      if (!F || !G.kind || m.phase !== 'play' || m.tracking) return; const now = performance.now();
       if (down && !F.keyDown) F.keyAt = now;
       else if (!down && F.keyDown && G.kind === 'reps' && now - F.keyAt > 120 && now - F.lastRep > 450) { F.score++; F.lastRep = now; }
       F.keyDown = !!down;
@@ -662,6 +744,7 @@ export function createGames(T, kit, world, cb = {}) {
       if (GAMES[m.game].kind) return [+F.depthT.toFixed(2), +F.score.toFixed(1), F.holding ? 1 : 0];
       [1, -1].forEach(s => { o.push(F.cur[s].up.x, F.cur[s].up.y, F.cur[s].up.z, F.cur[s].fore.x, F.cur[s].fore.y, F.cur[s].fore.z); });
       o.push(F.leanT.x, F.leanT.yaw, F.leanT.roll, F.headT.yaw, F.headT.pitch, F.headT.roll, F.bounce);
+      if (GAMES[m.game].six) o.push(F.score);   // 6-7: your count goes with your arms
       return o.map(v => +v.toFixed(3));
     },
     poseIn(a) {
@@ -673,6 +756,7 @@ export function createGames(T, kit, world, cb = {}) {
       [1, -1].forEach((s, i) => { F.goal[s].up.set(a[i * 6], a[i * 6 + 1], a[i * 6 + 2]).normalize(); F.goal[s].fore.set(a[i * 6 + 3], a[i * 6 + 4], a[i * 6 + 5]).normalize(); });
       const c = (v, lim) => Math.max(-lim, Math.min(lim, v));
       F.leanT.x = c(a[12], .4); F.leanT.yaw = c(a[13], .8); F.leanT.roll = c(a[14], .6); F.headT.yaw = c(a[15], 1); F.headT.pitch = c(a[16], .7); F.headT.roll = c(a[17], .7); F.bounce = c(a[18], .05);
+      if (GAMES[m.game].six && a.length >= 20) F.score = Math.max(F.score, Math.min(9999, Math.round(a[19])));
     }
   };
   return api;

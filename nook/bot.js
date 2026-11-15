@@ -13,6 +13,9 @@ const GESTURES = ['swing', 'open', 'point', 'beat', 'wave', 'swing', 'beat'];
 const QUIPS = {
   start: [['Let’s gooo, don’t embarrass me', 'happy'], ['I brought snacks. Show me something', 'happy'], ['Warm up, champ. I’m watching', 'wink']],
   start_rocket: [['Buckle up, space cadet 🚀', 'happy'], ['Try not to hit EVERY rock this time', 'wink'], ['Asteroids are not speed bumps, ok?', 'surprised']],
+  start_six: [['Six… seven… GO 🤲', 'happy'], ['Hands up, hands down. Don’t think, just flap', 'wink'], ['Show me those scales ⚖️', 'happy']],
+  sixSeven: [['SIX SEVEN!!! 🤲🤲', 'love'], ['67?? You actually did the thing', 'surprised']],
+  sixSevenThem: [['{name} hit 67. That’s bad news for us', 'sad'], ['{name} is a 6-7 machine 😳', 'surprised']],
   start_chess: [['Big brain time 🧠', 'thinking'], ['Don’t hang your queen. I’m begging', 'sad'], ['Pawns first. Panic later', 'wink']],
   start_boxing: [['Hands up, chin down 🥊', 'happy'], ['Float like a butterfly, dodge like you mean it', 'wink']],
   crash: [['Bro that asteroid was the size of a HOUSE 💀', 'surprised'], ['Who taught you to fly, a fridge?', 'wink'], ['Asteroids: 1. You: 0.', 'sad'],
@@ -36,6 +39,8 @@ const QUIPS = {
   win_chess: [['Grandmaster vibes 🧠', 'love'], ['Checkmate! Put it on your CV', 'happy']],
   lose: [['{name} cooked you 🍳', 'sad'], ['Losing builds character. You have SO much character', 'wink'], ['I’m not mad. Just disappointed', 'sad'], ['Rematch. Now. My honour is at stake', 'surprised']],
   lose_rocket: [['{name} lapped you. In SPACE', 'sad'], ['Maybe stick to walking', 'wink']],
+  win_six: [['Fastest hands on the island 🤲', 'love'], ['Your arms will hurt tomorrow. Worth it', 'happy']],
+  lose_six: [['{name}’s hands were a blur. Yours were… there', 'sad'], ['Arm day. Every day. Starting now', 'wink']],
   lose_chess: [['Your king just retired', 'sad'], ['Maybe try checkers?', 'wink']],
   draw: [['A draw?? Boring. Again!', 'thinking'], ['Nobody wins, everybody’s sad', 'sad']]
 };
@@ -118,6 +123,7 @@ export function createBot(T, o) {
   }
   setFace('neutral');
   const sparkGeo = new T.OctahedronGeometry(1, 0), sparks = Array.from({ length: SPARKS }, () => { const m = new T.Mesh(sparkGeo, glow); m.visible = false; return { m, life: 0, x: 0, y: 0, z: 0 }; });
+  root.userData.keep = true; sparks.forEach(s => { s.m.userData.keep = true; });   // not island scenery: World games leave them alone (worldgame.js)
   // Home screen: its own layer, drawn in screen pixels (x to the right, y up from the bottom of the window).
   if (!document.getElementById('nb-css')) { const st = document.createElement('style'); st.id = 'nb-css'; st.textContent = CSS; document.head.appendChild(st); }
   const layerEl = document.createElement('canvas'); layerEl.className = 'nb-layer'; layerEl.setAttribute('aria-hidden', 'true'); document.body.appendChild(layerEl);

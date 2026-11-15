@@ -39,6 +39,7 @@ Opened from any other static server the page still works, but those three show a
 | `worldgen.js` | Generated worlds: a seed becomes a whole look for the island (theme, time of day, colours, decorations, weather). |
 | `rocket.js` | Rocket race (World game): fly the same seeded asteroid field as the other player from your cockpit, steer with your body or A/D/W/S, crashes and progress show at the top. |
 | `chess.js` | Chess rules and the computer player (World game: sit at the table, play on the 2D board on the left). Tests: `npx vitest run nook/chess.test.mjs`. |
+| `sixseven.js` | 6-7 (World game): counts every time a hand goes up from the camera's body points; most ups in the time wins. Tests: `npx vitest run nook/sixseven.test.mjs`. |
 
 ## Accounts, tags and Google sign-in
 
