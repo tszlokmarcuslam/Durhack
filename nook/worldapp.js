@@ -120,6 +120,8 @@ const CSS = `
 @keyframes nwDot{50%{transform:translateY(-6px);opacity:.4}}
 .nw-match{display:none;position:absolute;inset:0}
 .nw.game .nw-match{display:block}
+.nw.chat .nw-phone-btn,.nw.chat .nw-phone-tip,.nw.chat .nw-phone,.nw.chat .nw-wave{display:none}
+.nw.chat .nw-tags{right:min(404px,100%)}
 .nw.game .nw-top,.nw.game .nw-hint,.nw.game .nw-joy,.nw.game .nw-wave,.nw.game .nw-phone-btn,.nw.game .nw-phone-tip,.nw.game .nw-phone{display:none}
 .nw-bars{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 28px));display:flex;align-items:center;gap:10px}
 .nw-side{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px;background:rgba(251,248,241,.95);border-radius:18px;box-shadow:0 8px 22px rgba(0,0,0,.28)}
@@ -505,7 +507,10 @@ export function createWorldApp(o) {
   const api = {
     active: () => active,
     // where you are on the island, for the companion robot that follows you (null in a match or off the island)
-    me: () => { const p = active && !match ? world.me() : null; return p ? { x: p.x, y: p.y, z: p.z, ry: p.ry, s: world.S, cam: world.view.yaw } : null; },   // cam: which way the camera looks from
+    me: () => { const p = active && !match ? world.me() : null; return p ? { x: p.x, y: p.y, z: p.z, ry: p.ry, s: world.S, cam: world.view.yaw, to: (x, y, z) => world.project(x, y, z) } : null; },   // cam: which way the camera looks from. to: island point -> screen pixels
+    inMatch: () => !!match,
+    // the Companion chat is open on the island: make room for its panel on the right
+    setChat(open) { hud.classList.toggle('chat', !!open); },
     // both are safe to call again and again: the page calls them whenever the screen changes
     join() {
       if (active) return; active = true; closeInvite();

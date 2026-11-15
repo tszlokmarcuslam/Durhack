@@ -245,7 +245,27 @@
         </div>
       </sc-if>
 
-      <!-- AI companion (Gemini, via the app's /api/companion) -->
+      <sc-if value="{{ pickOpen }}">
+        <div onClick="{{ closePick }}" style="position:absolute;inset:0;pointer-events:auto"></div>
+        <div style="position:absolute;top:74px;right:24px;width:min(360px,calc(100% - 48px));max-height:min(62vh,480px);display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:22px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden">
+          <div style="padding:16px 18px 8px">
+            <div style="font-weight:700;font-size:18px">Where are you from?</div>
+            <div style="font-size:13px;color:#6B665E;margin-top:2px">Your flag shows to the people you meet on calls.</div>
+          </div>
+          <div style="overflow:auto;padding:6px 10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <sc-for list="{{ countryList }}" as="c">
+              <button type="button" onClick="{{ c.pick }}" style="height:42px;display:flex;align-items:center;gap:8px;padding:0 10px;border:none;cursor:pointer;background:{{ c.bg }};color:#2B2A27;border-radius:12px;font:{{ c.font }};text-align:left;min-width:0" style-hover="filter:brightness(.96)">
+                <span style="font-size:20px;line-height:1;flex:none">{{ c.flag }}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- AI companion (Gemini, via the app's /api/companion). Outside the home screen block so the World (island) can open it too. -->
       <sc-if value="{{ compOpen }}">
         <div style="position:absolute;top:74px;right:24px;bottom:84px;width:min(380px,calc(100% - 48px));display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:24px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden;animation:nookMenu .2s ease-out">
           <div style="display:flex;align-items:center;gap:10px;padding:14px 12px 10px 16px">
@@ -277,26 +297,6 @@
           </div>
         </div>
       </sc-if>
-
-      <sc-if value="{{ pickOpen }}">
-        <div onClick="{{ closePick }}" style="position:absolute;inset:0;pointer-events:auto"></div>
-        <div style="position:absolute;top:74px;right:24px;width:min(360px,calc(100% - 48px));max-height:min(62vh,480px);display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:22px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden">
-          <div style="padding:16px 18px 8px">
-            <div style="font-weight:700;font-size:18px">Where are you from?</div>
-            <div style="font-size:13px;color:#6B665E;margin-top:2px">Your flag shows to the people you meet on calls.</div>
-          </div>
-          <div style="overflow:auto;padding:6px 10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
-            <sc-for list="{{ countryList }}" as="c">
-              <button type="button" onClick="{{ c.pick }}" style="height:42px;display:flex;align-items:center;gap:8px;padding:0 10px;border:none;cursor:pointer;background:{{ c.bg }};color:#2B2A27;border-radius:12px;font:{{ c.font }};text-align:left;min-width:0" style-hover="filter:brightness(.96)">
-                <span style="font-size:20px;line-height:1;flex:none">{{ c.flag }}</span>
-                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
-              </button>
-            </sc-for>
-          </div>
-        </div>
-      </sc-if>
-    </div>
-  </sc-if>
 
   <!-- ================= BODY SCAN ================= -->
   <sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}">
@@ -758,7 +758,7 @@ class Component extends DCLogic {
     this.nook.setZoom(v === 'creator' && this.state.tab !== 'Outfit' ? 1 : 0);
     this.nook.setOrbit((this.props.droneOrbit ?? true) && !this.state.orbitOff);
     if (v === 'call') { const L = this.layout(); this.nook.setCallShift(L.side / 2); this.nook.setPip(L.side ? L.side + 16 : 24); }
-    if (this.wf) { if (v === 'world') this.wf.join(); else this.wf.leave(); }
+    if (this.wf) { if (v === 'world') this.wf.join(); else this.wf.leave(); this.wf.setChat(v === 'world' && this.state.comp.open); }
   }
 
   /* ---------- the world: walk around the island with other people (world.js + worldapp.js) ---------- */
@@ -1340,7 +1340,7 @@ class Component extends DCLogic {
       inviteShow: !!inv && inv.inviteId !== st.skippedInvite && v === 'home', inviteText: inv ? inv.inviterDisplayName + ' invited you to their party · ' + actLabel(inv.activity) : '',
       inviteJoin: () => inv && this.friendAct(be.respondInvite(inv, true)), inviteSkip: () => inv && this.setState({ skippedInvite: inv.inviteId }),
       // companion
-      compOpen: c.open && v === 'home', compRef: this.compRef,
+      compOpen: c.open && (v === 'home' || (v === 'world' && !(this.wf && this.wf.inMatch()))),   // home screen, or the island outside a match compRef: this.compRef,
       toggleCompanion: () => this.setState(s2 => ({ comp: Object.assign({}, s2.comp, { open: !s2.comp.open }), accountOpen: false, pickOpen: false })),
       compBtnBg: c.open ? '#5E683C' : '#FBF8F1', compBtnFg: c.open ? '#F8F4EC' : '#2B2A27',
       compSub: c.mode === 'dev' ? 'Local dev mode: replies are not from the AI' : 'AI · chat, or find people to meet',

@@ -261,6 +261,8 @@ export function createWorld(T, kit, canvas, tagLayer, cb = {}) {
     add, remove, has: id => people.has(id), count: () => people.size,
     // for worldgame.js: the people, the camera settings, and handing over control while a match runs
     S, WALK, view, groundY, me: () => me, person: id => people.get(id), each: fn => people.forEach(fn),
+    // where a point of the island is on the screen, in pixels (null when it is behind the camera)
+    project(x, y, z) { v3.set(x, y, z).project(cam); return v3.z < 1 && v3.z > -1 ? [(v3.x * .5 + .5) * W, (-v3.y * .5 + .5) * H] : null; },
     setGame(g) { game = g; if (me) me.goal = me.chase = null; keys.clear(); joy.x = joy.y = 0; },
     hold(id, sec) { const p = people.get(id); if (p) p.holdUntil = performance.now() / 1000 + sec; },
     // where someone in another window says they are

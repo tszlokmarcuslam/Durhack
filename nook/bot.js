@@ -21,7 +21,7 @@ const CSS = `.nb-layer{position:fixed;inset:0;width:100%;height:100%;z-index:14;
 .nb-bubble:hover{filter:brightness(.98)}`;
 
 // o: { stage: { canvas }, island: scene, state(): { chatOpen, thinking, last, reply, failed, quiet, me }, onTap() }
-//   last: the newest chat message (any kind), to notice a new one. reply: it, if it is the companion's answer { text, expression }. me: { x, y, z, ry, s, cam } while you walk the island (cam: the camera's angle).
+//   last: the newest chat message (any kind), to notice a new one. reply: it, if it is the companion's answer { text, expression }. me: { x, y, z, ry, s, cam, to } while you walk the island (cam: the camera's angle, to: island point -> screen pixels).
 export function createBot(T, o) {
   let saved = {}; try { saved = (JSON.parse(localStorage.getItem('echoworld-pet')) || {}).state || {}; } catch (e) {}
   const bodyC = /^#[0-9a-f]{6}$/i.test(saved.bodyColor) ? saved.bodyColor : '#f1f5f9', glowC = /^#[0-9a-f]{6}$/i.test(saved.glowColor) ? saved.glowColor : '#5eead4';
@@ -135,8 +135,9 @@ export function createBot(T, o) {
       stiff = 18;
     } else {         // rest beside your shoulder, bobbing gently
       const bob = sin(t * 2) * (sleepy ? .02 : .05) * u;
-      const c = home ? 0 : st.me.cam;   // island: on the right of your character as the camera sees it, a little towards the camera
-      if (home) target.set(p.x, p.y + bob, 0); else target.set(p.x + (cos(c) * .95 + sin(c) * .25) * u, p.y + 1.4 * u + bob, p.z + (-sin(c) * .95 + cos(c) * .25) * u);
+      // island: beside your character as the camera sees it, a little towards the camera. On the right; on the left while the chat panel covers the right
+      const c = home ? 0 : st.me.cam, side = st.chatOpen ? -.95 : .95;
+      if (home) target.set(p.x, p.y + bob, 0); else target.set(p.x + (cos(c) * side + sin(c) * .25) * u, p.y + 1.4 * u + bob, p.z + (-sin(c) * side + cos(c) * .25) * u);
       flight = Math.atan2(root.position.x - p.x, root.position.z - p.z); stiff = home && st.chatOpen ? 12 : 7;   // take off from where it is
     }
     if (root.userData.fresh) { root.position.copy(target); vel.set(0, 0, 0); root.userData.fresh = false; }
@@ -145,7 +146,7 @@ export function createBot(T, o) {
     root.position.addScaledVector(vel, dt);
     root.scale.setScalar(home ? size * (1 + root.position.z / (u * 6)) : size);   // home: a little bigger when it swings towards you
     // it mostly looks out at whoever is at the keyboard: straight out of the home screen, towards the camera on the island
-    const look = home ? (st.chatOpen ? .38 : -.32) + sin(t * .7) * .06 : st.me.cam - .3 + sin(t * .7) * .08, turn = Math.atan2(sin(look - root.rotation.y), cos(look - root.rotation.y));
+    const look = home ? (st.chatOpen ? .38 : -.32) + sin(t * .7) * .06 : st.me.cam + (st.chatOpen ? .3 : -.3) + sin(t * .7) * .08, turn = Math.atan2(sin(look - root.rotation.y), cos(look - root.rotation.y));
     root.rotation.y += turn * Math.min(1, dt * 5);
     const yaw = root.rotation.y, sideways = (vel.x * cos(yaw) - vel.z * sin(yaw)) / u, ahead = (vel.x * sin(yaw) + vel.z * cos(yaw)) / u, k6 = Math.min(1, dt * 6);
     body.rotation.z += (Math.max(-.45, Math.min(.45, -sideways * .18)) + sin(t * 1.3) * .04 - body.rotation.z) * k6;   // bank into the turn
@@ -164,13 +165,15 @@ export function createBot(T, o) {
     ears[-1].rotation.z = .35 + (t > twitchAt ? sin((t - twitchAt) * 30) * .15 : 0);   // an ear twitch now and then
     mouthG.scale.y = talking ? .6 + Math.abs(sin(t * 14)) * .9 : 1;                    // the mouth moves while it talks
 
-    // the bubble above its ears (home screen only: that is where the chat panel lives)
+    // the bubble above its ears: tap it to open the chat (home screen and island)
     if (home) paint.render(own, cam);
-    const text = !home || st.chatOpen ? '' : thinking ? '…' : onStage ? (onStage.text.length > BUBBLE_CHARS ? onStage.text.slice(0, BUBBLE_CHARS) + '…' : onStage.text) : sleepy ? '💤 Tap to wake me' : '💬 Tap to chat';
+    const text = st.chatOpen ? '' : thinking ? '…' : onStage ? (onStage.text.length > BUBBLE_CHARS ? onStage.text.slice(0, BUBBLE_CHARS) + '…' : onStage.text) : sleepy ? '💤 Tap to wake me' : '💬 Tap to chat';
     if (!text) { bubble.style.display = 'none'; return; }
     if (text !== said) { said = text; bubble.textContent = text; bubble.setAttribute('aria-label', 'Your companion says: ' + text + '. Open the chat'); }
+    const at = home ? [root.position.x, H - root.position.y - 1.22 * size] : st.me.to ? st.me.to(root.position.x, root.position.y + 1.22 * size, root.position.z) : null;
+    if (!at) { bubble.style.display = 'none'; return; }
     bubble.style.display = 'block';
-    bubble.style.transform = 'translate(-50%,-100%) translate(' + Math.max(124, Math.min(W - 124, root.position.x)).toFixed(1) + 'px,' + (H - root.position.y - 1.22 * size - 8).toFixed(1) + 'px)';
+    bubble.style.transform = 'translate(-50%,-100%) translate(' + Math.max(124, Math.min(W - 124, at[0])).toFixed(1) + 'px,' + (at[1] - 8).toFixed(1) + 'px)';
   }
   return {
     frame, setFace,
