@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:5173/nook/ in Chrome (the camera needs Chrome or another full browser).
+Then open http://localhost:5173/ (it forwards to `/nook/`) in Chrome (the camera needs Chrome or another full browser).
 
 Running through the app's dev server is what connects the page to the backend: accounts, real friends and
 parties (Supabase, migration `005_friends_parties.sql`) and the AI companion (`/api/companion`, Gemini).

@@ -1,6 +1,8 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { cpSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // Local dev only: serves /api/<name> by loading the same Web-standard handlers that
 // Vercel runs in production, so the Gemini, ElevenLabs and Supabase service keys stay server-side.
@@ -43,10 +45,32 @@ function apiDevPlugin(env: Record<string, string>): Plugin {
   };
 }
 
+// The Nook page (nook/) loads its modules at runtime by file name, so they are copied into the build as they are.
+// Only backend.js needs building: it imports @supabase/supabase-js and reads the VITE_ keys, which the dev server
+// fills in on every request.
+function nookBuildPlugin(): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'nook-build',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    buildStart() {
+      this.emitFile({ type: 'chunk', id: resolve('nook/backend.js'), fileName: 'nook/backend.js', preserveSignature: 'strict' });
+    },
+    closeBundle() {
+      cpSync('nook', resolve(outDir, 'nook'), { recursive: true, filter: (src) => !/backend\.js$|\.test\.mjs$/.test(src) });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    plugins: [react(), tailwindcss(), apiDevPlugin(env)],
+    plugins: [react(), tailwindcss(), apiDevPlugin(env), nookBuildPlugin()],
     server: { port: 5173 },
+    // index.html sends visitors on to the Nook page; the React app is at /app/
+    build: { rollupOptions: { input: { main: resolve('index.html'), app: resolve('app/index.html') } } },
   };
 });

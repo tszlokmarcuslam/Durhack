@@ -87,7 +87,12 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. With only `ECHO_DEV_MODE=true` in `.env` you get the world and a labelled dev-mode chat.
+Open http://localhost:5173. That is the front door: it opens the Nook page (`nook/`, at `/nook/`). The React app is at
+http://localhost:5173/app/. With only `ECHO_DEV_MODE=true` in `.env` you get the world and a labelled dev-mode chat.
+
+`npm run build` puts both pages in `dist/`. The Nook files are copied as they are, except `nook/backend.js`, which is built
+so it gets the Supabase package and the public `VITE_` keys (see `nookBuildPlugin` in `vite.config.ts`).
+Try the built site with `npm run build`, then `npm run preview`.
 To go live: create a Supabase project, run `supabase/schema.sql` in its SQL editor, fill in `.env`, restart.
 
 **Existing Supabase projects:** don't re-run `schema.sql`. Run the files in `supabase/migrations/` in order
