@@ -14,7 +14,7 @@ function rand(seed) {
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// o: { seed, length, origin (Vector3), mineColor, oppColor, ai (true: the computer flies the other ship) }
+// o: { seed, length, origin (Vector3), mineColor, oppColor, ai (true: the computer flies the other ship), lane (-1 / 1: which side you start on) }
 export function createRace(T, o) {
   const { W, H, SPEED, SHIP_R } = RACE, L = o.length, r = rand(o.seed);
   const g = new T.Group(); g.name = 'RocketRace'; g.position.copy(o.origin);
@@ -29,12 +29,12 @@ export function createRace(T, o) {
     ast.push({ x: (r() * 2 - 1) * (W + 1.2), y: (r() * 2 - 1) * (H + 0.8), z, rad: big ? 1.4 + r() * 0.9 : 0.45 + r() * r() * 1.1, a: r() * 6.3, b: r() * 6.3, sx: 0.85 + r() * 0.35, sy: 0.8 + r() * 0.35 });
   }
   ast.sort((p, q) => p.z - q.z);
-  const rock = keep(new T.MeshStandardMaterial({ color: '#8C7D6E', roughness: 1, flatShading: true }));
+  const rock = keep(new T.MeshStandardMaterial({ color: '#B39C86', emissive: '#3B3129', roughness: 1, flatShading: true }));   // a little glow so they show against space
   const rockGeo = keep(new T.DodecahedronGeometry(1, 0));
   const field = new T.InstancedMesh(rockGeo, rock, ast.length), d = new T.Object3D(), col = new T.Color();
   ast.forEach((s, i) => {
     d.position.set(s.x, s.y, -s.z); d.rotation.set(s.a, s.b, 0); d.scale.set(s.rad * s.sx, s.rad * s.sy, s.rad); d.updateMatrix();
-    field.setMatrixAt(i, d.matrix); field.setColorAt(i, col.set(['#8C7D6E', '#7A6F66', '#9A8574', '#6E6A70'][i % 4]));
+    field.setMatrixAt(i, d.matrix); field.setColorAt(i, col.set(['#D8C6B2', '#C4B4A6', '#E0C9AE', '#B9B2B6'][i % 4]));
   });
   field.instanceMatrix.needsUpdate = true; g.add(field);
 
@@ -73,9 +73,13 @@ export function createRace(T, o) {
     const f = add(shipGeo.glow, flame, 0, 0, 0.5); f.scale.set(0.9, 0.9, 1.6); s.userData.flame = f;
     return s;
   }
-  const me = { z: 0, x: 0, y: 0, v: 0, crashes: 0, crashT: 0, done: false, bank: 0, ship: ship(o.mineColor || '#4C5FA8') };
-  const them = { z: 0, x: 0, y: 0, v: 0, crashes: 0, crashT: 0, done: false, bank: 0, ship: ship(o.oppColor || '#C2452D'), tx: 0, ty: 0, wander: 0, crashIn: 4 + r() * 8 };
+  const lane = (o.lane || -1) * 1.4;   // the two ships start side by side, not inside each other
+  const me = { z: 0, x: lane, y: 0, v: 0, crashes: 0, crashT: 0, done: false, bank: 0, ship: ship(o.mineColor || '#4C5FA8') };
+  const them = { z: 0, x: -lane, y: 0, v: 0, crashes: 0, crashT: 0, done: false, bank: 0, ship: ship(o.oppColor || '#C2452D'), tx: -lane, ty: 0, wander: 0, crashIn: 4 + r() * 8 };
   [me, them].forEach(s => g.add(s.ship));
+  // in the cockpit your own hull would fill the view: you see just its nose out in front of you
+  const nose = new T.Mesh(keep(new T.ConeGeometry(0.06, 0.4, 14).rotateX(-Math.PI / 2)), keep(new T.MeshStandardMaterial({ color: o.mineColor || '#4C5FA8', roughness: 0.6, flatShading: true })));
+  nose.visible = false; g.add(nose);
 
   // asteroids near a z (the field is sorted by z)
   function near(z, span) {
@@ -111,7 +115,7 @@ export function createRace(T, o) {
       if (o.ai && !them.done) {   // the computer: wanders across the field and crashes now and then
         them.wander -= dt; if (them.wander <= 0) { them.wander = 0.8 + r() * 1.6; them.tx = (r() * 2 - 1) * W * 0.8; them.ty = (r() * 2 - 1) * H * 0.7; }
         const k = Math.min(1, dt * 2.2); them.x += (them.tx - them.x) * k; them.y += (them.ty - them.y) * k;
-        fly(them, dt); them.z = Math.min(L, them.z - them.v * dt * 0.04);   // a touch slower than a clean run of yours
+        fly(them, dt);   // same top speed as yours: you beat it by crashing less
         if (them.crashT <= 0) { them.crashIn -= dt; if (them.crashIn <= 0) { crash(them, events, 'them'); them.crashIn = 5 + r() * 9; } }
         if (them.z >= L) { them.done = true; events.push({ who: 'them', kind: 'finish' }); }
       }
@@ -144,13 +148,15 @@ export function createRace(T, o) {
     },
     out: () => [+me.z.toFixed(2), +me.x.toFixed(2), +me.y.toFixed(2), me.crashes, me.done ? 1 : 0],
     progress: () => [me.z / L, them.z / L],
-    // your cockpit: just behind the nose, looking down the course; the view banks as you turn and shakes in a crash
+    // your cockpit: in the front of the ship, so you only see its nose ahead of you; the view banks as you turn and shakes in a crash
     camera(cam, t) {
       const shake = me.crashT > 0 ? me.crashT * 0.08 : 0;
-      cam.position.set(g.position.x + me.x + Math.sin(t * 61) * shake, g.position.y + me.y + 0.3 + Math.cos(t * 53) * shake, g.position.z - me.z + 0.7);
+      cam.position.set(g.position.x + me.x + Math.sin(t * 61) * shake, g.position.y + me.y + 0.17 + Math.cos(t * 53) * shake, g.position.z - me.z - 0.3);
       cam.up.set(0, 1, 0);
       cam.lookAt(g.position.x + me.x * 0.92, g.position.y + me.y + 0.12, g.position.z - me.z - 12);
       cam.rotateZ(me.bank * 0.6);
+      me.ship.visible = false; nose.visible = true;
+      nose.position.set(me.x, me.y - 0.12, -me.z - 1.6); nose.rotation.z = me.bank;
     },
     dispose() { g.removeFromParent(); field.dispose(); owned.forEach(x => x.dispose && x.dispose()); }
   };

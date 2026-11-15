@@ -215,7 +215,8 @@ const GAMES = [
   { name: 'Freeze', line: 'Hold still when the music stops', color: '#5C5E78', players: '2 to 8', uses: 'Whole upper body', about: 'Dance while the music plays. When it stops, hold still. Anyone who moves is out.', icon: '<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>' }
 ];
 
-// o: { T, nook, canvas, options, crowd, profile(), friends(), onEnter(), onLeave() }
+// o: { T, nook, canvas, options, crowd, profile(), friends(), onEnter(), onLeave(), onPetEvent(kind, { name, game }) }
+//   onPetEvent: something happened in a match that the pet robot can comment on (bot.js react())
 export function createWorldApp(o) {
   const { T, nook, canvas } = o;
   if (!document.getElementById('nw-css')) { const st = document.createElement('style'); st.id = 'nw-css'; st.textContent = CSS; document.head.appendChild(st); }
@@ -300,10 +301,12 @@ export function createWorldApp(o) {
     else if (m.t === 'invite' && m.to === uid) {
       const answer = ok => post({ t: 'reply', to: pr.id, ok, p: myCard() });
       const w = m.w && typeof m.w === 'object' && typeof m.w.id === 'string' && m.w.id ? { id: str(m.w.id, 40), seed: (m.w.seed >>> 0) || 1, name: str(m.w.name, 32) || 'A new world', owner: str(m.w.owner, 40), ownerName: pr.name } : null;
+      if (o.sfx) o.sfx('request');
       note({ thumb: pr.thumb, parts: [{ b: pr.name }, ' ' + pr.flag + '  invited you to ' + (w ? w.name : 'the island')], ttl: 30000, onExpire: () => answer(false),
         actions: [{ label: 'Join', yes: true, fn: () => { answer(true); if (w) o.onEnter(w); else if (!active || room) o.onEnter(null); } }, { label: 'Not now', fn: () => answer(false) }] });
     } else if (m.t === 'reply' && m.to === uid) {
       if (!m.ok) sent.delete(pr.id);
+      if (o.sfx) o.sfx(m.ok ? 'friend' : 'nope');
       note({ thumb: pr.thumb, parts: [{ b: pr.name }, m.ok ? ' is joining you on the island' : ' can’t join right now'] }); refresh();
     }
   }
@@ -454,20 +457,22 @@ export function createWorldApp(o) {
     onPhase: (ph, result) => matchPhase(ph, result),
     // h: { onMe, res: 'hit' | 'miss', type }. The side that got hit shakes; a short word says what happened.
     onHit: h => {
+      pet(h.res === 'hit' ? (h.onMe ? 'gotHit' : 'landed') : h.onMe ? 'dodged' : null);
       if (h.res === 'hit') { const side = h.onMe ? sideMe : sideThem; side.classList.remove('hit'); void side.offsetWidth; side.classList.add('hit'); }
       flash(h.onMe ? (h.res === 'hit' ? '' : 'You dodged!') : h.res === 'hit' ? (h.type === 'hook' ? 'Hook lands!' : 'Hit!') : h.type === 'jab' ? 'They dodged' : 'Missed');
       drawBars();
     },
     send: msg => { if (match && match.remote) post(Object.assign({ t: 'game', to: match.opp.id }, msg)); },
-    onRps: v => drawRps(v),
+    onRps: v => { rpsPet(v); drawRps(v); },
     // rocket race: { who: 'me' | 'them', kind: 'crash' | 'finish' }
     onRace: e => {
       if (!match) return;
+      if (e.kind === 'crash') pet(e.who === 'me' ? 'crash' : 'theyCrash');
       if (e.kind === 'crash') { const side = e.who === 'me' ? sideMe : sideThem; side.classList.remove('hit'); void side.offsetWidth; side.classList.add('hit'); flash(e.who === 'me' ? '💥 You crashed!' : '💥 ' + match.opp.name + ' crashed!'); }
       else if (e.kind === 'finish') flash(e.who === 'me' ? '🏁 Finish!' : '🏁 ' + match.opp.name + ' finished');
       drawBars();
     },
-    onChess: () => drawBars(),
+    onChess: () => { chessPet(); drawBars(); },
     camera: () => { const tr = o.tracking ? o.tracking() : {}; return !tr.on ? 'off' : tr.state === 'on' ? 'on' : 'starting'; },
     oppName: () => match ? match.opp.name : ''
   });
@@ -544,9 +549,28 @@ export function createWorldApp(o) {
   function cancelAsk() { if (!pending) return; if (pending.kind === 'peer') post({ t: 'game', k: 'cancel', to: pending.id, n: pending.n }); pending = null; }
   function accepted(spec) { const p = pending; pending = null; if (p && !startMatch({ game: p.game, oppId: p.id, role: 0, remote: p.kind === 'peer', spec, opt: p.opt }) && p.kind === 'peer') post({ t: 'game', k: 'end', to: p.id }); }
   // Both said yes: the island turns into the arena (worldgame.js) and the screen switches to the match.
+  // the pet robot comments on the match (bot.js): what happened, who you play, which game
+  const pet = kind => { if (kind && match && o.onPetEvent) o.onPetEvent(kind, { name: match.opp.name, game: match.game }); };
+  let chessSeen = null, rpsSeen = '';
+  function chessPet() {   // after each move: a capture (the queen above all), or a check
+    const i = games.info(), v = i && i.chess; if (!v || !match) return;
+    const cap = v.captured || { w: [], b: [] }, q = a => (a || []).filter(x => x.toLowerCase() === 'q').length;
+    const now = { w: (cap.w || []).length, b: (cap.b || []).length, qw: q(cap.w), qb: q(cap.b), ply: v.ply }, was = chessSeen || { w: 0, b: 0, qw: 0, qb: 0, ply: 0 }; chessSeen = now;
+    if (now.ply === was.ply || v.over) return;   // the result gets its own line
+    const them = v.me === 'w' ? 'b' : 'w', iMoved = v.turn !== v.me;
+    const tookTheirs = now[them] > was[them], lostMine = now[v.me] > was[v.me];
+    if (iMoved && tookTheirs) pet(now['q' + them] > was['q' + them] ? 'takeQueen' : 'take');
+    else if (!iMoved && lostMine) pet(now['q' + v.me] > was['q' + v.me] ? 'lostQueen' : 'lost');
+    else if (v.check) pet(v.turn === v.me ? 'inCheck' : 'check');
+  }
+  function rpsPet(v) {   // after each throw
+    const L = v && v.last, i = games.info(); if (!L || L.r == null) return;
+    const key = JSON.stringify([L, i && i.score]); if (key === rpsSeen) return; rpsSeen = key;
+    pet(L.r === 1 ? 'rpsWin' : L.r === -1 ? 'rpsLose' : 'rpsTie');
+  }
   function startMatch(q) {
     const opp = who(q.oppId), sp = opp && active ? games.start(q) : null; if (!sp) return null;
-    match = { opp, game: q.game, remote: !!q.remote, opt: sp.opt, role: q.role ? 1 : 0 }; pending = null; closePop(); setPhone(false); closeInvite(); hud.classList.add('game');
+    match = { opp, game: q.game, remote: !!q.remote, opt: sp.opt, role: q.role ? 1 : 0 }; chessSeen = null; rpsSeen = ''; pending = null; closePop(); setPhone(false); closeInvite(); hud.classList.add('game');
     const mk = (side, name, thumb, red) => { side.textContent = ''; side.classList.toggle('red', red); const d = el('div'), hp = el('div', 'nw-hp'); hp.appendChild(el('u')); d.append(el('b', null, name), hp); side.append(face('nw-av', thumb), d, el('em', 'nw-num', '0')); };
     mk(sideMe, 'You', o.profile().thumb, !!q.role); mk(sideThem, label(opp), opp.thumb, !q.role);   // blue for who asked, red for who accepted
     if (o.onMatch) o.onMatch(true);   // turns the camera on for body tracking
@@ -557,6 +581,9 @@ export function createWorldApp(o) {
   function matchPhase(ph, result) {
     if (!match) return; const nm = match.opp.name, box = match.game === 'boxing';
     const G = MATCHES[match.game];
+    if (o.sfx) { if (ph === 'in') o.sfx('match'); else if (ph === 'play') o.sfx('start'); else if (ph === 'over') o.sfx(result === 'win' || result === 'lose' ? 'jingle-' + result : 'left'); }
+    if (ph === 'in') pet('start');
+    if (ph === 'over' && /^(win|lose|draw)$/.test(result)) pet(result);
     if (ph === 'in') say(G.name.toUpperCase(), 'with ' + nm + ' · ' + optLabel(match.game, match.opt) + (G.setup ? ' · ' + G.setup : ''), true);
     else if (ph === 'ready') say('GET IN POSITION', 'The plank starts when the camera sees your whole body');
     else if (ph === 'play' && G.rps) drawRps();   // the countdown words take over the banner
@@ -696,6 +723,7 @@ export function createWorldApp(o) {
       const answer = (ok, spec) => post({ t: 'game', k: ok ? 'yes' : 'no', to: pr.id, n: m.n, spec });
       if (!active || match || pending || !MATCHES[m.game] || !world.has(pr.id)) return answer(false);
       const G = MATCHES[m.game].name + ' · ' + optLabel(m.game, pickOpt(m.game, m.opt));   // the length they picked
+      if (o.sfx) o.sfx('request');
       const close = note({ thumb: pr.thumb, ttl: 20000, onExpire: () => answer(false), parts: [{ b: pr.name }, m.mode === 'together' ? ' invited you to play ' + G : ' challenged you to a 1v1: ' + G],
         actions: [{ label: 'Accept', yes: true, fn: () => { const sp = startMatch({ game: m.game, oppId: pr.id, role: 1, remote: true, opt: m.opt }); answer(!!sp, sp); } }, { label: 'Not now', fn: () => answer(false) }] });
       asks.set(String(m.n), close);
@@ -712,13 +740,15 @@ export function createWorldApp(o) {
   let hereSig = '';
   function refresh() {
     if (active) {   // people in other windows walk on or off the island
-      peers.forEach(pr => { if (pr.inWorld && !world.has(pr.id)) world.add({ id: pr.id, name: pr.name, flag: pr.flag, cfg: pr.cfg, kind: 'remote' }); else if (!pr.inWorld && world.has(pr.id)) world.remove(pr.id); });
-      const faces = api.lobby().faces.slice(0, 3), sig = world.count() + faces.join();
+      // only people in this same world (the open island, or one of your worlds)
+      peers.forEach(pr => { const here = pr.inWorld && (pr.room || '') === room; if (here && !world.has(pr.id)) world.add({ id: pr.id, name: pr.name, flag: pr.flag, cfg: pr.cfg, kind: 'remote' }); else if (!here && world.has(pr.id)) world.remove(pr.id); });
+      // faces next to the count: the open island's crowd, or only who is in this world of yours
+      const faces = (room ? [...joined.values()].map(d => d.thumb).concat([...peers.values()].filter(pr => pr.inWorld && (pr.room || '') === room).map(pr => pr.thumb)).filter(Boolean) : api.lobby().faces).slice(0, 3), sig = world.count() + faces.join();
       if (sig !== hereSig) { hereSig = sig; hereN.textContent = String(world.count()); hereFaces.textContent = ''; faces.forEach(u => hereFaces.appendChild(face(null, u))); }
     }
     if (invWrap.classList.contains('on') && inviteSig() !== drawnSig) drawInvite();
   }
-  leaveBtn.onclick = () => o.onLeave(); inviteBtn.onclick = openInvite; waveBtn.onclick = () => world.wave();
+  leaveBtn.onclick = () => o.onLeave(); inviteBtn.onclick = openInvite; waveBtn.onclick = () => { world.wave(); if (o.sfx) o.sfx('wave'); };
   let jid = null;
   const stick = e => { const r = joy.getBoundingClientRect(); let x = (e.clientX - r.left - r.width / 2) / (r.width / 2), y = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } knob.style.transform = 'translate(' + x * 32 + 'px,' + y * 32 + 'px)'; world.setJoy(x, -y); };
   joy.addEventListener('pointerdown', e => { jid = e.pointerId; joy.setPointerCapture(jid); stick(e); });
@@ -755,6 +785,7 @@ export function createWorldApp(o) {
     leave() { if (!active) return; voice.stop(); if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.abort(); endMatch(null); closePop(); active = false; world.leave(); if (dress) { dress.dispose(); dress = null; } roomTag.classList.remove('on'); hud.classList.remove('on'); closeInvite(); setPhone(false); hello(false); },
     openInvite,
     room: () => room,
+    talking: () => voice.size > 0,   // someone else is in this world with you (the music fades out)
     // who could get an invite (for the Create a world panel): { id, kind: 'peer' | 'sim' | 'away', name, sub, thumb, online, here }
     friends: () => friendRows(),
     inviteIds(ids) { const rows = friendRows(); (ids || []).forEach(id => { const f = rows.find(x => x.id === id); if (f) invite(f); }); },
@@ -779,6 +810,8 @@ export function createWorldApp(o) {
   };
   // Handy in the browser console: nookWorld.play('boxing') or nookWorld.play('dance') starts a match with a simulated player
   // (join the island first). Not used by the app itself.
-  window.nookWorld = { world, games, useBackend: fn => { o.backend = fn; syncNet(); }, play: (game, id, opt) => startMatch({ game: game || 'boxing', oppId: id || o.crowd[0].id, role: 0, opt }) };
+  window.nookWorld = { world, games, useBackend: fn => { o.backend = fn; syncNet(); }, play: (game, id, opt) => startMatch({ game: game || 'boxing', oppId: id || o.crowd[0].id, role: 0, opt }),
+    // nookWorld.challenge(id, 'chess', 180): the same as clicking that person and challenging them (they get Accept / Not now)
+    challenge: (id, game, opt) => { openContact(id); if (!contact) return false; ask(game || 'boxing', '1v1', pickOpt(game || 'boxing', opt)); return true; } };
   return api;
 }

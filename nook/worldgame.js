@@ -595,7 +595,7 @@ export function createGames(T, kit, world, cb = {}) {
       const dl = Math.hypot(sp.dx, sp.dz) || 1, dx = sp.dx / dl, dz = sp.dz / dl, skip = new Set([...Object.values(arenas), spot, spot.target, ...sparks]); world.each(p => skip.add(p.av));
       const g = arena(o.game); g.position.set(sp.cx, sp.y, sp.cz); g.rotation.y = Math.atan2(-dz, dx);
       const opt = pickOpt(o.game, o.opt);
-      m = { game: o.game, remote: !!o.remote, phase: 'in', k: 0, T: 0, opt, clock: GAMES[o.game].rps ? 0 : opt, cue: '', tracking: false, result: null, wait: 3, arena: g, y: sp.y, C: new T.Vector3(sp.cx, sp.y, sp.cz),
+      m = { game: o.game, remote: !!o.remote, phase: 'in', k: 0, T: 0, opt, clock: GAMES[o.game].rps || GAMES[o.game].rocket ? 0 : opt, cue: '', tracking: false, result: null, wait: 3, arena: g, y: sp.y, C: new T.Vector3(sp.cx, sp.y, sp.cz),
         dodgeR: MV.createDodgeReader(), punchR: MV.createPunchReader(),
         scenery: scenery(skip), view: { dist: world.view.dist, el: world.view.el },
         env: { bg: isl.background.clone(), fog: isl.fog.color.clone(), near: isl.fog.near, far: isl.fog.far, lights: isl.children.filter(l => l.isLight && l !== spot).map(l => ({ light: l, was: l.intensity })) } };
@@ -606,8 +606,9 @@ export function createGames(T, kit, world, cb = {}) {
       });
       if (GAMES[o.game].rocket) {   // the course is far above the arena; the seed comes from the shared spec, so both windows build the same field
         const seed = ((Math.round(sp.cx * 1000) * 73856093) ^ (Math.round(sp.cz * 1000) * 19349663) ^ (Math.round(sp.y * 1000) * 83492791)) >>> 0;
-        m.race = createRace(T, { seed: seed || 1, length: opt, origin: new T.Vector3(sp.cx, sp.y + 260, sp.cz), mineColor: role ? '#C2452D' : '#4C5FA8', oppColor: role ? '#4C5FA8' : '#C2452D', ai: !o.remote });
-        m.steer = { x: 0, y: 0, kx: 0, ky: 0, cal: null }; isl.add(m.race.group);
+        m.race = createRace(T, { seed: seed || 1, length: opt, origin: new T.Vector3(sp.cx, sp.y + 260, sp.cz), mineColor: role ? '#C2452D' : '#4C5FA8', oppColor: role ? '#4C5FA8' : '#C2452D', ai: !o.remote, lane: role ? 1 : -1 });
+        m.steer = { x: role ? .25 : -.25, y: 0, kx: 0, ky: 0, cal: null };   // start steering from your own lane
+        isl.add(m.race.group);
       }
       if (GAMES[o.game].chess) { m.chess = { st: CH.newGame(), me: role ? 'b' : 'w', clock: { w: opt, b: opt }, ply: 0, think: 0, wait: 1.5, reason: '' }; drawChess(); }   // who asked plays white
       U.uNwCenter.value.copy(m.C); game.floorY = sp.y; game.focus.set(sp.cx, sp.y + .9, sp.cz);
