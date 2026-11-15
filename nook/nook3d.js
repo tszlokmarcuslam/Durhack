@@ -54,9 +54,12 @@ export function createNook(T, els, cb) {
 
   /* ================= call room (the other person's side of a call) ================= */
   const sC = new T.Scene(); sC.background = new T.Color('#EDE7DB'); sC.fog = new T.Fog('#EDE7DB', 7, 18);
-  sC.add(new T.HemisphereLight('#FFF8EE', '#D9CDBB', 1.6));
+  const hemiC = new T.HemisphereLight('#FFF8EE', '#D9CDBB', 1.6); sC.add(hemiC);
   const keyC = new T.DirectionalLight('#FFF1DC', 2.3); keyC.position.set(1.8, 4.2, 4.5); keyC.castShadow = true; keyC.shadow.mapSize.set(1024, 1024); Object.assign(keyC.shadow.camera, { left: -3, right: 3, top: 3.5, bottom: -1, near: .5, far: 16 }); keyC.shadow.normalBias = .02; sC.add(keyC);
   const rimC = new T.DirectionalLight('#FFE2C0', .8); rimC.position.set(-3, 3, -2); sC.add(rimC);
+  // night mode (the page's day/night button): dim moonlight, night sky in the window, the floor lamp glows warmer
+  let nightK = 0, nightT = 0, glassC = null, bulbC = null;
+  const DAY_BG = new T.Color('#EDE7DB'), NIGHT_BG = new T.Color('#252733'), DAY_KEY = new T.Color('#FFF1DC'), NIGHT_KEY = new T.Color('#9FB4E0'), DAY_GLASS = new T.Color('#BFD9D3'), NIGHT_GLASS = new T.Color('#2C3A60');
   const roomG = new T.Group(); sC.add(roomG); // everything that makes up the room, so it can dissolve as one
   const wallC = new T.MeshStandardMaterial({ color: '#E7DCC8', roughness: 1, flatShading: true });
   const camC = new T.PerspectiveCamera(28, 1, .1, 40);
@@ -84,7 +87,7 @@ export function createNook(T, els, cb) {
   let globe, globeM, ring; const pins = [];
   (function buildRoom() {
     seed = 31;
-    const white = M('#F8F3E8'), glass = M('#BFD9D3', { roughness: .4 }), woodD = M('#8A6245'), greens = [M('#7E9A62'), M('#8BA56B'), M('#6F8C5A')];
+    const white = M('#F8F3E8'), glass = glassC = M('#BFD9D3', { roughness: .4 }).clone(), woodD = M('#8A6245'), greens = [M('#7E9A62'), M('#8BA56B'), M('#6F8C5A')];
     P(roomG, BOX, wallC, [0, 2.5, -1.7], [14, 6, .2]).castShadow = false;
     P(roomG, BOX, M('#DCCDB3'), [0, -.05, 0], [14, .1, 8]).castShadow = false;
     P(roomG, BOX, M('#D2C1A5'), [0, .08, -1.57], [14, .16, .06]);
@@ -110,7 +113,7 @@ export function createNook(T, els, cb) {
     const lp = G3(roomG, 2.4, 0, -.7);
     P(lp, CYL8, woodD, [0, .02, 0], [.18, .04, .18]); P(lp, CYL6, woodD, [0, .8, 0], [.025, 1.6, .025]);
     P(lp, CYL8, M('#F3E3C2', { emissive: '#F6D9A0', emissiveIntensity: .55 }), [0, 1.66, 0], [.22, .28, .22]);
-    const bulb = new T.PointLight('#FFD9A0', 2.2, 4.5, 1.6); bulb.position.set(2.4, 1.6, -.6); roomG.add(bulb);
+    const bulb = bulbC = new T.PointLight('#FFD9A0', 2.2, 4.5, 1.6); bulb.position.set(2.4, 1.6, -.6); roomG.add(bulb);
     // globe shown while searching for someone
     globe = G3(sC, 0, 1.32, 0);
     const gg = new T.IcosahedronGeometry(.27, 3), gp = gg.attributes.position, gc = [], cc = new T.Color();
@@ -134,7 +137,7 @@ export function createNook(T, els, cb) {
 
   /* ================= renderer, layout, input ================= */
   const rW = new T.WebGLRenderer({ canvas: els.world, antialias: true, preserveDrawingBuffer: true }); rW.shadowMap.enabled = true;
-  let view = 'home', worldTick = null, frameHook = null;
+  let view = 'home', worldTick = null, frameHook = null, callEqual = false;
   const LAY = {
     world: ['position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab', 'display:none'],
     home: ['position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none', 'position:absolute;right:3vw;bottom:84px;height:min(76vh,54vw);aspect-ratio:.72;display:block;pointer-events:none'],
@@ -142,7 +145,8 @@ export function createNook(T, els, cb) {
     scan: ['display:none', 'position:absolute;right:4vw;top:100px;height:calc(100% - 190px);aspect-ratio:.72;display:block;pointer-events:none'],
     call: ['position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none', 'position:absolute;right:24px;top:84px;width:clamp(116px,14vw,196px);aspect-ratio:.78;display:block;pointer-events:none;box-sizing:border-box;border-radius:24px;border:3px solid #FBF8F1;background:linear-gradient(180deg,#E9EBD8,#D6DBBF);box-shadow:0 12px 30px rgba(43,42,39,.18);transition:right .35s ease']
   };
-  const sizeAll = () => { const w = els.root.clientWidth, h = els.root.clientHeight; if (!w || !h) return; rW.setPixelRatio(pr()); rW.setSize(w, h, false); cw = w; ch = h; camC.aspect = w / h; camC.updateProjectionMatrix(); camI.aspect = w / h; camI.setViewOffset(w, h, w * .08, h * .1, w, h); camI.updateProjectionMatrix(); distI = 66 * Math.max(1, 1.5 / (w / h)) * (h < 700 ? 1.15 : 1.05); sizeA(); };
+  const sizeAll = () => { if (!els.root.clientWidth || !els.root.clientHeight) return; const w = els.world.clientWidth || els.root.clientWidth, h = els.world.clientHeight || els.root.clientHeight;   // the world canvas fills the page, except in a call where it is the left half
+    rW.setPixelRatio(pr()); rW.setSize(w, h, false); cw = w; ch = h; camC.aspect = w / h; camC.updateProjectionMatrix(); camI.aspect = w / h; camI.setViewOffset(w, h, w * .08, h * .1, w, h); camI.updateProjectionMatrix(); distI = 66 * Math.max(1, 1.5 / (w / h)) * (h < 700 ? 1.15 : 1.05); sizeA(); };
   const ro = new ResizeObserver(sizeAll); ro.observe(els.root);
   const onMove = e => { mx = e.clientX / window.innerWidth * 2 - 1; my = e.clientY / window.innerHeight * 2 - 1; if (dragA) rotA = dragA.r + (e.clientX - dragA.x) * .01; };
   const onUp = () => { dragA = null; if (view === 'creator') els.avatar.style.cursor = 'grab'; };
@@ -163,6 +167,10 @@ export function createNook(T, els, cb) {
     }
     if (view === 'call') {
       const e = Math.min(1, dt * 6);
+      nightK += (nightT - nightK) * Math.min(1, dt * 3);   // (a boxing match's arena repaints the room after this, while it runs)
+      sC.background.copy(DAY_BG).lerp(NIGHT_BG, nightK); sC.fog.color.copy(sC.background);
+      hemiC.intensity = 1.6 - 1.28 * nightK; keyC.intensity = 2.3 - 1.9 * nightK; keyC.color.copy(DAY_KEY).lerp(NIGHT_KEY, nightK); rimC.intensity = .8 - .62 * nightK;
+      if (bulbC) bulbC.intensity = 2.2 + 2.6 * nightK; if (glassC) glassC.color.copy(DAY_GLASS).lerp(NIGHT_GLASS, nightK);
       shift += (shiftT - shift) * e; camY += (peerHead - .15 - camY) * e;
       camC.position.set(0, camY, 3.4); camC.lookAt(0, camY - .2, 0);
       if (cw) { camC.setViewOffset(cw, ch, shift, 0, cw, ch); camC.updateProjectionMatrix(); }
@@ -226,7 +234,12 @@ export function createNook(T, els, cb) {
         }
       }
       // in a call, your tile widens from head-and-shoulders to waist-up once your arms are tracked
-      if (inCall) { const bw = BT.w; camP.position.set(0, myHead - .08 - bw * .3, 1.8 + bw * 1.4); camP.lookAt(0, myHead - .14 - bw * .26, 0); rA.render(sA, camP); }
+      if (inCall) {
+        const bw = BT.w, fov = callEqual ? camC.fov : 26; if (camP.fov !== fov) { camP.fov = fov; camP.updateProjectionMatrix(); }
+        if (callEqual) { camP.position.set(0, myHead - .15, 3.4); camP.lookAt(0, myHead - .35, 0); }   // the same shot as the other person's camera (camC)
+        else { camP.position.set(0, myHead - .08 - bw * .3, 1.8 + bw * 1.4); camP.lookAt(0, myHead - .14 - bw * .26, 0); }
+        rA.render(sA, camP);
+      }
       else { const z = view === 'creator' ? zoom : 0; camA.position.set(0, 1.02 + z * (myHead + .06 - 1.02), 4.95 - z * 2.45); camA.lookAt(0, .94 + z * (myHead + .03 - .94), 0); rA.render(sA, camA); }
     }
   };
@@ -270,7 +283,10 @@ export function createNook(T, els, cb) {
     setTrack(p) { track = p; },
     thumb(c) { return thumb(c); },
     // avatarCss optionally overrides where your avatar canvas sits (the body-scan screen sizes it to the window)
-    setView(v, avatarCss) { view = v; els.world.style.cssText = LAY[v][0]; els.avatar.style.cssText = avatarCss || LAY[v][1]; sizeAll(); },
+    setView(v, avatarCss, worldCss) { view = v; els.world.style.cssText = worldCss || LAY[v][0]; els.avatar.style.cssText = avatarCss || LAY[v][1]; sizeAll(); },   // worldCss: the call screen puts the other person in the left half
+    // Call screen with two equal halves: frame you exactly like the other person, so both avatars are the same size.
+    setCallEqual(on) { callEqual = !!on; },
+    setNight(on) { nightT = on ? 1 : 0; },
     setZoom(z) { zoomT = z; },
     setOrbit(on) { orbitOn = on; },
     // The walkable world (world.js) borrows the island, the avatars and the renderer, and draws each frame while view is 'world'.

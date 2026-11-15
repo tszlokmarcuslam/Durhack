@@ -248,7 +248,7 @@ export function createWorld(T, kit, canvas, tagLayer, cb = {}) {
   }
   const hamPivot = I.parts.Hammock ? I.parts.Hammock.position : null;
   function settle(p, t, dt) {
-    let rest = null;
+    let rest = p.gameRest || null;   // a game can seat someone where there is no real seat (chess: worldgame.js)
     if (p.rest) {
       const s = p.rest.spot, seat = s.seats[p.rest.i];
       p.rest.k = Math.min(1, p.rest.k + dt * 3);
@@ -264,7 +264,7 @@ export function createWorld(T, kit, canvas, tagLayer, cb = {}) {
     p.y += ((p.fixY != null ? p.fixY : groundY(p.x, p.z)) - p.y) * Math.min(1, dt * 14);
     p.waveK += ((t < p.waveUntil ? 1 : 0) - p.waveK) * Math.min(1, dt * 8);
     p.av.position.set(p.x, p.y, p.z);
-    const sk = rest && p.rest.spot.key;
+    const sk = rest && p.rest ? p.rest.spot.key : null;
     if (sk === 'hammock' && hamPivot) {   // rock with the hammock
       const ang = I.hammockRock(t);
       v3.set(p.x - hamPivot.x, p.y - hamPivot.y, p.z - hamPivot.z).applyAxisAngle(I.hammockAxis, ang);
