@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nook Meet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#F3EEE6}a{color:#2B2A27}a:hover{color:#5E683C}input::placeholder{color:#6B665E}button:disabled{cursor:default}@keyframes nookScan{from{top:6%}to{top:94%}}@keyframes nookMenu{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}@keyframes nookPop{0%{opacity:0;transform:translate(-50%,10px) scale(.7)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}30%{transform:translate(-50%,-6px) scale(1)}100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}@keyframes nookBanner{0%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}18%{opacity:1;transform:translate(-50%,-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}}@keyframes nookFlash{from{opacity:.55}to{opacity:0}}@keyframes nookDot{0%,100%{opacity:.25}50%{opacity:1}}</style>
+</helmet>
+<div ref="{{ rootRef }}" style="position:relative;width:100%;height:100vh;min-height:540px;overflow:hidden;background:#F3EEE6;font-family:'Figtree',system-ui,sans-serif;color:#2B2A27">
+  <canvas ref="{{ worldRef }}"></canvas>
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 85% at 50% 50%,rgba(243,238,230,.96),rgba(243,238,230,.62) 68%,rgba(243,238,230,.45));opacity:{{ veil }}"></div>
+  </sc-if>
+  <sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 45% 60% at {{ scanGlowAt }},#E4E8D0,rgba(243,238,230,0) 72%)"></div>
+  </sc-if>
+  <canvas ref="{{ avatarRef }}"></canvas>
+
+  <!-- ================= HOME ================= -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Home" style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"></rect><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"></path><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"></circle></svg><span style="display:flex;align-items:baseline;gap:6px;font-size:25px;letter-spacing:-.02em;white-space:nowrap"><span style="font-weight:700">nook</span><span style="font-weight:500;color:#5E683C">meet</span></span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" onClick="{{ togglePick }}" title="Where you're from" aria-label="Choose your country" style="pointer-events:auto;height:44px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
+            <span style="font-size:22px;line-height:1">{{ myFlag }}</span>
+            <span style="white-space:nowrap">{{ myCode }}</span>
+          </button>
+          <button type="button" title="Edit your look" style="pointer-events:auto;height:44px;padding:0 14px 0 6px;display:flex;align-items:center;gap:10px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
+            <span style="width:32px;height:32px;border-radius:50%;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ pfp }};flex:none"></span>
+            <span style="white-space:nowrap">Your name</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20z"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <sc-if value="{{ isMain }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,38vw);display:flex;flex-direction:column;gap:10px;pointer-events:auto">
+        <button type="button" onClick="{{ openCall }}" onMouseEnter="{{ waveOn }}" onMouseLeave="{{ waveOff }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:20px;box-shadow:0 10px 26px rgba(60,66,38,.28);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 14px 30px rgba(60,66,38,.34)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:rgba(248,244,236,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg></span>
+          <span style="flex:1">Call</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.7"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openFriends }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"></path><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.8.8 2.8 2.6 3 5.2"></path></svg></span>
+          <span style="flex:1">Friends</span>
+          <sc-if value="{{ hasNewFriends }}"><span style="min-width:24px;height:24px;padding:0 7px;box-sizing:border-box;border-radius:12px;background:#E4E6D2;color:#5E683C;font:700 13px/24px 'Figtree',sans-serif;text-align:center">{{ friendCount }}</span></sc-if>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openWorld }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"></path></svg></span>
+          <span style="flex:1">World</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ openSettings }}" style="height:clamp(52px,9vh,66px);padding:0 18px 0 12px;display:flex;align-items:center;gap:14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;text-align:left;transition:transform .2s ease,box-shadow .2s ease" style-hover="transform:translateY(-2px);box-shadow:0 12px 28px rgba(43,42,39,.14)" style-active="transform:translateY(1px)">
+          <span style="width:40px;height:40px;border-radius:13px;background:#ECE6D9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"></path><circle cx="15" cy="7" r="2"></circle><circle cx="9" cy="17" r="2"></circle></svg></span>
+          <span style="flex:1">Settings</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isSub }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,38vw);max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;pointer-events:auto">
+        <div style="font-weight:700;font-size:28px;letter-spacing:-.02em;text-align:center;padding-bottom:6px">{{ menuTitle }}</div>
+        <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0">
+            <sc-for list="{{ friends }}" as="f" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;height:50px;flex:none;padding:0 14px 0 8px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:16px">
+                <span style="width:34px;height:34px;border-radius:50%;background-color:#ECE6D9;background-size:cover;background-position:center;background-image:{{ f.bg }};flex:none"></span>
+                <span style="font-weight:600;font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+                <span style="font-size:13px;color:#6B665E;white-space:nowrap">{{ f.status }}</span>
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ f.dot }};flex:none"></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isCallMenu }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.08)">
+            <div style="font-size:14px;font-weight:600;color:#6B665E;padding-left:2px">Match with people from</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ regionChips }}" as="r">
+                <button type="button" onClick="{{ r.pick }}" style="height:34px;padding:0 13px;border:none;cursor:pointer;border-radius:999px;background:{{ r.bg }};color:{{ r.fg }};font:600 14px 'Figtree',sans-serif;transition:transform .15s ease" style-hover="transform:translateY(-1px)">{{ r.label }}</button>
+              </sc-for>
+            </div>
+            <div style="font-size:13px;color:#6B665E;padding-left:2px">You'll show up as {{ myFlag }} {{ myCountry }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isWorldMenu }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.08)">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px">
+              <div style="display:flex;padding-left:8px;flex:none">
+                <sc-for list="{{ worldFaces }}" as="w"><span style="width:36px;height:36px;margin-left:-8px;box-sizing:border-box;border-radius:50%;border:2px solid #FBF8F1;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ w.bg }};flex:none"></span></sc-for>
+              </div>
+              <div style="line-height:1.25;flex:1 1 104px;min-width:0">
+                <div style="font-weight:700;font-size:15px">{{ worldCount }} on the island now</div>
+                <div style="font-size:13px;color:#6B665E">{{ worldLine }}</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:#6B665E;padding-left:2px">Walk around, meet people and play body games together.</div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ menuItems }}" as="it" hint-placeholder-count="2">
+          <button type="button" onClick="{{ it.pick }}" style="height:clamp(52px,9vh,66px);flex:none;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ it.bg }};color:{{ it.fg }};border-radius:20px;box-shadow:0 8px 22px rgba(43,42,39,.1);font:600 20px 'Figtree',sans-serif;transition:transform .2s ease" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px)">{{ it.label }}</button>
+        </sc-for>
+        <button type="button" onClick="{{ closeMenu }}" style="height:clamp(46px,8vh,56px);flex:none;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid rgba(43,42,39,.22);cursor:pointer;background:rgba(251,248,241,.7);color:#2B2A27;border-radius:20px;font:600 18px 'Figtree',sans-serif;transition:background .15s ease" style-hover="background:#FBF8F1">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+          <span>Back</span>
+        </button>
+      </div>
+      </sc-if>
+
+      <!-- people online right now, by flag -->
+      <div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:14px;padding:10px 16px 10px 16px;background:rgba(251,248,241,.9);border:1px solid rgba(43,42,39,.07);border-radius:18px;box-shadow:0 8px 22px rgba(43,42,39,.1)">
+        <span style="width:9px;height:9px;border-radius:50%;background:#5E683C;box-shadow:0 0 0 4px rgba(94,104,60,.18);flex:none"></span>
+        <div style="line-height:1.2;white-space:nowrap">
+          <div style="font-weight:700;font-size:15px;font-variant-numeric:tabular-nums">{{ onlineCount }} online now</div>
+          <div style="font-size:12px;color:#6B665E">in {{ countryCount }} countries</div>
+        </div>
+        <div style="display:flex;gap:3px;font-size:20px;line-height:1">
+          <sc-for list="{{ homeFlags }}" as="f"><span style="opacity:{{ f.op }};transition:opacity .4s ease">{{ f.flag }}</span></sc-for>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:3vw;bottom:20px;width:calc(min(76vh,54vw) * .72);display:flex;justify-content:center">
+        <button type="button" onClick="{{ openScan }}" aria-label="Body scan" title="Body scan: your camera moves your avatar" style="pointer-events:auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:50%;box-shadow:0 8px 22px rgba(43,42,39,.14);transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{ pickOpen }}">
+        <div onClick="{{ closePick }}" style="position:absolute;inset:0;pointer-events:auto"></div>
+        <div style="position:absolute;top:74px;right:24px;width:min(360px,calc(100% - 48px));max-height:min(62vh,480px);display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:22px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden">
+          <div style="padding:16px 18px 8px">
+            <div style="font-weight:700;font-size:18px">Where are you from?</div>
+            <div style="font-size:13px;color:#6B665E;margin-top:2px">Your flag shows to the people you meet on calls.</div>
+          </div>
+          <div style="overflow:auto;padding:6px 10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <sc-for list="{{ countryList }}" as="c">
+              <button type="button" onClick="{{ c.pick }}" style="height:42px;display:flex;align-items:center;gap:8px;padding:0 10px;border:none;cursor:pointer;background:{{ c.bg }};color:#2B2A27;border-radius:12px;font:{{ c.font }};text-align:left;min-width:0" style-hover="filter:brightness(.96)">
+                <span style="font-size:20px;line-height:1;flex:none">{{ c.flag }}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ================= BODY SCAN ================= -->
+  <sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Body scan" style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"></rect><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"></path><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"></circle></svg><span style="display:flex;align-items:baseline;gap:6px;font-size:25px;letter-spacing:-.02em;white-space:nowrap"><span style="font-weight:700">nook</span><span style="font-weight:500;color:#5E683C">meet</span></span></div>
+        <button type="button" onClick="{{ goHome }}" style="pointer-events:auto;height:44px;padding:0 18px 0 12px;display:flex;align-items:center;gap:8px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+          <span>Home</span>
+        </button>
+      </div>
+      <div style="position:absolute;left:{{ scanLeft }}px;top:{{ scanTitleTop }}px;right:24px">
+        <div style="font-weight:700;font-size:{{ scanTitleSize }};letter-spacing:-.02em;line-height:1.1">Body scan</div>
+        <div style="font-size:15px;color:#6B665E;margin-top:5px">{{ scanHint }}</div>
+      </div>
+      <div style="position:absolute;left:{{ scanLeft }}px;{{ scanActionsPos }};display:flex;flex-wrap:wrap;align-items:center;gap:10px;pointer-events:auto">
+        <button type="button" onClick="{{ startCallNow }}" style="height:52px;padding:0 20px 0 14px;display:flex;align-items:center;gap:10px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:18px;box-shadow:0 8px 20px rgba(60,66,38,.25);font:600 17px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+          <span>Start a call</span>
+        </button>
+        <button type="button" onClick="{{ toggleCam }}" style="height:52px;padding:0 18px;display:flex;align-items:center;gap:8px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:18px;box-shadow:0 8px 22px rgba(43,42,39,.08);font:600 16px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+          <span>{{ camToggleLabel }}</span>
+        </button>
+      </div>
+      <sc-if value="{{ scanWide }}">
+        <div style="position:absolute;left:{{ scanLeft }}px;top:{{ scanNoteTop }}px;width:{{ scanCamW }}px;display:flex;align-items:center;gap:8px;font-size:13px;color:#6B665E">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
+          <span>Your camera picture stays on this device. Only your pose moves the avatar.</span>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ================= CALL ================= -->
+  <sc-if value="{{ callUi }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Call" style="position:absolute;inset:0;pointer-events:none">
+      <div style="position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"></rect><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"></path><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"></circle></svg><sc-if value="{{ showWordmark }}"><span style="display:flex;align-items:baseline;gap:6px;font-size:25px;letter-spacing:-.02em;white-space:nowrap"><span style="font-weight:700">nook</span><span style="font-weight:500;color:#5E683C">meet</span></span></sc-if></div>
+        <div style="height:38px;padding:0 14px;display:flex;align-items:center;gap:8px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 14px 'Figtree',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ liveDot }}"></span>{{ callClock }}
+        </div>
+      </div>
+
+      <sc-if value="{{ isLive }}">
+        <div onClick="{{ openPeerCard }}" title="Options for {{ peerName }}" style="position:absolute;top:13px;left:{{ cardLeft }};transform:{{ cardShift }};display:flex;align-items:center;gap:12px;height:54px;max-width:{{ cardMax }};box-sizing:border-box;padding:0 12px 0 7px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:999px;box-shadow:0 8px 22px rgba(43,42,39,.12);transition:left .35s ease;white-space:nowrap;pointer-events:auto;cursor:pointer">
+          <span style="width:40px;height:40px;border-radius:50%;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ peerThumb }};flex:none"></span>
+          <div style="display:flex;flex-direction:column;line-height:1.2;min-width:0">
+            <span style="font-weight:700;font-size:17px;overflow:hidden;text-overflow:ellipsis">{{ peerName }}</span>
+            <span style="font-size:13px;color:#6B665E;overflow:hidden;text-overflow:ellipsis">{{ peerPlace }}</span>
+          </div>
+          <span style="font-size:28px;line-height:1;flex:none">{{ peerFlag }}</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#6B665E" style="flex:none"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+        </div>
+      </sc-if>
+
+      <!-- tip: the other person is clickable -->
+      <sc-if value="{{ showPeerHint }}">
+        <div style="position:absolute;left:{{ stageX }};bottom:100px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(43,42,39,.86);color:#F8F4EC;border-radius:14px;font:600 14px 'Figtree',sans-serif;white-space:nowrap;animation:nookMenu .3s ease-out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v9.5l-2-2a1.6 1.6 0 0 0-2.3 2.2l4.8 5.3h7.5l1.5-6.5a2 2 0 0 0-1.5-2.4L12 9.3V4a1.5 1.5 0 0 0-3 0z"></path></svg>
+          <span>Click {{ peerName }} to challenge, invite or add them</span>
+        </div>
+      </sc-if>
+
+      <!-- a challenge waiting for an answer -->
+      <sc-if value="{{ challengePending }}">
+        <div style="position:absolute;top:78px;left:{{ stageX }};transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:9px 10px 9px 14px;background:#2B2A27;color:#F8F4EC;border-radius:16px;font:600 14px 'Figtree',sans-serif;white-space:nowrap;box-shadow:0 10px 26px rgba(43,42,39,.25);pointer-events:auto;animation:nookMenu .25s ease-out">
+          <span style="font-size:18px">🥊</span>
+          <span>Waiting for {{ peerName }} to accept</span>
+          <span style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#C9D98F;animation:nookDot 1s infinite"></span><span style="width:5px;height:5px;border-radius:50%;background:#C9D98F;animation:nookDot 1s .2s infinite"></span><span style="width:5px;height:5px;border-radius:50%;background:#C9D98F;animation:nookDot 1s .4s infinite"></span></span>
+          <button type="button" onClick="{{ cancelChallenge }}" style="height:30px;padding:0 10px;border:none;cursor:pointer;background:rgba(248,244,236,.14);color:#F8F4EC;border-radius:10px;font:600 13px 'Figtree',sans-serif">Cancel</button>
+        </div>
+      </sc-if>
+
+      <!-- options for the other person: challenge, party, friend -->
+      <sc-if value="{{ peerMenuOpen }}">
+        <div onClick="{{ closePeerMenu }}" style="position:absolute;inset:0;pointer-events:auto"></div>
+        <div style="position:absolute;left:{{ pmX }}px;top:{{ pmY }}px;width:288px;box-sizing:border-box;padding:10px;display:flex;flex-direction:column;gap:6px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:22px;box-shadow:0 18px 44px rgba(43,42,39,.22);pointer-events:auto;animation:nookMenu .16s ease-out">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 6px 8px">
+            <span style="width:40px;height:40px;border-radius:50%;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ peerThumb }};flex:none"></span>
+            <div style="line-height:1.2;min-width:0;flex:1">
+              <div style="font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ peerName }} {{ peerFlag }}</div>
+              <div style="font-size:13px;color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ peerCity }}</div>
+            </div>
+          </div>
+          <sc-for list="{{ peerActions }}" as="a">
+            <button type="button" onClick="{{ a.pick }}" disabled="{{ a.off }}" style="display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border:none;cursor:pointer;background:{{ a.bg }};color:{{ a.fg }};border-radius:16px;text-align:left;opacity:{{ a.op }};transition:transform .15s ease" style-hover="transform:translateY(-1px)">
+              <span style="width:36px;height:36px;border-radius:12px;background:{{ a.iconBg }};display:flex;align-items:center;justify-content:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <sc-if value="{{ a.icon === 'glove' }}"><path d="M7 8a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v1a7 7 0 0 1-7 7h-2a6 6 0 0 1-6-6v-3a4 4 0 0 1 2-4zM7 12h7"></path></sc-if>
+                <sc-if value="{{ a.icon === 'party' }}"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.8.8 2.8 2.6 3 5.2"></path></sc-if>
+                <sc-if value="{{ a.icon === 'add' }}"><path d="M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5M19 8v6M16 11h6"></path></sc-if>
+                <sc-if value="{{ a.icon === 'ok' }}"><path d="M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5M15.5 11l2 2 4-4"></path></sc-if>
+              </svg></span>
+              <span style="display:flex;flex-direction:column;line-height:1.25;min-width:0">
+                <span style="font:700 15px 'Figtree',sans-serif">{{ a.label }}</span>
+                <span style="font:500 12.5px 'Figtree',sans-serif;opacity:.75">{{ a.sub }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSearching }}">
+        <div style="position:absolute;left:{{ stageX }};top:calc(50% + min(17vh,170px));transform:translateX(-50%);width:min(460px,90vw);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transition:left .35s ease">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;height:40px">
+            <sc-for list="{{ searchFlags }}" as="f"><span style="font-size:{{ f.size }};line-height:1;opacity:{{ f.op }};transition:opacity .3s ease">{{ f.flag }}</span></sc-for>
+          </div>
+          <div style="font-weight:700;font-size:clamp(20px,2.4vw,26px);letter-spacing:-.02em">Finding someone {{ regionPhrase }}…</div>
+          <div style="font-size:14px;color:#6B665E">Demo: matches are simulated until the match server is live.</div>
+        </div>
+      </sc-if>
+
+      <!-- labels on your own avatar (the 3D canvas sits underneath) -->
+      <div style="position:absolute;right:{{ pipRight }}px;top:84px;width:clamp(116px,14vw,196px);aspect-ratio:.78;transition:right .35s ease">
+        <div style="position:absolute;left:8px;bottom:8px;height:26px;padding:0 10px;display:flex;align-items:center;gap:6px;background:rgba(251,248,241,.92);border-radius:999px;font:600 13px 'Figtree',sans-serif"><span style="font-size:15px;line-height:1">{{ myFlag }}</span>You</div>
+      </div>
+
+      <sc-if value="{{ chatOpen }}">
+        <div style="position:absolute;top:84px;right:24px;bottom:{{ chatBottom }}px;width:{{ chatW }}px;display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:24px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;padding:14px 12px 10px 18px">
+            <div style="flex:1;min-width:0;line-height:1.2">
+              <div style="font-weight:700;font-size:18px">Chat</div>
+              <div style="font-size:13px;color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ chatWith }}</div>
+            </div>
+            <button type="button" onClick="{{ toggleChat }}" aria-label="Close chat" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div style="margin:0 14px;padding:8px 12px;display:flex;align-items:center;gap:8px;background:#EEF0E2;color:#4E5733;border-radius:12px;font:500 13px 'Figtree',sans-serif">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
+            <span>Hateful language is blocked automatically.</span>
+          </div>
+          <div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+            <sc-if value="{{ chatEmpty }}"><div style="margin:auto;color:#6B665E;font-size:14px;text-align:center">{{ chatEmptyText }}</div></sc-if>
+            <sc-for list="{{ chatMsgs }}" as="m">
+              <div style="align-self:{{ m.align }};max-width:84%;padding:9px 13px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font:{{ m.font }};line-height:1.35;overflow-wrap:anywhere;text-align:{{ m.ta }}">{{ m.text }}</div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;padding:12px">
+            <input ref="{{ chatInputRef }}" value="{{ chatDraft }}" onChange="{{ onChatDraft }}" onKeyDown="{{ onChatKey }}" placeholder="{{ chatPlaceholder }}" disabled="{{ chatDisabled }}" aria-label="Chat message" style="flex:1;min-width:0;height:46px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:14px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <button type="button" onClick="{{ sendChat }}" disabled="{{ chatDisabled }}" aria-label="Send" style="width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:14px;opacity:{{ sendOp }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-7z"></path></svg></button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- call controls -->
+      <div style="position:absolute;left:{{ stageX }};bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px;background:rgba(251,248,241,.95);border:1px solid rgba(43,42,39,.07);border-radius:26px;box-shadow:0 12px 30px rgba(43,42,39,.14);pointer-events:auto;transition:left .35s ease">
+        <button type="button" onClick="{{ toggleCam }}" title="{{ camTitle }}" aria-label="{{ camTitle }}" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+        </button>
+        <button type="button" onClick="{{ toggleChat }}" title="Chat" aria-label="Chat" style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ chatBg }};color:{{ chatFg }};border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg>
+          <sc-if value="{{ hasUnread }}"><span style="position:absolute;top:5px;right:5px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#B9694C;color:#FBF8F1;font:700 11px/18px 'Figtree',sans-serif;text-align:center">{{ unread }}</span></sc-if>
+        </button>
+        <sc-if value="{{ canAdd }}">
+          <button type="button" onClick="{{ addFriend }}" title="Add to your friends" aria-label="Add friend" style="height:52px;padding:0 16px 0 14px;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:18px;font:600 16px 'Figtree',sans-serif;white-space:nowrap;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.97)">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"></path><path d="M19 8v6M16 11h6"></path></svg>
+            <sc-if value="{{ wide }}"><span>Add friend</span></sc-if>
+          </button>
+        </sc-if>
+        <sc-if value="{{ isFriend }}">
+          <div title="You're friends" style="height:52px;padding:0 16px 0 14px;display:flex;align-items:center;gap:8px;background:#E4E6D2;color:#5E683C;border-radius:18px;font:600 16px 'Figtree',sans-serif;white-space:nowrap">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"></path><path d="M15.5 11l2 2 4-4"></path></svg>
+            <sc-if value="{{ wide }}"><span>Friends</span></sc-if>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isSearching }}">
+          <div style="height:52px;padding:0 16px 0 14px;display:flex;align-items:center;gap:8px;background:#ECE6D9;color:#2B2A27;border-radius:18px;font:600 16px 'Figtree',sans-serif;white-space:nowrap;opacity:.45">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"></path><path d="M19 8v6M16 11h6"></path></svg>
+            <sc-if value="{{ wide }}"><span>Add friend</span></sc-if>
+          </div>
+        </sc-if>
+        <button type="button" onClick="{{ skip }}" disabled="{{ isSearching }}" title="Skip to someone new" aria-label="Skip" style="height:52px;padding:0 18px 0 22px;display:flex;align-items:center;gap:10px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:18px;box-shadow:0 8px 20px rgba(60,66,38,.25);font:600 17px 'Figtree',sans-serif;opacity:{{ skipOp }};transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:translateY(1px)">
+          <span>Skip</span>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
+        </button>
+        <button type="button" onClick="{{ endCall }}" title="End call" aria-label="End call" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#B9694C;color:#FBF8F1;border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path transform="rotate(135 12 12)" d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ================= 1v1 BOXING (inside a call) ================= -->
+  <sc-if value="{{ inArena }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Boxing" style="position:absolute;inset:0;pointer-events:none;color:#F8F4EC;font-family:'Figtree',sans-serif">
+      <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(780px,calc(100% - 32px));display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;opacity:{{ hudOp }};transition:opacity .4s ease">
+        <div style="display:flex;flex-direction:column;gap:7px;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;font:700 16px 'Figtree',sans-serif"><span style="font-size:20px;line-height:1">{{ myFlag }}</span><span>You</span><span style="margin-left:auto;font-variant-numeric:tabular-nums;opacity:.75">{{ hpMe }}</span></div>
+          <div style="height:14px;border-radius:7px;background:rgba(248,244,236,.14);border:1px solid rgba(248,244,236,.22);overflow:hidden"><div style="height:100%;width:{{ hpMePct }};background:linear-gradient(90deg,#8FA26D,#C9D98F);border-radius:7px;transition:width .25s ease"></div></div>
+        </div>
+        <div style="min-width:78px;height:54px;padding:0 12px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FBF8F1;color:#2B2A27;border-radius:16px;box-shadow:0 10px 26px rgba(0,0,0,.3)">
+          <span style="font:700 10px 'Figtree',sans-serif;letter-spacing:.14em;color:#6B665E">{{ roundLabel }}</span>
+          <span style="font:700 22px/1.1 'Figtree',sans-serif;font-variant-numeric:tabular-nums">{{ roundClock }}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;font:700 16px 'Figtree',sans-serif"><span style="font-variant-numeric:tabular-nums;opacity:.75">{{ hpThem }}</span><span style="margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ peerName }}</span><span style="font-size:20px;line-height:1">{{ peerFlag }}</span></div>
+          <div style="height:14px;border-radius:7px;background:rgba(248,244,236,.14);border:1px solid rgba(248,244,236,.22);overflow:hidden;display:flex;justify-content:flex-end"><div style="height:100%;width:{{ hpThemPct }};background:linear-gradient(270deg,#B9694C,#E3A27F);border-radius:7px;transition:width .25s ease"></div></div>
+        </div>
+      </div>
+
+      <sc-if value="{{ showFightHint }}">
+        <div style="position:absolute;left:50%;bottom:104px;transform:translateX(-50%);max-width:calc(100% - 32px);padding:8px 14px;box-sizing:border-box;background:rgba(0,0,0,.42);border-radius:12px;font:500 14px 'Figtree',sans-serif;text-align:center;color:rgba(248,244,236,.92)">{{ fightHint }}</div>
+      </sc-if>
+
+      <sc-if value="{{ showFightControls }}">
+        <div style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px;background:rgba(251,248,241,.95);border-radius:26px;box-shadow:0 12px 30px rgba(0,0,0,.3);pointer-events:auto;color:#2B2A27">
+          <button type="button" onClick="{{ toggleCam }}" title="{{ camTitle }}" aria-label="{{ camTitle }}" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:18px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg></button>
+          <button type="button" onClick="{{ jab }}" title="Jab (J or ←)" style="height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:18px;font:700 16px 'Figtree',sans-serif" style-active="transform:scale(.95)"><span>Jab</span><sc-if value="{{ wide }}"><span style="font:600 11px 'Figtree',sans-serif;opacity:.7;padding:2px 6px;border:1px solid rgba(248,244,236,.4);border-radius:6px">J</span></sc-if></button>
+          <button type="button" onClick="{{ cross }}" title="Cross (K or →)" style="height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:18px;font:700 16px 'Figtree',sans-serif" style-active="transform:scale(.95)"><span>Cross</span><sc-if value="{{ wide }}"><span style="font:600 11px 'Figtree',sans-serif;opacity:.7;padding:2px 6px;border:1px solid rgba(248,244,236,.4);border-radius:6px">K</span></sc-if></button>
+          <button type="button" onPointerDown="{{ guardOn }}" onPointerUp="{{ guardOff }}" onPointerLeave="{{ guardOff }}" title="Hold to guard (Space)" style="height:52px;padding:0 16px;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;background:{{ guardBg }};color:{{ guardFg }};border-radius:18px;font:700 16px 'Figtree',sans-serif;touch-action:none"><span>Guard</span><sc-if value="{{ wide }}"><span style="font:600 11px 'Figtree',sans-serif;opacity:.7;padding:2px 6px;border:1px solid currentColor;border-radius:6px">Space</span></sc-if></button>
+          <button type="button" onClick="{{ leaveMatch }}" title="Leave the match" aria-label="Leave the match" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:18px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showResult }}">
+        <div style="position:absolute;inset:0;background:rgba(10,8,6,.35);pointer-events:auto"></div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 32px));box-sizing:border-box;padding:24px;background:#FBF8F1;color:#2B2A27;border-radius:26px;box-shadow:0 24px 60px rgba(0,0,0,.4);text-align:center;pointer-events:auto;animation:nookMenu .3s ease-out">
+          <div style="font-size:44px;line-height:1">{{ resultEmoji }}</div>
+          <div style="font:700 28px/1.15 'Figtree',sans-serif;letter-spacing:-.02em;margin-top:10px">{{ resultTitle }}</div>
+          <div style="font-size:15px;color:#6B665E;margin-top:6px">{{ resultSub }}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0">
+            <sc-for list="{{ resultStats }}" as="r">
+              <div style="padding:10px 6px;background:#F1ECE2;border-radius:14px"><div style="font:700 22px 'Figtree',sans-serif;font-variant-numeric:tabular-nums">{{ r.value }}</div><div style="font-size:12px;color:#6B665E">{{ r.label }}</div></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button type="button" onClick="{{ rematch }}" style="flex:1;height:50px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:16px;font:700 16px 'Figtree',sans-serif">Rematch</button>
+            <button type="button" onClick="{{ leaveMatch }}" style="flex:1;height:50px;border:1px solid rgba(43,42,39,.12);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:16px;font:700 16px 'Figtree',sans-serif">Back to call</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <!-- banners and hit numbers are added here directly so each one can play its own animation -->
+  <div ref="{{ fxRef }}" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+
+  <!-- your party (people who accepted an invite) -->
+  <sc-if value="{{ showParty }}">
+    <div title="{{ partyNames }}" style="position:absolute;left:24px;top:72px;display:flex;align-items:center;gap:10px;height:40px;padding:0 12px 0 6px;background:rgba(251,248,241,.94);border:1px solid rgba(43,42,39,.07);border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 14px 'Figtree',sans-serif;color:#2B2A27">
+      <span style="display:flex;padding-left:8px">
+        <span style="width:28px;height:28px;margin-left:-8px;box-sizing:border-box;border-radius:50%;border:2px solid #FBF8F1;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ pfp }}"></span>
+        <sc-for list="{{ partyFaces }}" as="f"><span style="width:28px;height:28px;margin-left:-8px;box-sizing:border-box;border-radius:50%;border:2px solid #FBF8F1;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ f.bg }}"></span></sc-for>
+      </span>
+      <span>Party {{ partyCount }}/4</span>
+    </div>
+  </sc-if>
+
+  <!-- your camera: live, mirrored, with the tracked skeleton drawn over it. Stays mounted so the video survives screen changes. -->
+  <div style="{{ camCardStyle }}">
+    <div ref="{{ camStageRef }}" style="position:absolute;inset:0"></div>
+    <sc-if value="{{ camScanning }}">
+      <div style="position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#E4E6D2,transparent);box-shadow:0 0 14px 3px rgba(228,230,210,.6);animation:nookScan 1.6s ease-in-out infinite alternate;pointer-events:none"></div>
+    </sc-if>
+    <sc-if value="{{ camHasErr }}">
+      <div style="padding:14px 40px 14px 14px;display:flex;flex-direction:column;gap:6px;background:#FBF8F1;color:#2B2A27;font:500 13px/1.4 'Figtree',sans-serif">
+        <div style="font-weight:700;font-size:15px">Camera not available</div>
+        <div style="color:#6B665E">{{ camErr }}</div>
+        <button type="button" onClick="{{ camOnNow }}" style="align-self:flex-start;margin-top:4px;height:38px;padding:0 14px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:12px;font:600 14px 'Figtree',sans-serif">Try again</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{ camOffShow }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;color:#F8F4EC;font:500 15px 'Figtree',sans-serif;text-align:center">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
+        <div>Camera is off</div>
+        <button type="button" onClick="{{ camOnNow }}" style="height:44px;padding:0 18px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:14px;font:600 15px 'Figtree',sans-serif">Turn camera on</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{ camLabelShow }}">
+      <div style="position:absolute;left:8px;bottom:8px;max-width:calc(100% - 16px);box-sizing:border-box;min-height:24px;padding:4px 9px;display:flex;align-items:center;gap:6px;background:{{ camLabelBg }};color:{{ camLabelFg }};border-radius:12px;font:600 12px/1.2 'Figtree',sans-serif"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;flex:none"></span>{{ camLabel }}</div>
+    </sc-if>
+    <sc-if value="{{ camCloseShow }}">
+      <button type="button" onClick="{{ closeCam }}" aria-label="Turn camera off" title="Turn camera off" style="position:absolute;top:6px;right:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ camCloseBg }};color:{{ camCloseFg }};border-radius:10px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ hasToast }}">
+    <div style="position:absolute;left:{{ toastX }};bottom:{{ toastBottom }}px;transform:translateX(-50%);max-width:calc(100% - 48px);padding:10px 16px;box-sizing:border-box;background:#2B2A27;color:#F8F4EC;border-radius:14px;font:600 14px 'Figtree',sans-serif;box-shadow:0 10px 26px rgba(43,42,39,.25);text-align:center;pointer-events:none">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mapFade&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;default&quot;:70,&quot;tsType&quot;:&quot;number&quot;},&quot;droneOrbit&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+function flagOf(code) { return String.fromCodePoint(...[...code].map(c => 0x1F1A5 + c.charCodeAt(0))); }
+// code | name | region | time zone | cities | first names (for demo matches)
+const COUNTRIES = `
+NG|Nigeria|Africa|Africa/Lagos|Lagos,Abuja,Ibadan|Amara,Chidi,Tolu,Ngozi
+GH|Ghana|Africa|Africa/Accra|Accra,Kumasi|Kwame,Ama,Kofi,Esi
+KE|Kenya|Africa|Africa/Nairobi|Nairobi,Mombasa|Wanjiru,Otieno,Achieng,Kamau
+ZA|South Africa|Africa|Africa/Johannesburg|Cape Town,Johannesburg,Durban|Thandi,Sipho,Lerato,Pieter
+EG|Egypt|Africa|Africa/Cairo|Cairo,Alexandria|Nour,Omar,Yasmin,Karim
+MA|Morocco|Africa|Africa/Casablanca|Marrakesh,Casablanca,Fes|Salma,Youssef,Imane,Mehdi
+GB|United Kingdom|Europe|Europe/London|London,Manchester,Durham,Edinburgh|Ollie,Priya,Callum,Isla
+IE|Ireland|Europe|Europe/Dublin|Dublin,Galway,Cork|Aoife,Cian,Niamh,Ronan
+FR|France|Europe|Europe/Paris|Paris,Lyon,Marseille|Léa,Hugo,Camille,Louis
+DE|Germany|Europe|Europe/Berlin|Berlin,Munich,Hamburg|Lena,Jonas,Mia,Felix
+ES|Spain|Europe|Europe/Madrid|Madrid,Barcelona,Valencia|Lucía,Pablo,Carmen,Diego
+IT|Italy|Europe|Europe/Rome|Rome,Milan,Naples|Giulia,Marco,Sofia,Luca
+NL|Netherlands|Europe|Europe/Amsterdam|Amsterdam,Utrecht,Rotterdam|Fleur,Daan,Sanne,Bram
+PL|Poland|Europe|Europe/Warsaw|Warsaw,Kraków,Gdańsk|Zofia,Kacper,Maja,Jakub
+SE|Sweden|Europe|Europe/Stockholm|Stockholm,Gothenburg|Elsa,Oskar,Astrid,Nils
+UA|Ukraine|Europe|Europe/Kiev|Kyiv,Lviv,Odesa|Olena,Taras,Iryna,Dmytro
+US|United States|Americas|America/New_York|New York,Boston,Miami|Maya,Jordan,Ava,Marcus
+CA|Canada|Americas|America/Toronto|Toronto,Montréal,Ottawa|Chloé,Liam,Noor,Ethan
+MX|Mexico|Americas|America/Mexico_City|Mexico City,Guadalajara,Puebla|Valeria,Mateo,Ximena,Emiliano
+BR|Brazil|Americas|America/Sao_Paulo|São Paulo,Rio de Janeiro,Belo Horizonte|Beatriz,João,Larissa,Thiago
+AR|Argentina|Americas|America/Argentina/Buenos_Aires|Buenos Aires,Córdoba,Rosario|Martina,Santiago,Julieta,Tomás
+CO|Colombia|Americas|America/Bogota|Bogotá,Medellín,Cali|Camila,Andrés,Daniela,Sebastián
+PE|Peru|Americas|America/Lima|Lima,Cusco,Arequipa|Rosa,Alejandro,Ana,Luis
+CL|Chile|Americas|America/Santiago|Santiago,Valparaíso|Antonia,Benjamín,Josefa,Vicente
+JP|Japan|Asia|Asia/Tokyo|Tokyo,Osaka,Kyoto|Yui,Haruto,Sakura,Ren
+KR|South Korea|Asia|Asia/Seoul|Seoul,Busan|Jiwoo,Minjun,Seoyeon,Hyun
+CN|China|Asia|Asia/Shanghai|Shanghai,Chengdu,Beijing|Mei,Wei,Lin,Jun
+HK|Hong Kong|Asia|Asia/Hong_Kong|Hong Kong|Hoi Yan,Chun,Wing,Ka Ho
+TW|Taiwan|Asia|Asia/Taipei|Taipei,Tainan|Yu-Ting,Chen,Hsin,Wei-Lun
+IN|India|Asia|Asia/Kolkata|Mumbai,Bengaluru,Delhi|Aanya,Arjun,Diya,Rohan
+PK|Pakistan|Asia|Asia/Karachi|Lahore,Karachi,Islamabad|Ayesha,Hamza,Zara,Bilal
+ID|Indonesia|Asia|Asia/Jakarta|Jakarta,Bandung,Yogyakarta|Putri,Adi,Sari,Bima
+PH|Philippines|Asia|Asia/Manila|Manila,Cebu,Davao|Bea,Miguel,Andrea,Paolo
+VN|Vietnam|Asia|Asia/Ho_Chi_Minh|Hanoi,Ho Chi Minh City,Da Nang|Linh,Minh,Trang,Duc
+TH|Thailand|Asia|Asia/Bangkok|Bangkok,Chiang Mai|Ploy,Nat,Fah,Tan
+SG|Singapore|Asia|Asia/Singapore|Singapore|Hui Min,Ethan,Nurul,Aaron
+AE|UAE|Asia|Asia/Dubai|Dubai,Abu Dhabi|Layla,Rashid,Mariam,Saeed
+TR|Türkiye|Asia|Europe/Istanbul|Istanbul,Ankara,Izmir|Elif,Emre,Zeynep,Can
+AU|Australia|Oceania|Australia/Sydney|Sydney,Melbourne,Canberra|Ruby,Jack,Matilda,Lachlan
+NZ|New Zealand|Oceania|Pacific/Auckland|Auckland,Wellington|Aroha,Nikau,Charlotte,Oliver
+FJ|Fiji|Oceania|Pacific/Fiji|Suva,Nadi|Mere,Josefa,Ana,Sami
+`.trim().split('\n').map(l => { const p = l.split('|'); return { code: p[0], name: p[1], region: p[2], tz: p[3], cities: p[4].split(','), names: p[5].split(','), flag: flagOf(p[0]) }; });
+const BY = {}; COUNTRIES.forEach(c => { BY[c.code] = c; });
+const BY_NAME = COUNTRIES.slice().sort((a, b) => a.name.localeCompare(b.name));
+const REGIONS = ['Anywhere', 'Americas', 'Europe', 'Africa', 'Asia', 'Oceania'];
+const TINTS = ['#E7DCC8', '#E2E2CE', '#EAD9CC', '#DCE3D8', '#E6DDD0', '#E3DCE0'];
+const GREET = ['hey! 👋', 'hi from {city}!', 'hello hello 😄', 'oh I like your avatar', 'hey, where are you calling from?', 'hiii, first call today'];
+const REPLY = ['haha nice', "no way, that's so cool", "it's {time} here in {city}", 'love that', 'same here honestly', 'what are you studying?', 'ooh tell me more', '😂😂', 'you should visit {city} sometime', "wait that's amazing"];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const localTime = tz => { try { return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date()); } catch (e) { return ''; } };
+const fill = (s, p) => s.split('{city}').join(p.city).split('{time}').join(localTime(p.tz));
+const guessCountry = () => { try { const r = (navigator.language || '').split('-')[1]; if (r && BY[r.toUpperCase()]) return r.toUpperCase(); } catch (e) {} return 'GB'; };
+const clock = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+
+class Component extends DCLogic {
+  state = {
+    view: null, cfg: { skin: 1, face: 0, eyes: 0, nose: 0, lips: 1, facialHair: 0, hairStyle: 2, hairTexture: 0, hairColor: 0, build: 1, top: 0, topColor: 0, bottom: 0, bottomColor: 0, shoes: 0 }, tab: 'Face', thumbs: [], pfp: '', msgs: [], nearby: [], friendsOpen: false, draft: '', camOn: false,
+    me: LS.get('nook.country', null) || guessCountry(), region: LS.get('nook.region', 'Anywhere'), pickOpen: false, now: Date.now(), online: 1200 + Math.floor(Math.random() * 300),
+    call: null, chatOpen: false, chat: [], chatDraft: '', unread: 0, strikes: 0, lockUntil: 0,
+    friendsAdded: LS.get('nook.friends', []), fthumbs: {}, toast: '', track: 'off', camErr: '',
+    // call extras: options menu on the other person, party, 1v1 boxing
+    party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false
+  };
+  rootRef = React.createRef(); worldRef = React.createRef(); avatarRef = React.createRef(); labelsRef = React.createRef(); chatRef = React.createRef(); chatInputRef = React.createRef(); camStageRef = React.createRef(); fxRef = React.createRef();
+  timers = []; callN = 0;
+
+  view() { return this.state.view || ({ 'Home': 'home', 'Character creator': 'creator', 'Courtyard': 'world', 'Call': 'call', 'Body scan': 'scan' })[this.props.screen] || 'home'; }
+  componentDidMount() {
+    this.alive = true;
+    import(new URL('moderation.js', document.baseURI).href).then(m => { this.mod = m; });
+    this.iv = setInterval(() => {
+      if (!this.alive) return;
+      const patch = { now: Date.now() };
+      if (Math.random() < .3) patch.online = Math.max(900, this.state.online + Math.round((Math.random() - .45) * 9));
+      this.setState(patch);
+      const m = this.state.match; if (m && m.phase === 'fight' && Date.now() >= m.endsAt) this.checkEnd(true);
+    }, 500);
+    this.onResize = () => this.forceUpdate(); window.addEventListener('resize', this.onResize);
+    Promise.all([import('https://unpkg.com/three@0.184.0/build/three.module.js'), import(new URL('nook3d.js', document.baseURI).href)]).then(([T, N]) => {
+      if (!this.alive) return;
+      this.N = N;
+      this.nook = N.createNook(T, { root: this.rootRef.current, world: this.worldRef.current, avatar: this.avatarRef.current, labels: this.labelsRef.current }, {
+        onPresets: thumbs => this.setState({ thumbs }),
+        onAvatar: pfp => this.setState({ pfp }),
+        onNearby: nearby => this.setState({ nearby }),
+        onMessage: (who, text) => this.setState(s => ({ msgs: s.msgs.concat({ who, text }).slice(-5) }))
+      });
+      this.nook.setAvatar(this.state.cfg);
+      const fthumbs = {}; this.state.friendsAdded.concat(this.state.party).forEach(f => { if (!fthumbs[f.id]) fthumbs[f.id] = this.nook.thumb(f.cfg); });
+      this.setState({ fthumbs });
+      this.initWorld(T);
+      this.initArena();
+      this.sync(true); this.forceUpdate();
+    });
+  }
+  componentDidUpdate(pp) {
+    if (pp.screen !== this.props.screen && this.state.view) this.setState({ view: null });
+    if (this.nook) this.sync();
+    this.syncTracking();
+    const st = this.state, n = st.chat.length, el = this.chatRef.current;
+    if (n !== this.chatN) { this.chatN = n; if (el) el.scrollTop = el.scrollHeight; }
+    if (st.chatOpen !== this.chatWasOpen) { this.chatWasOpen = st.chatOpen; if (st.chatOpen) { if (el) el.scrollTop = el.scrollHeight; if (this.chatInputRef.current) this.chatInputRef.current.focus(); } }
+  }
+  componentWillUnmount() {
+    this.alive = false; clearInterval(this.iv); clearTimeout(this.toastT); this.clearTimers();
+    window.removeEventListener('resize', this.onResize);
+    if (this.trk) this.trk.stop();
+    if (this.onKey) { window.removeEventListener('keydown', this.onKey); window.removeEventListener('keyup', this.onKey); }
+    if (this.arena) this.arena.dispose();
+    if (this.wf) this.wf.dispose();
+    if (this.nook) this.nook.dispose();
+  }
+  layout() {
+    const W = window.innerWidth, wide = W >= 760, chatW = Math.min(360, W - 48), side = this.state.chatOpen && wide ? chatW + 24 : 0;
+    return { wide, chatW, side };
+  }
+  // Body scan screen: camera on the left, your avatar on the right (stacked on phones). Sizes in px from the window.
+  scanLayout() {
+    const W = window.innerWidth, H = Math.max(540, window.innerHeight), wide = W >= 760;
+    if (wide) {
+      const m = Math.max(24, Math.round(W * .04)), avH = Math.max(240, H - 190), avW = avH * .72;
+      const camW = Math.round(Math.max(260, Math.min(W * .52, (H - 300) * 4 / 3, W - 2 * m - avW - 40)));
+      return { wide, m, camLeft: m, camTop: 158, camW, avatarCss: 'position:absolute;right:' + m + 'px;top:100px;height:' + avH + 'px;aspect-ratio:.72;display:block;pointer-events:none' };
+    }
+    const camW = Math.round(Math.min(W - 32, H * .36 * 4 / 3)), camTop = 132, avTop = Math.round(camTop + camW * .75 + 10), avH = Math.max(160, H - avTop - 88);
+    return { wide, m: 16, camLeft: Math.round((W - camW) / 2), camTop, camW, avatarCss: 'position:absolute;left:50%;transform:translateX(-50%);top:' + avTop + 'px;height:' + avH + 'px;aspect-ratio:.72;display:block;pointer-events:none' };
+  }
+  sync(force) {
+    const v = this.view(), avCss = v === 'scan' ? this.scanLayout().avatarCss : null;
+    if (force || v !== this.lastView || avCss !== this.lastAvCss) { this.nook.setView(v, avCss); this.lastView = v; this.lastAvCss = avCss; }
+    this.nook.setZoom(v === 'creator' && this.state.tab !== 'Outfit' ? 1 : 0);
+    this.nook.setOrbit((this.props.droneOrbit ?? true) && !this.state.orbitOff);
+    if (v === 'call') { const L = this.layout(); this.nook.setCallShift(L.side / 2); this.nook.setPip(L.side ? L.side + 16 : 24); }
+    if (this.wf) { if (v === 'world') this.wf.join(); else this.wf.leave(); }
+  }
+
+  /* ---------- the world: walk around the island with other people (world.js + worldapp.js) ---------- */
+  initWorld(T) {
+    const O = this.N.OPTIONS, look = () => { const c = {}; Object.keys(O).forEach(k => { c[k] = Math.floor(Math.random() * O[k].length); }); if (c.hairStyle === 6) c.hairStyle = 1; return c; };
+    // people already on the island: simulated until there is a server, like call matches
+    const crowd = Array.from({ length: 5 }, (_, i) => { const c = pick(COUNTRIES), cfg = look(); return { id: 'npc-' + i, name: pick(c.names), flag: c.flag, place: pick(c.cities) + ', ' + c.name, cfg, thumb: this.nook.thumb(cfg) }; });
+    import(new URL('worldapp.js', document.baseURI).href).then(W => {
+      if (!this.alive) return;
+      this.wf = W.createWorldApp({
+        T, nook: this.nook, canvas: this.worldRef.current, options: O, crowd,
+        profile: () => { const me = BY[this.state.me] || BY.GB; return { flag: me.flag, names: me.names, cfg: this.state.cfg, thumb: this.state.pfp }; },
+        friends: () => {
+          const st = this.state;
+          return st.friendsAdded.map(f => { const fc = BY[f.code]; return { id: f.id, name: f.name, flag: fc ? fc.flag : '', sub: (fc ? fc.flag + ' ' : '') + f.city, thumb: st.fthumbs[f.id], online: true, cfg: f.cfg }; })
+            .concat(this.N.PRESETS.slice(1).map((p, i) => ({ id: 'demo-' + p.name, name: p.name, flag: '', sub: i < 3 ? 'Online' : 'Offline', thumb: st.thumbs[i + 1], online: i < 3, cfg: p })));
+        },
+        onEnter: () => this.joinWorld(), onLeave: () => this.setState({ view: 'home', menu: null }),
+        // a match on the island turns the camera on for body tracking, and puts it back the way it was afterwards
+        onMatch: on => { if (on) { this.camWas = this.state.camOn; this.setState({ camOn: true, camErr: '' }); } else if (!this.camWas) this.setState({ camOn: false, camErr: '' }); },
+        tracking: () => ({ on: this.state.camOn, state: this.state.track, err: this.state.camErr })
+      });
+      this.forceUpdate();
+    });
+  }
+  joinWorld() { if (this.state.call) this.endCall(); this.setState({ view: 'world', menu: null, pickOpen: false, chatOpen: false }); }
+  // what the World page on the home screen shows
+  worldVals() {
+    const L = this.wf ? this.wf.lobby() : { count: 0, faces: [], friends: [] }, fr = L.friends;
+    return {
+      worldCount: L.count || 'People', worldFaces: L.faces.slice(0, window.innerWidth < 600 ? 3 : 4).map(u => ({ bg: 'url(' + u + ')' })),
+      worldLine: fr.length ? fr.slice(0, 2).join(' and ') + (fr.length > 2 ? ' and ' + (fr.length - 2) + ' more' : '') + (fr.length === 1 ? ' is' : ' are') + ' waiting for you' : 'Open to everyone, day and night'
+    };
+  }
+  go(v) { const cur = this.view(); if (v === 'creator' && cur !== 'creator') this.prev = cur; this.setState({ view: v, friendsOpen: false }); }
+  setCfg(patch) { const cfg = Object.assign({}, this.state.cfg, patch); this.setState({ cfg }); if (this.nook) this.nook.setAvatar(cfg); }
+
+  /* ---------- timers that belong to the current call ---------- */
+  later(fn, ms) { const id = setTimeout(() => { this.timers = this.timers.filter(x => x !== id); if (this.alive) fn(); }, ms); this.timers.push(id); }
+  clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; }
+  flash(text) { this.setState({ toast: text }); clearTimeout(this.toastT); this.toastT = setTimeout(() => this.alive && this.setState({ toast: '' }), 2800); }
+
+  /* ---------- motion tracking (webcam drives your avatar's head) ---------- */
+  syncTracking() {
+    const want = this.state.camOn;
+    if (want && !this.trk && !this.trkStarting) {
+      this.trkStarting = true; this.faceAt = this.bodyAt = this.armsAt = this.legsAt = 0; this.setState({ track: 'starting', camErr: '' });
+      const onPose = p => {
+        const now = Date.now();
+        if (p && p.head) this.faceAt = now;
+        if (p && p.body) {
+          this.bodyAt = now;
+          if (p.body.arms[1].w > .5 || p.body.arms[-1].w > .5) this.armsAt = now;
+          if (p.body.legs[1].w > .5 || p.body.legs[-1].w > .5) this.legsAt = now;
+        }
+        if (this.nook) this.nook.setTrack(p);
+      };
+      (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? import(new URL('tracking.js', document.baseURI).href) : Promise.reject({ name: 'Insecure' }))
+        .then(M => M.startTracking({ stage: this.camStageRef.current, onPose }))
+        .then(h => { this.trkStarting = false; if (!this.alive || !this.state.camOn) { h.stop(); this.setState({ track: 'off' }); return; } this.trk = h; this.setState({ track: 'on' }); })
+        .catch(e => {
+          this.trkStarting = false; if (!this.alive) return;
+          const n = e && e.name, inApp = / Claude\//.test(navigator.userAgent), here = location.origin;
+          const msg = (n === 'NotAllowedError' || n === 'SecurityError')
+            ? (inApp ? "The Claude app's built-in browser can't use cameras. Open " + here + ' in Chrome to try motion tracking.'
+              : 'Camera access is blocked. Click the camera icon in the address bar, choose Allow, then press the camera button again. On a Mac, also allow your browser in System Settings → Privacy & Security → Camera.')
+            : n === 'NotFoundError' || n === 'OverconstrainedError' ? 'No camera was found. Plug one in and try again.'
+            : n === 'NotReadableError' || n === 'AbortError' ? 'Your camera is busy in another app (Zoom, FaceTime, Teams). Close it and try again.'
+            : n === 'Insecure' ? 'Open this page from http://localhost:' + (location.port || '80') + ' so the browser allows the camera.'
+            : 'Motion tracking could not start. Details: ' + ((e && e.name) || 'Error') + ': ' + String((e && e.message) || e).slice(0, 140);
+          console.error('[nook] motion tracking failed', e);
+          this.setState({ camOn: false, track: 'off', camErr: msg });
+        });
+    }
+    if (!want && this.trk) { this.trk.stop(); this.trk = null; if (this.nook) this.nook.setTrack(null); this.setState({ track: 'off' }); }
+  }
+
+  /* ---------- the call ---------- */
+  startCall() {
+    this.setState({ view: 'call', menu: null, pickOpen: false, chatOpen: false, chatDraft: '', lockUntil: 0 });
+    this.searchNext();
+  }
+  searchNext() {
+    this.clearTimers(); this.stopMatch();
+    const n = ++this.callN, old = this.state.call;
+    if (old && old.peer && old.peer.thumb && !this.state.friendsAdded.concat(this.state.party).some(f => f.id === old.peer.id)) URL.revokeObjectURL(old.peer.thumb);
+    if (this.nook) { this.nook.setPeer(null); this.nook.setSearching(true); }
+    this.setState({ call: { phase: 'searching' }, chat: [], unread: 0, strikes: 0, peerMenu: null, challenge: null, partyPending: null, hintUntil: 0 });
+    this.later(() => n === this.callN && this.match(n), 1600 + Math.random() * 1400);
+  }
+  match(n) {
+    if (!this.nook) { this.later(() => n === this.callN && this.match(n), 400); return; }
+    const pool = this.state.region === 'Anywhere' ? COUNTRIES : COUNTRIES.filter(c => c.region === this.state.region);
+    const c = pick(pool), O = this.N.OPTIONS, cfg = {};
+    Object.keys(O).forEach(k => { cfg[k] = Math.floor(Math.random() * O[k].length); });
+    if (cfg.hairStyle === 6 && Math.random() < .7) cfg.hairStyle = 1;
+    const peer = { id: c.code + '-' + Date.now().toString(36), name: pick(c.names), code: c.code, country: c.name, flag: c.flag, city: pick(c.cities), tz: c.tz, cfg, tint: pick(TINTS) };
+    peer.thumb = this.nook.thumb(cfg);
+    this.nook.setSearching(false); this.nook.setPeer(cfg, peer.tint);
+    this.hintsShown = (this.hintsShown || 0) + 1;
+    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0 });
+    if (Math.random() < .8) this.later(() => n === this.callN && this.peerSays(fill(pick(GREET), peer)), 1800 + Math.random() * 1600);
+  }
+  skip() { const c = this.state.call; if (c && c.phase === 'live') this.searchNext(); }
+  endCall() {
+    this.clearTimers(); this.stopMatch(); this.callN++;
+    if (this.nook) { this.nook.setPeer(null); this.nook.setSearching(false); }
+    this.setState({ view: 'home', call: null, chatOpen: false, chat: [], unread: 0, menu: null, peerMenu: null, challenge: null, partyPending: null });
+  }
+  peerSays(text) {
+    const call = this.state.call; if (!call || call.phase !== 'live') return;
+    const ok = !this.mod || this.mod.checkMessage(text).ok;
+    const msg = ok ? { who: 'them', text } : { who: 'sys', text: call.peer.name + "'s message was hidden by the filter." };
+    if (ok && this.nook) this.nook.peerTalk(Math.min(3.5, .8 + text.length * .06));
+    this.setState(s => ({ chat: s.chat.concat(msg).slice(-60), unread: s.chatOpen ? 0 : s.unread + 1 }));
+  }
+  sendChat() {
+    const s = this.state, text = s.chatDraft.trim(), call = s.call;
+    if (!text || !call || call.phase !== 'live' || s.lockUntil > Date.now() || !this.mod) return;
+    if (!this.mod.checkMessage(text).ok) {
+      const strikes = s.strikes + 1, lock = strikes >= 3;
+      const notes = [{ who: 'sys', text: 'Not sent: that message contains hateful language. Keep Nook kind.' }];
+      if (lock) notes.push({ who: 'sys', text: 'Chat is paused for 30 seconds.' });
+      this.setState({ chat: s.chat.concat(notes).slice(-60), chatDraft: '', strikes: lock ? 0 : strikes, lockUntil: lock ? Date.now() + 30000 : s.lockUntil });
+      return;
+    }
+    this.setState({ chat: s.chat.concat({ who: 'you', text }).slice(-60), chatDraft: '' });
+    const n = this.callN, p = call.peer;
+    if (Math.random() < .85) this.later(() => n === this.callN && this.peerSays(fill(pick(REPLY), p)), 1300 + Math.random() * 1700);
+  }
+  addFriend() {
+    const call = this.state.call; if (!call || call.phase !== 'live') return;
+    const p = call.peer; if (this.state.friendsAdded.some(f => f.id === p.id)) return;
+    const list = [{ id: p.id, name: p.name, code: p.code, city: p.city, cfg: p.cfg, at: Date.now() }].concat(this.state.friendsAdded).slice(0, 50);
+    LS.set('nook.friends', list);
+    this.setState(s => ({ friendsAdded: list, fthumbs: Object.assign({}, s.fthumbs, { [p.id]: p.thumb }) }));
+    this.flash(p.name + ' ' + p.flag + ' is now in your friends list');
+  }
+
+  /* ---------- options on the other person: challenge, party, friend (arena.js does the 3D) ---------- */
+  initArena() {
+    import(new URL('arena.js', document.baseURI).href).then(A => {
+      if (!this.alive || !this.nook) return;
+      this.arena = A.createArena(this.nook, {
+        onPeerClick: (x, y) => this.openPeerMenu(x + 14, y - 40),
+        onReady: () => this.startRound(),
+        onGone: () => this.setState({ match: null }),
+        onPunch: s => this.throwPunch(s, true)
+      });
+    });
+    this.onKey = e => {
+      const m = this.state.match; if (!m || m.phase !== 'fight') return;
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      const down = e.type === 'keydown';
+      if (e.code === 'Space' || e.code === 'KeyS' || e.code === 'ArrowDown') { this.setGuard(down); e.preventDefault(); return; }
+      if (!down || e.repeat) return;
+      if (e.code === 'KeyJ' || e.code === 'ArrowLeft') { this.throwPunch(-1); e.preventDefault(); }
+      else if (e.code === 'KeyK' || e.code === 'ArrowRight') { this.throwPunch(1); e.preventDefault(); }
+    };
+    window.addEventListener('keydown', this.onKey); window.addEventListener('keyup', this.onKey);
+  }
+  openPeerMenu(x, y) {
+    const c = this.state.call; if (!c || c.phase !== 'live' || this.state.match) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    this.setState({ peerMenu: { x: Math.round(Math.max(12, Math.min(W - 300, x))), y: Math.round(Math.max(76, Math.min(H - 320, y))) }, hintUntil: 0 });
+  }
+  inviteParty() {
+    const st = this.state, c = st.call; if (!c || c.phase !== 'live') return;
+    const p = c.peer, n = this.callN;
+    if (st.party.some(f => f.id === p.id) || st.partyPending || st.party.length >= 3) return;
+    this.setState({ partyPending: p.id, peerMenu: null });
+    this.flash('Party invite sent to ' + p.name + ' ' + p.flag);
+    // simulated answer until there is a server
+    this.later(() => {
+      if (n !== this.callN) return;
+      if (Math.random() < .85) {
+        const list = this.state.party.concat({ id: p.id, name: p.name, code: p.code, city: p.city, cfg: p.cfg }).slice(-3);
+        LS.set('nook.party', list);
+        this.setState(s => ({ party: list, partyPending: null, fthumbs: Object.assign({}, s.fthumbs, { [p.id]: p.thumb }) }));
+        this.flash(p.name + ' ' + p.flag + ' joined your party 🎉');
+      } else { this.setState({ partyPending: null }); this.flash(p.name + " can't join a party right now"); }
+    }, 1300 + Math.random() * 900);
+  }
+  challenge() {
+    const st = this.state, c = st.call; if (!c || c.phase !== 'live' || st.match || st.challenge || !this.arena) return;
+    const p = c.peer, n = this.callN;
+    this.setState({ challenge: { at: Date.now() }, peerMenu: null, chatOpen: false });
+    // simulated answer until there is a server
+    this.later(() => {
+      if (n !== this.callN || !this.state.challenge) return;
+      this.setState({ challenge: null });
+      if (Math.random() < .9) { this.flash(p.name + ' accepted! 🥊'); this.beginMatch(); }
+      else this.flash(p.name + ' said maybe next time');
+    }, 1400 + Math.random() * 1000);
+  }
+  beginMatch() {
+    this.setState({ match: { phase: 'enter', hpMe: 100, hpThem: 100, landed: 0, blocked: 0, taken: 0 }, chatOpen: false, peerMenu: null, hintUntil: 0 });
+    this.arena.start();
+  }
+  patchMatch(p, done) { this.setState(s => ({ match: s.match ? Object.assign({}, s.match, p) : s.match }), done); }
+  startRound() {
+    const n = this.callN;
+    this.arena.resetFighters(); this.lastPunch = {};
+    this.patchMatch({ phase: 'countdown', hpMe: 100, hpThem: 100, landed: 0, blocked: 0, taken: 0, result: null, showResult: false });
+    this.fx('banner', 'Round 1');
+    this.later(() => {
+      if (n !== this.callN || !this.state.match) return;
+      this.fx('banner', 'Fight!');
+      this.patchMatch({ phase: 'fight', endsAt: Date.now() + 60000 });
+      this.arena.setFight(true); this.aiStep(n);
+    }, 1200);
+  }
+  // you punch: side -1 = jab (near arm), 1 = cross. tracked = thrown with your real arm (already animated)
+  throwPunch(s, tracked) {
+    const m = this.state.match; if (!m || m.phase !== 'fight' || !this.arena) return;
+    const t = Date.now(); this.lastPunch = this.lastPunch || {};
+    if (t - (this.lastPunch[s] || 0) < 280) return; this.lastPunch[s] = t;
+    if (!tracked) this.arena.myPunch(s);
+    // sometimes they read it and cover up
+    if (!this.arena.peerGuarding() && Math.random() < .22) { this.arena.peerGuard(true); setTimeout(() => this.arena && this.arena.peerGuard(false), 450); }
+    const n = this.callN;
+    this.later(() => {
+      const mm = this.state.match; if (n !== this.callN || !mm || mm.phase !== 'fight') return;
+      if (this.arena.peerGuarding()) { this.fx('pop', 'Blocked', 'peer', '#E4E6D2'); this.patchMatch({ hpThem: Math.max(0, mm.hpThem - 1) }, () => this.checkEnd()); return; }
+      const dmg = (s === 1 ? 9 : 7) + Math.floor(Math.random() * 4);
+      this.arena.hit('peer'); this.fx('pop', (s === 1 ? 'Cross! ' : 'Jab! ') + '-' + dmg, 'peer', '#C9D98F');
+      this.patchMatch({ hpThem: Math.max(0, mm.hpThem - dmg), landed: mm.landed + 1 }, () => this.checkEnd());
+    }, 130);
+  }
+  // the other fighter (simulated): guards sometimes, otherwise winds up (a visible tell) and punches
+  aiStep(n) {
+    this.later(() => {
+      const m = this.state.match; if (n !== this.callN || !m || m.phase !== 'fight' || !this.arena) return;
+      if (Math.random() < .28) { this.arena.peerGuard(true); this.later(() => this.arena && this.arena.peerGuard(false), 700 + Math.random() * 500); }
+      else {
+        this.arena.peerPunch(Math.random() < .55 ? 1 : -1);
+        this.later(() => {
+          const mm = this.state.match; if (n !== this.callN || !mm || mm.phase !== 'fight') return;
+          if (this.arena.isGuarding()) { this.fx('pop', 'Blocked!', 'me', '#C9D98F'); this.patchMatch({ hpMe: Math.max(0, mm.hpMe - 1), blocked: mm.blocked + 1 }, () => this.checkEnd()); return; }
+          const dmg = 6 + Math.floor(Math.random() * 5);
+          this.arena.hit('me'); this.fx('flash'); this.fx('pop', '-' + dmg, 'me', '#E3A27F');
+          this.patchMatch({ hpMe: Math.max(0, mm.hpMe - dmg), taken: mm.taken + 1 }, () => this.checkEnd());
+        }, 330);
+      }
+      this.aiStep(n);
+    }, 950 + Math.random() * 900);
+  }
+  checkEnd(timeUp) {
+    const m = this.state.match; if (!m || m.phase !== 'fight') return;
+    const ko = m.hpThem <= 0 ? 'peer' : m.hpMe <= 0 ? 'me' : null;
+    const result = ko ? (ko === 'peer' ? 'win' : 'lose') : timeUp ? (m.hpMe > m.hpThem ? 'win' : m.hpMe < m.hpThem ? 'lose' : 'draw') : null;
+    if (!result) return;
+    this.arena.setFight(false); this.setGuard(false);
+    if (ko) this.arena.knockout(ko); else if (result !== 'draw') this.arena.celebrate(result === 'win' ? 'me' : 'peer');
+    this.fx('banner', ko ? 'K.O.!' : 'Time!');
+    this.patchMatch({ phase: 'over', result, ko: !!ko });
+    const n = this.callN; this.later(() => { if (n === this.callN && this.state.match) this.patchMatch({ showResult: true }); }, 1600);
+  }
+  setGuard(on) { if (this.arena) this.arena.myGuard(on); if (this.state.keyGuard !== on) this.setState({ keyGuard: on }); }
+  rematch() { if (this.state.match) this.startRound(); }
+  leaveMatch() {
+    if (!this.state.match || !this.arena) return;
+    this.setGuard(false); this.arena.setFight(false);
+    this.patchMatch({ phase: 'leaving', showResult: false });
+    this.arena.leave();
+  }
+  // skip / end call: drop the match and the ring at once
+  stopMatch() { if (this.arena) this.arena.reset(); if (this.state.match || this.state.keyGuard) this.setState({ match: null, keyGuard: false }); }
+  // what the options menu, the party strip and the boxing HUD show
+  callExtras(st, v, p, isFriend, stageX, url) {
+    const m = st.match, live = !!p, inArena = v === 'call' && !!m;
+    const inParty = !!(p && st.party.some(f => f.id === p.id)), pending = !!(p && st.partyPending === p.id), full = st.party.length >= 3;
+    const ICON = { glove: 'glove', party: 'party', add: 'add', ok: 'ok' }; // which icon the menu row draws
+    const soft = (label, sub, icon, pick, off) => ({ label, sub, icon, pick, off, op: off ? .62 : 1, bg: '#F1ECE2', fg: '#2B2A27', iconBg: '#E4E6D2' });
+    const res = m && m.result, tracked = st.camOn && st.track === 'on';
+    return {
+      callUi: v === 'call' && !m, inArena,
+      // options on the other person
+      peerMenuOpen: !!(st.peerMenu && live && !m), pmX: st.peerMenu ? st.peerMenu.x : 0, pmY: st.peerMenu ? st.peerMenu.y : 0,
+      peerCity: p ? p.city + ', ' + p.country : '',
+      peerActions: p ? [
+        { label: 'Challenge to 1v1 boxing', sub: 'Your body tracking throws the punches', icon: ICON.glove, pick: () => this.challenge(), off: !!st.challenge, op: 1, bg: '#5E683C', fg: '#F8F4EC', iconBg: 'rgba(248,244,236,.16)' },
+        soft(inParty ? 'In your party' : pending ? 'Invite sent…' : full ? 'Your party is full' : 'Invite to your party', inParty ? 'You can play and call together' : 'Party ' + (st.party.length + 1) + '/4 · play and call together', ICON.party, () => this.inviteParty(), inParty || pending || full),
+        soft(isFriend ? 'Friends' : 'Add friend', isFriend ? 'Already in your friends list' : 'Keep in touch after the call', isFriend ? ICON.ok : ICON.add, () => { this.addFriend(); this.setState({ peerMenu: null }); }, isFriend)
+      ] : [],
+      closePeerMenu: () => this.setState({ peerMenu: null }),
+      openPeerCard: e => { const r = e.currentTarget.getBoundingClientRect(); this.openPeerMenu(r.left + r.width / 2 - 144, r.bottom + 8); },
+      showPeerHint: live && !m && st.hintUntil > st.now && !st.peerMenu && !st.challenge,
+      challengePending: live && !!st.challenge, cancelChallenge: () => this.setState({ challenge: null }),
+      // party strip
+      showParty: st.party.length > 0 && (v === 'home' || (v === 'call' && !m)),
+      partyFaces: st.party.map(f => ({ bg: url(st.fthumbs[f.id]) })), partyCount: st.party.length + 1,
+      partyNames: 'Your party: you, ' + st.party.map(f => f.name).join(', '),
+      // boxing HUD
+      hudOp: m && m.phase !== 'enter' && m.phase !== 'leaving' ? 1 : 0,
+      hpMe: m ? m.hpMe : 100, hpThem: m ? m.hpThem : 100, hpMePct: (m ? m.hpMe : 100) + '%', hpThemPct: (m ? m.hpThem : 100) + '%',
+      roundLabel: 'ROUND 1', roundClock: m && m.phase === 'fight' ? clock(Math.max(0, Math.ceil((m.endsAt - st.now) / 1000))) : m && m.phase === 'over' ? 'END' : '01:00',
+      showFightHint: !!(m && (m.phase === 'countdown' || m.phase === 'fight')),
+      fightHint: tracked ? 'Punch toward your camera to jab · raise both fists in front of your face to guard' : 'Press J or K to punch, hold Space to guard · turn on your camera to box with your real arms',
+      showFightControls: !!(m && !m.showResult && (m.phase === 'countdown' || m.phase === 'fight' || m.phase === 'over')),
+      jab: () => this.throwPunch(-1), cross: () => this.throwPunch(1), guardOn: () => this.setGuard(true), guardOff: () => this.setGuard(false),
+      guardBg: st.keyGuard ? '#2B2A27' : '#ECE6D9', guardFg: st.keyGuard ? '#F8F4EC' : '#2B2A27',
+      leaveMatch: () => this.leaveMatch(), rematch: () => this.rematch(),
+      showResult: !!(m && m.showResult),
+      resultEmoji: res === 'win' ? '🏆' : res === 'lose' ? '🥊' : '🤝',
+      resultTitle: res === 'win' ? 'You win!' : res === 'lose' ? (p ? p.name : 'They') + ' wins' : "It's a draw",
+      resultSub: (m && m.ko ? 'Knockout' : 'On points after 60 seconds') + (p ? ' · vs ' + p.name + ' ' + p.flag : ''),
+      resultStats: m ? [{ label: 'Punches landed', value: m.landed }, { label: 'Blocked', value: m.blocked }, { label: 'Hits taken', value: m.taken }] : [],
+      fxRef: this.fxRef
+    };
+  }
+  // banners and hit numbers: added straight to the effects layer so each plays its own animation
+  fx(kind, text, who, color) {
+    const layer = this.fxRef.current; if (!layer) return;
+    const el = document.createElement('div');
+    el.style.cssText = kind === 'banner' ? "position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);font:800 clamp(44px,8vw,92px)/1 'Figtree',sans-serif;letter-spacing:-.03em;color:#F8F4EC;white-space:nowrap;text-shadow:0 6px 30px rgba(0,0,0,.5),0 0 34px rgba(92,240,142,.35);animation:nookBanner 1.1s ease-out forwards"
+      : kind === 'flash' ? 'position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(185,105,76,0) 40%,rgba(185,105,76,.6));animation:nookFlash .35s ease-out forwards'
+      : 'position:absolute;left:' + (who === 'me' ? '38%' : '62%') + ";top:30%;font:800 26px 'Figtree',sans-serif;color:" + (color || '#F8F4EC') + ';white-space:nowrap;text-shadow:0 3px 14px rgba(0,0,0,.55);animation:nookPop .9s ease-out forwards';
+    el.textContent = text || '';
+    layer.appendChild(el); setTimeout(() => el.remove(), kind === 'banner' ? 1150 : 950);
+  }
+
+  renderVals() {
+    const st = this.state, v = this.view(), c = st.cfg, O = this.N ? this.N.OPTIONS : null, PR = this.N ? this.N.PRESETS : [];
+    const chip = (key, i, label) => ({ label, pick: () => this.setCfg({ [key]: i }), bg: c[key] === i ? '#5E683C' : '#ECE6D9', fg: c[key] === i ? '#F8F4EC' : '#2B2A27' });
+    const sw = (key, i, color) => ({ color, pick: () => this.setCfg({ [key]: i }), ring: c[key] === i ? '0 0 0 2px #FBF8F1, 0 0 0 4px #5E683C' : 'inset 0 0 0 1px rgba(43,42,39,.14)' });
+    const grp = (label, key, kind) => ({ label, chips: O && kind === 'chip' ? O[key].map((l, i) => chip(key, i, l)) : [], swatches: O && kind === 'sw' ? O[key].map((col, i) => sw(key, i, col)) : [] });
+    const TABS = {
+      Face: [grp('Skin tone', 'skin', 'sw'), grp('Face shape', 'face', 'chip'), grp('Eyes', 'eyes', 'chip'), grp('Nose', 'nose', 'chip'), grp('Lips', 'lips', 'chip'), grp('Facial hair', 'facialHair', 'chip')],
+      Hair: [grp('Style', 'hairStyle', 'chip'), grp('Texture', 'hairTexture', 'chip'), grp('Colour', 'hairColor', 'sw')],
+      Outfit: [grp('Build', 'build', 'chip'), grp('Top', 'top', 'chip'), grp('Top colour', 'topColor', 'sw'), grp('Bottom', 'bottom', 'chip'), grp('Bottom colour', 'bottomColor', 'sw'), grp('Shoes', 'shoes', 'chip')]
+    };
+    const send = () => { const text = st.draft.trim(); if (!text) return; this.setState(s => ({ msgs: s.msgs.concat({ who: 'You', text }).slice(-5), draft: '' })); if (this.nook) this.nook.say(text); };
+    const url = u => u ? 'url(' + u + ')' : 'none';
+
+    // you, your flag, the call
+    const me = BY[st.me] || BY.GB, L = this.layout();
+    const call = st.call, live = !!(call && call.phase === 'live'), searchingNow = !!(call && call.phase === 'searching'), p = live ? call.peer : null;
+    const isFriend = !!(p && st.friendsAdded.some(f => f.id === p.id));
+    const locked = st.lockUntil > st.now, beat = Math.floor(st.now / 500);
+    const pool = st.region === 'Anywhere' ? COUNTRIES : COUNTRIES.filter(x => x.region === st.region);
+    const stageX = L.side ? 'calc(50% - ' + L.side / 2 + 'px)' : '50%';
+    // camera card: where it sits, and what the tracker currently sees
+    const fresh = at => st.now - (at || 0) < 900;
+    const camKey = !st.camOn ? null : st.track !== 'on' ? 'loading' : fresh(this.legsAt) ? 'full' : fresh(this.armsAt) ? 'body' : fresh(this.faceAt) || fresh(this.bodyAt) ? 'face' : 'scan';
+    const CAM = { loading: ['Loading body tracker…', 'rgba(251,248,241,.92)', '#6B665E'], full: ['Full body tracked', '#5E683C', '#F8F4EC'], body: ['Upper body tracked · step back to show your legs', '#5E683C', '#F8F4EC'], face: ['Step back so your arms show', 'rgba(251,248,241,.92)', '#2B2A27'], scan: ['Scanning for you…', 'rgba(251,248,241,.92)', '#2B2A27'] };
+    const camL = camKey ? CAM[camKey] : null, camErrNow = !!st.camErr && !st.camOn, camShow = v === 'scan' || ((st.camOn || camErrNow) && (v === 'home' || v === 'call' || v === 'world'));
+    const S = this.scanLayout();
+    const camPos = v === 'scan' ? 'left:' + S.camLeft + 'px;top:' + S.camTop + 'px;width:' + S.camW + 'px'
+      : v === 'call' && st.match ? 'right:24px;top:90px;width:' + (camErrNow ? 'min(300px,calc(100vw - 48px))' : 'clamp(150px,16vw,220px)')
+      : v === 'call' ? 'right:' + (L.side ? L.side + 16 : 24) + 'px;top:calc(84px + clamp(116px,14vw,196px) / .78 + 10px);width:' + (camErrNow ? 'min(300px,calc(100vw - 48px))' : 'clamp(116px,14vw,196px)')
+      : L.wide ? 'left:24px;bottom:96px;width:' + (camErrNow ? '320px' : 'clamp(200px,22vw,300px)') : 'left:16px;top:76px;width:' + (camErrNow ? 'calc(100vw - 32px)' : '160px');
+    const camCardStyle = camShow ? 'position:absolute;' + camPos + ';overflow:hidden;box-sizing:border-box;border-radius:20px;border:3px solid #FBF8F1;background:' + (camErrNow ? '#FBF8F1' : '#2B2A27') + ';box-shadow:0 12px 30px rgba(43,42,39,.2);aspect-ratio:' + (camErrNow ? 'auto' : '4/3') + ';pointer-events:auto;transition:right .35s ease' : 'display:none';
+    const MSG = {
+      you: { align: 'flex-end', bg: '#5E683C', fg: '#F8F4EC', radius: '16px 16px 4px 16px', font: "500 15px 'Figtree',sans-serif", ta: 'left' },
+      them: { align: 'flex-start', bg: '#ECE6D9', fg: '#2B2A27', radius: '16px 16px 16px 4px', font: "500 15px 'Figtree',sans-serif", ta: 'left' },
+      sys: { align: 'center', bg: '#F4E4DA', fg: '#8A4A34', radius: '12px', font: "600 13px 'Figtree',sans-serif", ta: 'center' }
+    };
+    const homeFlagStart = Math.floor(st.now / 2500);
+
+    return {
+      rootRef: this.rootRef, worldRef: this.worldRef, avatarRef: this.avatarRef, labelsRef: this.labelsRef, chatRef: this.chatRef, chatInputRef: this.chatInputRef, camStageRef: this.camStageRef,
+      isHome: v === 'home', isCreator: v === 'creator', isWorld: v === 'world', isCall: v === 'call',
+      veil: (this.props.mapFade ?? 70) / 100, pfp: url(st.pfp),
+      goCreator: () => this.go('creator'), goWorld: () => this.go('world'), goHome: () => this.go('home'), goBack: () => this.go(this.prev || 'home'),
+      waveOn: () => this.nook && this.nook.wave(true), waveOff: () => this.nook && this.nook.wave(false),
+
+      ...(() => {
+        const menu = st.menu || null, open = m => () => this.setState({ menu: m, pickOpen: false }), it = (label, pick, primary) => ({ label, pick, bg: primary ? '#5E683C' : '#FBF8F1', fg: primary ? '#F8F4EC' : '#2B2A27' }), no = () => {};
+        const ITEMS = {
+          call: [it('Start a call', () => this.startCall(), true), it('Join with a code', no)],
+          friends: [it('Add a friend', no)],
+          world: [it('Join the world', () => this.joinWorld(), true), it('Invite friends', () => this.wf && this.wf.openInvite())],
+          settings: [it('Country: ' + me.flag + ' ' + me.name, () => this.setState({ pickOpen: true })), it('Camera: ' + (st.camOn ? 'On' : 'Off'), () => this.setState(s => ({ camOn: !s.camOn }))), it('Island motion: ' + (st.orbitOff ? 'Off' : 'On'), () => this.setState(s => ({ orbitOff: !s.orbitOff })))]
+        };
+        return { isMain: !menu, isSub: !!menu, isFriends: menu === 'friends', isCallMenu: menu === 'call', isWorldMenu: menu === 'world', ...this.worldVals(), menuTitle: ({ call: 'Call', friends: 'Friends', world: 'World', settings: 'Settings' })[menu] || '', menuItems: ITEMS[menu] || [], openCall: open('call'), openFriends: open('friends'), openWorld: open('world'), openSettings: open('settings'), closeMenu: open(null) };
+      })(),
+      toggleCam: () => this.setState(s => ({ camOn: !s.camOn, camErr: '' })), camBg: st.camOn ? '#5E683C' : v === 'call' ? '#ECE6D9' : '#FBF8F1', camFg: st.camOn ? '#F8F4EC' : '#2B2A27',
+      camTitle: st.camOn ? 'Turn camera off' : 'Turn camera on: scans your body and moves your avatar',
+      presets: PR.map((p, i) => ({ name: p.name, bg: url(st.thumbs[i]), pick: () => { const r = Object.assign({}, p); delete r.name; this.setCfg(r); } })),
+      tabs: [['Face', 'Face'], ['Hair', 'Hair'], ['Outfit', 'Body & outfit']].map(t => ({ label: t[1], pick: () => this.setState({ tab: t[0] }), bg: st.tab === t[0] ? '#FBF8F1' : 'transparent', shadow: st.tab === t[0] ? '0 1px 4px rgba(43,42,39,.14)' : 'none' })),
+      groups: TABS[st.tab],
+      randomise: () => { if (!O) return; const r = {}; Object.keys(O).forEach(k => { r[k] = Math.floor(Math.random() * O[k].length); }); if (r.hairStyle === 6) r.hairStyle = 1; this.setCfg(r); },
+      friends: st.friendsAdded.map(f => { const fc = BY[f.code]; return { name: f.name, bg: url(st.fthumbs[f.id]), status: (fc ? fc.flag + ' ' : '') + f.city, dot: '#5E683C' }; })
+        .concat(PR.slice(1).map((p, i) => ({ name: p.name, bg: url(st.thumbs[i + 1]), status: i < 3 ? 'Online' : 'Offline', dot: i < 3 ? '#5E683C' : '#B8B0A2' }))),
+      hasNewFriends: st.friendsAdded.length > 0, friendCount: st.friendsAdded.length,
+      msgs: st.msgs.map(m => ({ who: m.who, text: m.text, color: m.who === 'You' ? '#5E683C' : '#2B2A27' })),
+      nearbyLabel: st.nearby.length ? 'Nearby: ' + st.nearby.join(', ') : 'No one nearby',
+      placeholder: st.nearby.length ? 'Say something' : 'Walk up to someone to chat',
+      draft: st.draft, onDraft: e => this.setState({ draft: e.target.value }), onKey: e => { if (e.key === 'Enter') send(); }, send,
+
+      // flags on the home screen
+      myFlag: me.flag, myCode: me.code, myCountry: me.name,
+      togglePick: () => this.setState(s => ({ pickOpen: !s.pickOpen })), closePick: () => this.setState({ pickOpen: false }), pickOpen: st.pickOpen,
+      countryList: BY_NAME.map(x => ({ flag: x.flag, name: x.name, bg: x.code === me.code ? '#E4E6D2' : 'transparent', font: (x.code === me.code ? 700 : 500) + " 14px 'Figtree',sans-serif", pick: () => { LS.set('nook.country', x.code); this.setState({ me: x.code, pickOpen: false }); } })),
+      onlineCount: st.online.toLocaleString('en-GB'), countryCount: COUNTRIES.length,
+      homeFlags: Array.from({ length: 8 }, (_, i) => ({ flag: COUNTRIES[(homeFlagStart * 3 + i * 5) % COUNTRIES.length].flag, op: i < 6 ? 1 : i === 6 ? .55 : .25 })),
+      regionChips: REGIONS.map(r => ({ label: r, bg: st.region === r ? '#5E683C' : '#ECE6D9', fg: st.region === r ? '#F8F4EC' : '#2B2A27', pick: () => { LS.set('nook.region', r); this.setState({ region: r }); } })),
+
+      // call screen
+      cardLeft: L.wide ? stageX : '68px', cardShift: L.wide ? 'translateX(-50%)' : 'none', cardMax: L.wide ? 'calc(100% - 300px)' : 'calc(100% - 68px - 112px)',
+      wide: L.wide, showWordmark: L.wide && (!L.side || window.innerWidth >= 1280), stageX, isLive: live, isSearching: searchingNow,
+      liveDot: live ? '#5E683C' : '#C08A3A', callClock: live ? clock(Math.max(0, Math.floor((st.now - call.since) / 1000))) : 'Matching',
+      peerName: p ? p.name : '', peerFlag: p ? p.flag : '', peerThumb: url(p && p.thumb),
+      peerPlace: p ? p.city + ', ' + p.country + ' · ' + localTime(p.tz) + ' there' : '',
+      regionPhrase: st.region === 'Anywhere' ? 'around the world' : 'in ' + st.region,
+      searchFlags: Array.from({ length: 5 }, (_, i) => ({ flag: pool[(beat + i * 3) % pool.length].flag, op: i === 2 ? 1 : i === 1 || i === 3 ? .55 : .25, size: i === 2 ? '36px' : '24px' })),
+      pipRight: L.side ? L.side + 16 : 24,
+      camCardStyle, camScanning: camKey === 'scan' || camKey === 'loading', camHasErr: camErrNow, camErr: st.camErr,
+      camLabelShow: !!camL, camLabel: camL ? camL[0] : '', camLabelBg: camL ? camL[1] : '', camLabelFg: camL ? camL[2] : '',
+      camOffShow: v === 'scan' && !st.camOn && !camErrNow, camCloseShow: !(v === 'scan' && !st.camOn && !camErrNow),
+      camOnNow: () => this.setState({ camOn: true, camErr: '' }),
+      // body scan screen
+      isScan: v === 'scan', openScan: () => this.setState({ view: 'scan', camOn: true, camErr: '', menu: null, pickOpen: false }),
+      scanWide: S.wide, scanLeft: S.m, scanCamW: S.camW, scanTitleTop: S.wide ? 84 : 76, scanTitleSize: S.wide ? '30px' : '24px',
+      scanHint: S.wide ? 'Stand back so your head, shoulders and arms are in the picture. Your avatar copies you.' : 'Stand back so your arms show.',
+      scanActionsPos: S.wide ? 'top:' + Math.round(S.camTop + S.camW * .75 + 16) + 'px' : 'bottom:20px', scanNoteTop: Math.round(S.camTop + S.camW * .75 + 82),
+      scanGlowAt: S.wide ? '78% 58%' : '50% 78%', camToggleLabel: st.camOn ? 'Turn camera off' : 'Turn camera on',
+      startCallNow: () => this.startCall(),
+      closeCam: () => this.setState({ camOn: false, camErr: '' }), camCloseBg: camErrNow ? '#ECE6D9' : 'rgba(43,42,39,.55)', camCloseFg: camErrNow ? '#2B2A27' : '#F8F4EC',
+      skip: () => this.skip(), endCall: () => this.endCall(), skipOp: searchingNow ? .5 : 1,
+      canAdd: live && !isFriend, isFriend, addFriend: () => this.addFriend(),
+      toggleChat: () => this.setState(s => ({ chatOpen: !s.chatOpen, unread: 0 })),
+      chatOpen: st.chatOpen, chatW: L.chatW, chatBottom: L.wide ? 24 : 100,
+      chatBg: st.chatOpen ? '#5E683C' : '#ECE6D9', chatFg: st.chatOpen ? '#F8F4EC' : '#2B2A27',
+      hasUnread: st.unread > 0 && !st.chatOpen, unread: st.unread,
+      chatWith: p ? 'with ' + p.name + ' ' + p.flag + ' ' + p.city : 'Waiting for a match',
+      chatEmpty: st.chat.length === 0, chatEmptyText: p ? 'Say hi to ' + p.name + ' 👋' : 'Chat opens when you match with someone.',
+      chatMsgs: st.chat.map(m => Object.assign({ text: m.text }, MSG[m.who])),
+      chatDraft: st.chatDraft, chatDisabled: !live || locked,
+      chatPlaceholder: locked ? 'Chat paused for ' + Math.ceil((st.lockUntil - st.now) / 1000) + 's' : live ? 'Message ' + p.name : 'Waiting for a match…',
+      onChatDraft: e => this.setState({ chatDraft: e.target.value.slice(0, 300) }),
+      onChatKey: e => { if (e.key === 'Enter') this.sendChat(); },
+      sendChat: () => this.sendChat(), sendOp: !live || locked || !st.chatDraft.trim() ? .45 : 1,
+
+      ...this.callExtras(st, v, p, isFriend, stageX, url),
+      hasToast: !!st.toast, toast: st.toast, toastX: v === 'call' && !st.match ? stageX : '50%', toastBottom: v === 'call' ? 100 : 28
+    };
+  }
+}
+</script>
+</body>
+</html>
