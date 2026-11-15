@@ -300,10 +300,12 @@ export function createWorldApp(o) {
     else if (m.t === 'invite' && m.to === uid) {
       const answer = ok => post({ t: 'reply', to: pr.id, ok, p: myCard() });
       const w = m.w && typeof m.w === 'object' && typeof m.w.id === 'string' && m.w.id ? { id: str(m.w.id, 40), seed: (m.w.seed >>> 0) || 1, name: str(m.w.name, 32) || 'A new world', owner: str(m.w.owner, 40), ownerName: pr.name } : null;
+      if (o.sfx) o.sfx('request');
       note({ thumb: pr.thumb, parts: [{ b: pr.name }, ' ' + pr.flag + '  invited you to ' + (w ? w.name : 'the island')], ttl: 30000, onExpire: () => answer(false),
         actions: [{ label: 'Join', yes: true, fn: () => { answer(true); if (w) o.onEnter(w); else if (!active || room) o.onEnter(null); } }, { label: 'Not now', fn: () => answer(false) }] });
     } else if (m.t === 'reply' && m.to === uid) {
       if (!m.ok) sent.delete(pr.id);
+      if (o.sfx) o.sfx(m.ok ? 'friend' : 'nope');
       note({ thumb: pr.thumb, parts: [{ b: pr.name }, m.ok ? ' is joining you on the island' : ' can’t join right now'] }); refresh();
     }
   }
@@ -557,6 +559,7 @@ export function createWorldApp(o) {
   function matchPhase(ph, result) {
     if (!match) return; const nm = match.opp.name, box = match.game === 'boxing';
     const G = MATCHES[match.game];
+    if (o.sfx) { if (ph === 'in') o.sfx('match'); else if (ph === 'play') o.sfx('start'); else if (ph === 'over') o.sfx(result === 'win' || result === 'lose' ? 'jingle-' + result : 'left'); }
     if (ph === 'in') say(G.name.toUpperCase(), 'with ' + nm + ' · ' + optLabel(match.game, match.opt) + (G.setup ? ' · ' + G.setup : ''), true);
     else if (ph === 'ready') say('GET IN POSITION', 'The plank starts when the camera sees your whole body');
     else if (ph === 'play' && G.rps) drawRps();   // the countdown words take over the banner
@@ -696,6 +699,7 @@ export function createWorldApp(o) {
       const answer = (ok, spec) => post({ t: 'game', k: ok ? 'yes' : 'no', to: pr.id, n: m.n, spec });
       if (!active || match || pending || !MATCHES[m.game] || !world.has(pr.id)) return answer(false);
       const G = MATCHES[m.game].name + ' · ' + optLabel(m.game, pickOpt(m.game, m.opt));   // the length they picked
+      if (o.sfx) o.sfx('request');
       const close = note({ thumb: pr.thumb, ttl: 20000, onExpire: () => answer(false), parts: [{ b: pr.name }, m.mode === 'together' ? ' invited you to play ' + G : ' challenged you to a 1v1: ' + G],
         actions: [{ label: 'Accept', yes: true, fn: () => { const sp = startMatch({ game: m.game, oppId: pr.id, role: 1, remote: true, opt: m.opt }); answer(!!sp, sp); } }, { label: 'Not now', fn: () => answer(false) }] });
       asks.set(String(m.n), close);
@@ -712,13 +716,15 @@ export function createWorldApp(o) {
   let hereSig = '';
   function refresh() {
     if (active) {   // people in other windows walk on or off the island
-      peers.forEach(pr => { if (pr.inWorld && !world.has(pr.id)) world.add({ id: pr.id, name: pr.name, flag: pr.flag, cfg: pr.cfg, kind: 'remote' }); else if (!pr.inWorld && world.has(pr.id)) world.remove(pr.id); });
-      const faces = api.lobby().faces.slice(0, 3), sig = world.count() + faces.join();
+      // only people in this same world (the open island, or one of your worlds)
+      peers.forEach(pr => { const here = pr.inWorld && (pr.room || '') === room; if (here && !world.has(pr.id)) world.add({ id: pr.id, name: pr.name, flag: pr.flag, cfg: pr.cfg, kind: 'remote' }); else if (!here && world.has(pr.id)) world.remove(pr.id); });
+      // faces next to the count: the open island's crowd, or only who is in this world of yours
+      const faces = (room ? [...joined.values()].map(d => d.thumb).concat([...peers.values()].filter(pr => pr.inWorld && (pr.room || '') === room).map(pr => pr.thumb)).filter(Boolean) : api.lobby().faces).slice(0, 3), sig = world.count() + faces.join();
       if (sig !== hereSig) { hereSig = sig; hereN.textContent = String(world.count()); hereFaces.textContent = ''; faces.forEach(u => hereFaces.appendChild(face(null, u))); }
     }
     if (invWrap.classList.contains('on') && inviteSig() !== drawnSig) drawInvite();
   }
-  leaveBtn.onclick = () => o.onLeave(); inviteBtn.onclick = openInvite; waveBtn.onclick = () => world.wave();
+  leaveBtn.onclick = () => o.onLeave(); inviteBtn.onclick = openInvite; waveBtn.onclick = () => { world.wave(); if (o.sfx) o.sfx('wave'); };
   let jid = null;
   const stick = e => { const r = joy.getBoundingClientRect(); let x = (e.clientX - r.left - r.width / 2) / (r.width / 2), y = (e.clientY - r.top - r.height / 2) / (r.height / 2); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } knob.style.transform = 'translate(' + x * 32 + 'px,' + y * 32 + 'px)'; world.setJoy(x, -y); };
   joy.addEventListener('pointerdown', e => { jid = e.pointerId; joy.setPointerCapture(jid); stick(e); });
@@ -755,6 +761,7 @@ export function createWorldApp(o) {
     leave() { if (!active) return; voice.stop(); if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.abort(); endMatch(null); closePop(); active = false; world.leave(); if (dress) { dress.dispose(); dress = null; } roomTag.classList.remove('on'); hud.classList.remove('on'); closeInvite(); setPhone(false); hello(false); },
     openInvite,
     room: () => room,
+    talking: () => voice.size > 0,   // someone else is in this world with you (the music fades out)
     // who could get an invite (for the Create a world panel): { id, kind: 'peer' | 'sim' | 'away', name, sub, thumb, online, here }
     friends: () => friendRows(),
     inviteIds(ids) { const rows = friendRows(); (ids || []).forEach(id => { const f = rows.find(x => x.id === id); if (f) invite(f); }); },

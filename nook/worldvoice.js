@@ -44,6 +44,7 @@ export function createWorldVoice(o) {
     setMuted(m) { muted = !!m; links.forEach(l => l.link.setMuted(muted)); report(); },
     toggleMuted() { this.setMuted(!muted); return muted; },
     get muted() { return muted; },
+    get size() { return links.size; },
     stop() { closeAll(); report(); },
     dispose() { closeAll(); }
   };

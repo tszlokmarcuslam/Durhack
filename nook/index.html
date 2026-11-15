@@ -403,6 +403,8 @@ canvas{transition:filter .7s ease,transform .7s ease}
             <div class="st-group"><div class="st-head">Camera &amp; motion</div><div class="st-card">
                 <button type="button" class="st-row" role="switch" aria-checked="{{ stCamOn }}" onClick="{{ toggleCam }}"><span class="st-ico" style="background:#C27352"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="13" height="11" rx="2.5"></rect><path d="M16 10.5l5-3v9l-5-3z"></path></svg></span><span class="st-txt"><span class="st-name">Camera</span><span class="st-sub">Your body moves your avatar</span></span><span class="{{ stCamSw }}"></span></button>
                 <button type="button" class="st-row" role="switch" aria-checked="{{ stOrbitOn }}" onClick="{{ stToggleOrbit }}"><span class="st-ico" style="background:#7E9A62"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 21v-5h5"></path></svg></span><span class="st-txt"><span class="st-name">Island motion</span><span class="st-sub">The island slowly turns on the home screen</span></span><span class="{{ stOrbitSw }}"></span></button>
+                <button type="button" class="st-row" role="switch" aria-checked="{{ stMusicOn }}" onClick="{{ stToggleMusic }}"><span class="st-ico" style="background:#5C5E78"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg></span><span class="st-txt"><span class="st-name">Music</span><span class="st-sub">Calm music in the background</span></span><span class="{{ stMusicSw }}"></span></button>
+                <button type="button" class="st-row" role="switch" aria-checked="{{ stSfxOn }}" onClick="{{ stToggleSfx }}"><span class="st-ico" style="background:#4E8DAE"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"></path></svg></span><span class="st-txt"><span class="st-name">Sounds</span><span class="st-sub">Clicks, chimes and pops</span></span><span class="{{ stSfxSw }}"></span></button>
             </div></div>
             <div class="st-group"><div class="st-head">Companion</div><div class="st-card">
                 <button type="button" class="st-row" role="switch" aria-checked="{{ stVoiceOn }}" onClick="{{ toggleVoice }}"><span class="st-ico" style="background:#7B6BB0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"></path></svg></span><span class="st-txt"><span class="st-name">Read replies aloud</span><span class="st-sub">Your companion speaks its answers</span></span><span class="{{ stVoiceSw }}"></span></button>
@@ -1312,7 +1314,7 @@ class Component extends DCLogic {
     view: null, cfg: LS.get('nook.avatar', null) || { skin: 1, face: 0, eyes: 0, eyeColor: 0, brows: 1, mouth: 0, hairStyle: 2, hairColor: 0, build: 1, height: 1, topColor: 0, bottomColor: 0, shoes: 0 }, tab: 'Face', thumbs: [], pfp: '', msgs: [], nearby: [], friendsOpen: false, draft: '', camOn: false,
     me: LS.get('nook.country', null) || guessCountry(), region: 'Anywhere', theme: ['dark', 'light'].includes(LS.get('nook.theme', 'auto')) ? LS.get('nook.theme', 'auto') : 'auto', worlds: (LS.get('nook.worlds', []) || []).filter(w => w && typeof w.id === 'string'), worldSpec: null, make: null, pickOpen: false, now: Date.now(), online: 1200 + Math.floor(Math.random() * 300),
     call: null, chatOpen: false, chat: [], chatDraft: '', unread: 0, strikes: 0, lockUntil: 0,
-    friendsAdded: LS.get('nook.friends', []), favs: LS.get('nook.favs', []), hiddenEx: LS.get('nook.hiddenEx', []), friendsEdit: false, sure: null, fthumbs: {}, toast: '', track: 'off', camErr: '',
+    friendsAdded: LS.get('nook.friends', []), favs: LS.get('nook.favs', []), hiddenEx: LS.get('nook.hiddenEx', []), friendsEdit: false, sure: null, fthumbs: {}, toast: '', track: 'off', camErr: '', musicOn: LS.get('nook.music', true) !== false, sfxOn: LS.get('nook.sfx', true) !== false,
     // call extras: options menu on the other person, party, 1v1 boxing
     party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false,
     // accounts, real friends and parties, AI companion (backend.js, served by the app's dev server)
@@ -1338,6 +1340,10 @@ class Component extends DCLogic {
   componentDidMount() {
     this.alive = true;
     import(new URL('moderation.js', document.baseURI).href).then(m => { this.mod = m; });
+    // sounds (Kenney CC0 effects in sounds/) and calm music made in sound.js; both can be switched off in Settings
+    import(new URL('sound.js', document.baseURI).href).then(m => { if (this.alive) this.snd = window.nookSound = m.createSound({ music: this.state.musicOn, sfx: this.state.sfxOn }); }).catch(e => console.warn('[nook] no sound', e));
+    this.onAnyClick = e => { const b = e.target && e.target.closest && e.target.closest('button'); if (b && !b.disabled && this.snd) this.snd.play(b.getAttribute('role') === 'switch' ? 'toggle' : 'click'); };
+    document.addEventListener('click', this.onAnyClick, true);
     // Liquid Glass: elements with class "lg" refract what's behind them (glass.js)
     // (off while the UI uses the flat look) import(new URL('glass.js', document.baseURI).href).then(G => { if (this.alive) this.glass = G.startLiquidGlass(this.rootRef.current || document.body); });
     import(new URL('profile.js', document.baseURI).href).then(m => { this.P = m; });
@@ -1376,7 +1382,7 @@ class Component extends DCLogic {
   componentDidUpdate(pp) {
     if (pp.screen !== this.props.screen && this.state.view) this.setState({ view: null });
     if (this.nook) this.sync();
-    this.syncTracking();
+    this.syncTracking(); this.syncSound();
     const st = this.state, n = st.chat.length, el = this.chatRef.current;
     if (n !== this.chatN) { this.chatN = n; if (el) el.scrollTop = el.scrollHeight; }
     const cn = st.comp.msgs.length + (st.comp.busy ? 1 : 0), ce = this.compRef.current;
@@ -1391,6 +1397,7 @@ class Component extends DCLogic {
   componentWillUnmount() {
     this.alive = false; clearInterval(this.iv); clearTimeout(this.toastT); this.clearTimers();
     window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('click', this.onAnyClick, true); if (this.snd) this.snd.dispose();
     if (this.trk) this.trk.stop();
     if (this.onKey) { window.removeEventListener('keydown', this.onKey); window.removeEventListener('keyup', this.onKey); }
     if (this.arena) this.arena.dispose();
@@ -1454,6 +1461,7 @@ class Component extends DCLogic {
       if (!this.alive) return;
       this.wf = W.createWorldApp({
         T, nook: this.nook, canvas: this.worldRef.current, options: O, crowd, net: () => this.net,   // voice on the island uses the call network (callnet.js)
+        sfx: n => { if (!this.snd) return; if (n.startsWith('jingle-')) this.snd.jingle(n.slice(7)); else this.snd.play(n); },
         profile: () => { const me = BY[this.state.me] || BY.GB; return { flag: me.flag, names: me.names, cfg: this.state.cfg, thumb: this.state.pfp }; },
         friends: () => {
           const st = this.state;
@@ -1520,6 +1528,8 @@ class Component extends DCLogic {
       stOpenProfile: () => this.openProfileSheet(), stOpenCountry: () => this.setState({ pickOpen: true }), stCountry: me.flag + ' ' + me.name,
       stCamSw: sw(st.camOn), stCamOn: String(!!st.camOn),
       stOrbitSw: sw(!st.orbitOff), stOrbitOn: String(!st.orbitOff), stToggleOrbit: () => this.setState(s => ({ orbitOff: !s.orbitOff })),
+      stMusicSw: sw(st.musicOn), stMusicOn: String(!!st.musicOn), stToggleMusic: () => this.toggleAudio('music'),
+      stSfxSw: sw(st.sfxOn), stSfxOn: String(!!st.sfxOn), stToggleSfx: () => this.toggleAudio('sfx'),
       stVoiceSw: sw(st.voiceOn), stVoiceOn: String(!!st.voiceOn),
       stAcctLabel: user ? 'Sign out' : 'Sign in', stAcctSub: user ? (user.email || 'Signed in') : 'With Google or email, to keep your profile and friends',
       stAcctCls: 'st-row' + (user ? ' st-danger' : ''), stAcctPick: user ? () => this.doSignOut() : () => this.setState({ accountOpen: true })
@@ -1612,6 +1622,20 @@ class Component extends DCLogic {
   clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; }
   flash(text) { this.setState({ toast: text }); clearTimeout(this.toastT); this.toastT = setTimeout(() => this.alive && this.setState({ toast: '' }), 2800); }
 
+  /* ---------- sounds that follow the screen; the music fades out while people talk ---------- */
+  syncSound() {
+    const s = this.snd, st = this.state; if (!s) return;
+    const v = this.view(); s.ring(!!(st.ringIn || st.ringOut));
+    s.duck(v === 'call' || (v === 'world' && !!(this.wf && this.wf.talking && this.wf.talking())));
+    const menu = st.menu || null; if (menu !== this.sMenu) { if (this.sMenu !== undefined) s.play(menu ? 'open' : 'back'); this.sMenu = menu; }
+    if (v !== this.sView) { if (v === 'world' && this.sView !== undefined) s.play('join'); this.sView = v; }
+    if (!!st.friendIn !== !!this.sFriendIn) { if (st.friendIn) s.play('request'); this.sFriendIn = !!st.friendIn; }
+  }
+  toggleAudio(k) {
+    const key = k === 'music' ? 'musicOn' : 'sfxOn', on = !this.state[key]; LS.set('nook.' + k, on); this.setState({ [key]: on });
+    if (this.snd) { if (k === 'music') this.snd.setMusic(on); else this.snd.setSfx(on); }
+  }
+
   /* ---------- motion tracking (webcam drives your avatar's head) ---------- */
   syncTracking() {
     const want = this.state.camOn;
@@ -1703,11 +1727,11 @@ class Component extends DCLogic {
     peer.thumb = this.nook.thumb(cfg);
     this.nook.setSearching(false); this.nook.setPeer(cfg, peer.tint);
     this.hintsShown = (this.hintsShown || 0) + 1;
-    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0, voice: 'connecting' });
+    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0, voice: 'connecting' }); if (this.snd) this.snd.play('match');
     this.link = this.net.join(m.room, m.host, {
       onMsg: (type, data) => { if (n === this.callN) this.onPeerMsg(type, data); },
       onPose: p => { if (n === this.callN && this.nook) this.nook.setPeerTrack(p); },
-      onLeft: reason => { if (n !== this.callN) return; this.link = null; this.flash(reason === 'lost' ? 'Lost the connection to ' + peer.name : peer.name + ' left the call'); if (m.friend) this.endCall(); else this.searchNext(); },
+      onLeft: reason => { if (n !== this.callN) return; this.link = null; if (this.snd) this.snd.play('left'); this.flash(reason === 'lost' ? 'Lost the connection to ' + peer.name : peer.name + ' left the call'); if (m.friend) this.endCall(); else this.searchNext(); },
       onVoice: v => { if (n === this.callN) this.setState({ voice: v }); },
       onLevel: v => { if (v > .06 && this.nook) this.nook.peerTalk(.3); }
     });
@@ -1726,7 +1750,7 @@ class Component extends DCLogic {
     peer.thumb = (saved && this.state.fthumbs[saved.id]) || this.nook.thumb(peer.cfg);
     this.nook.setSearching(false); this.nook.setPeer(peer.cfg, peer.tint);
     this.hintsShown = (this.hintsShown || 0) + 1;
-    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0 });
+    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0 }); if (this.snd) this.snd.play('match');
     if (Math.random() < .8) this.later(() => n === this.callN && this.peerSays(fill(pick(GREET), peer)), 1800 + Math.random() * 1600);
   }
   // messages from the real person on the other end
@@ -1735,7 +1759,7 @@ class Component extends DCLogic {
     if (type === 'chat') this.peerSays(String(d || '').slice(0, 300));
     else if (type === 'friend-req') { if (this.state.friendsAdded.some(f => f.id === p.id)) { if (this.link) this.link.send('friend-ok'); } else this.setState({ friendIn: true }); }
     else if (type === 'friend-ok') this.friendOk(p);
-    else if (type === 'friend-no') { this.setState({ friendReq: null }); this.flash(p.name + ' ' + p.flag + ' said maybe later'); }
+    else if (type === 'friend-no') { this.setState({ friendReq: null }); if (this.snd) this.snd.play('nope'); this.flash(p.name + ' ' + p.flag + ' said maybe later'); }
     else if (type === 'challenge') { if (this.link) this.link.send('challenge-reply', { accept: false }); }   // boxing starts in the world, between friends: never from a call
     else if (type === 'challenge-cancel') this.setState({ incoming: null });
     else if (type === 'challenge-reply') {
@@ -1767,6 +1791,7 @@ class Component extends DCLogic {
     const ok = !this.mod || this.mod.checkMessage(text).ok;
     const msg = ok ? { who: 'them', text } : { who: 'sys', text: call.peer.name + "'s message was hidden by the filter." };
     if (ok && this.nook) this.nook.peerTalk(Math.min(3.5, .8 + text.length * .06));
+    if (this.snd) this.snd.play('message');
     this.setState(s => ({ chat: s.chat.concat(msg).slice(-60), unread: s.chatOpen ? 0 : s.unread + 1 }));
   }
   sendChat() {
@@ -1779,7 +1804,7 @@ class Component extends DCLogic {
       this.setState({ chat: s.chat.concat(notes).slice(-60), chatDraft: '', strikes: lock ? 0 : strikes, lockUntil: lock ? Date.now() + 30000 : s.lockUntil });
       return;
     }
-    this.setState({ chat: s.chat.concat({ who: 'you', text }).slice(-60), chatDraft: '' });
+    this.setState({ chat: s.chat.concat({ who: 'you', text }).slice(-60), chatDraft: '' }); if (this.snd) this.snd.play('tick');
     const n = this.callN, p = call.peer;
     if (p.real) { if (this.link) this.link.send('chat', text); return; }
     if (Math.random() < .85) this.later(() => n === this.callN && this.peerSays(fill(pick(REPLY), p)), 1300 + Math.random() * 1700);
@@ -1800,12 +1825,12 @@ class Component extends DCLogic {
   // you answer a request from the person you are talking to
   answerFriend(ok) {
     const call = this.state.call, p = call && call.peer; this.setState({ friendIn: false }); if (!p || call.phase !== 'live') return;
-    if (ok) { this.makeFriend(p); this.flash('You and ' + p.name + ' ' + p.flag + ' are friends now 💛'); }
+    if (ok) { this.makeFriend(p); if (this.snd) this.snd.play('friend'); this.flash('You and ' + p.name + ' ' + p.flag + ' are friends now 💛'); }
     if (this.link) this.link.send(ok ? 'friend-ok' : 'friend-no');
   }
   // they said yes to your request
   friendOk(p) {
-    this.makeFriend(p);
+    this.makeFriend(p); if (this.snd) this.snd.play('friend');
     const s = this.be && this.be.state;
     if (p.real && p.username && s && s.profile) { this.friendAct(this.be.addFriend(p.username)); return; }   // both signed in: also a real friend request in their Friends menu
     this.flash(p.name + ' ' + p.flag + ' accepted: you are friends now 💛');
@@ -1860,7 +1885,7 @@ class Component extends DCLogic {
     if (!this.fc || !f.ring || !this.fc.isHere(f.ring)) return this.flash(f.name + " isn't on Nook right now");
     this.setState({ ringOut: { name: f.name }, menu: null });
     this.ringOut = this.fc.ring(f.ring, {
-      onAnswer: (ok, meta, room) => { this.ringOut = null; if (!this.alive) return; this.setState({ ringOut: null }); if (ok) this.friendCallStart({ room, host: true, meta }); else this.flash(f.name + " can't talk right now"); },
+      onAnswer: (ok, meta, room) => { this.ringOut = null; if (!this.alive) return; this.setState({ ringOut: null }); if (ok) this.friendCallStart({ room, host: true, meta }); else { if (this.snd) this.snd.play('nope'); this.flash(f.name + " can't talk right now"); } },
       onTimeout: () => { this.ringOut = null; if (!this.alive) return; this.setState({ ringOut: null }); this.flash(f.name + " didn't answer"); }
     });
   }
@@ -2233,7 +2258,7 @@ class Component extends DCLogic {
     if (!this.alive || !p || typeof p.text !== 'string' || !p.text.trim()) return;
     const id = 'u:' + p.from, text = p.text.slice(0, 500);
     if (this.mod && !this.mod.checkMessage(text).ok) return;   // hateful: dropped, nothing is shown
-    this.dmAdd(id, { who: 'them', text, at: p.at || Date.now() });
+    this.dmAdd(id, { who: 'them', text, at: p.at || Date.now() }); if (this.snd) this.snd.play('message');
     if (this.dmShowing(id)) return;
     this.dmUnreadSet(id, true); this.flash((p.name || 'A friend') + ': ' + text.slice(0, 60));
   }
