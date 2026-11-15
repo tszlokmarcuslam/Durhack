@@ -1456,7 +1456,7 @@ class Component extends DCLogic {
   initWorld(T) {
     const O = this.N.OPTIONS, look = () => { const c = {}; Object.keys(O).forEach(k => { c[k] = Math.floor(Math.random() * O[k].length); }); if (c.hairStyle === 6) c.hairStyle = 1; return c; };
     // people already on the island: simulated until there is a server, like call matches
-    const crowd = Array.from({ length: 5 }, (_, i) => { const c = pick(COUNTRIES), cfg = look(); return { id: 'npc-' + i, name: pick(c.names), flag: c.flag, place: pick(c.cities) + ', ' + c.name, cfg, thumb: this.nook.thumb(cfg) }; });
+    const crowd = [];   // no simulated people on the island any more: real players only (the computer steps in just for a match, worldapp.js)
     import(new URL('worldapp.js', document.baseURI).href).then(W => {
       if (!this.alive) return;
       this.wf = W.createWorldApp({

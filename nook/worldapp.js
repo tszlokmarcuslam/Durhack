@@ -425,11 +425,19 @@ export function createWorldApp(o) {
     if (g.id) body.appendChild(el('div', 'nw-or', 'Or click someone on the island to challenge them.'));
     body.scrollTop = 0;
   }
-  // a match against the nearest simulated player
-  function playComputer(game) {
-    const me = world.me(); if (!me || match) return; let best = null, bd = Infinity;
-    o.crowd.forEach(c => { const p = world.person(c.id), d = p ? Math.hypot(p.x - me.x, p.z - me.z) : Infinity; if (d < bd) { bd = d; best = c; } });
-    if (best) startMatch({ game, oppId: best.id, role: 0, opt: picked(game) });
+  // A match against the computer. There are no simulated people walking the island, so the computer player steps in
+  // right in front of you for the game and leaves again when it ends.
+  let cpu = null;
+  const CPU_NAMES = ['Nova', 'Pixel', 'Bolt', 'Mochi', 'Echo', 'Ziggy'];
+  function playComputer(game, opt) {
+    const me = world.me(); if (!me || match || games.active()) return null;
+    if (cpu) { world.remove(cpu.id); cpu = null; }
+    const O = o.options, cfg = {}; Object.keys(O).forEach(k => { cfg[k] = Math.floor(Math.random() * O[k].length); }); if (cfg.hairStyle === 6) cfg.hairStyle = 1;
+    cpu = { id: 'cpu-' + rid(), kind: 'npc', name: CPU_NAMES[Math.floor(Math.random() * CPU_NAMES.length)], flag: '🤖', cfg, thumb: nook.thumb(cfg) };
+    world.add(cpu, { at: [me.x + Math.sin(me.ry) * 1.3, me.z + Math.cos(me.ry) * 1.3], ry: me.ry + Math.PI });
+    const sp = startMatch({ game, oppId: cpu.id, role: 0, opt: opt != null ? opt : picked(game) });
+    if (!sp) { world.remove(cpu.id); cpu = null; }
+    return sp;
   }
   /* ---------- how long a game lasts (or how many wins, for rock paper scissors) ---------- */
   const optPick = new Map();   // your last pick for each game, for this visit
@@ -496,6 +504,7 @@ export function createWorldApp(o) {
   function flash(text) { if (!text) return; flashEl.textContent = text; flashEl.classList.remove('go'); void flashEl.offsetWidth; flashEl.classList.add('go'); }
   // everyone you can meet on the island: simulated people, friends who came over, people in other windows
   function who(id) {
+    if (cpu && cpu.id === id) return { id, kind: 'npc', name: cpu.name, flag: cpu.flag, thumb: cpu.thumb, place: 'The computer' };
     const c = o.crowd.find(x => x.id === id); if (c) return { id, kind: 'npc', name: c.name, flag: c.flag || '', thumb: c.thumb, place: c.place || 'On the island' };
     const j = joined.get(id); if (j) return { id, kind: 'friend', name: j.name, flag: j.flag || '', thumb: j.thumb, place: 'Your friend' };
     const pr = peers.get(id); return pr ? { id, kind: 'peer', name: pr.name, flag: pr.flag || '', thumb: pr.thumb, place: chan ? 'On the island with you' : 'Playing in another window' } : null;
@@ -603,7 +612,9 @@ export function createWorldApp(o) {
     return '';
   }
   function endMatch(result) {
-    const mm = match; if (!mm) return; match = null; clearInterval(barsTimer); hud.classList.remove('game'); say(''); chessSel = null; drawChess(null);
+    const mm = match; if (!mm) return; match = null;
+    if (cpu && mm.opp.id === cpu.id) { world.remove(cpu.id); cpu = null; }   // the computer player leaves with the match
+ clearInterval(barsTimer); hud.classList.remove('game'); say(''); chessSel = null; drawChess(null);
     if (o.onMatch) o.onMatch(false);
     const M = MATCHES[mm.game], G = M.name, sc = (M.kind || M.rps || M.six) && mm.last ? ', ' + mm.last[0] + ' to ' + mm.last[1] : '';
     const t = result === 'win' ? ['You beat ', { b: mm.opp.name }, ' at ' + G + sc] : result === 'lose' ? [{ b: mm.opp.name }, ' beat you at ' + G + sc] : result === 'draw' ? ['A draw with ', { b: mm.opp.name }, sc] : null;
@@ -815,7 +826,7 @@ export function createWorldApp(o) {
   };
   // Handy in the browser console: nookWorld.play('boxing') or nookWorld.play('dance') starts a match with a simulated player
   // (join the island first). Not used by the app itself.
-  window.nookWorld = { world, games, useBackend: fn => { o.backend = fn; syncNet(); }, play: (game, id, opt) => startMatch({ game: game || 'boxing', oppId: id || o.crowd[0].id, role: 0, opt }),
+  window.nookWorld = { world, games, useBackend: fn => { o.backend = fn; syncNet(); }, play: (game, id, opt) => id ? startMatch({ game: game || 'boxing', oppId: id, role: 0, opt }) : playComputer(game || 'boxing', opt),
     // nookWorld.challenge(id, 'chess', 180): the same as clicking that person and challenging them (they get Accept / Not now)
     challenge: (id, game, opt) => { openContact(id); if (!contact) return false; ask(game || 'boxing', '1v1', pickOpt(game || 'boxing', opt)); return true; } };
   return api;
