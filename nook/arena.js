@@ -229,12 +229,15 @@ export function createArena(nook, cb) {
       peer.rotation.order = 'YXZ';
       peer.rotation.y = peerFace0 + (-PI / 2 - peerFace0) * faceK;
       if (faceK > 0) {
-        K.pose(peer, t, { wave: 0, lookX: 0, pitch: sin(t * .9) * .03, roll: 0 });
+        // a real opponent moves with their own camera (posed by the call scene); only fill in what isn't tracked
+        const remote = K.getPeerTrack ? K.getPeerTrack() : null, rb = remote && remote.body;
+        const rArms = !!(rb && rb.arms && ((rb.arms[1] && rb.arms[1].w > .5) || (rb.arms[-1] && rb.arms[-1].w > .5)));
+        if (!remote) K.pose(peer, t, { wave: 0, lookX: 0, pitch: sin(t * .9) * .03, roll: 0 });
         guardPeer += ((peerGuard ? 1 : 0) - guardPeer) * Math.min(1, dt * 14);
         const pd = t - peerAct.t0;
         [1, -1].forEach(s => {
-          const g = GUARD(s); armTo(peer, s, g[0], g[1], Math.max(faceK * .75, guardPeer));
-          if (s === peerAct.s && pd >= 0 && pd < .55) {
+          const g = GUARD(s); if (!rArms) armTo(peer, s, g[0], g[1], Math.max(faceK * .75, guardPeer));
+          if (!rArms && s === peerAct.s && pd >= 0 && pd < .55) {
             if (pd < .25) { const w = WIND(s); armTo(peer, s, w[0], w[1], pd / .25); }
             else { const p = PUNCH(s); armTo(peer, s, p[0], p[1], punchK(pd - .25)); }
           }

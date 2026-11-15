@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const sb = url && anonKey ? createClient(url, anonKey) : null;
+export const supabaseClient = sb; // callnet.js uses it for real-time call matching (null = not configured)
 const POLL_MS = 30000;
 export const USERNAME = /^[a-zA-Z0-9_]{3,24}$/;
 export const ACTIVITIES = { hangout: { label: 'Hang out', icon: '💬' }, study: { label: 'Study session', icon: '📚' }, music: { label: 'Music jam', icon: '🎵' }, exercise: { label: 'Exercise challenge', icon: '🏋️' } };
@@ -87,6 +88,8 @@ export function createBackend(onChange) {
 
   return {
     state,
+    client: sb,   // for profile.js (Settings) and the World's realtime channel
+    async reloadProfile() { if (state.user) { await loadProfile(); if (state.profile) startSocial(); emit(); } },   // after Settings saves a new name
     async signIn(email, password) {
       if (!sb) return fail(NOT_SET_UP);
       const { error } = await sb.auth.signInWithPassword({ email, password });

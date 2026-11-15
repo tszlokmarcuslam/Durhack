@@ -67,7 +67,7 @@ export async function startTracking({ stage, onPose }) {
         roll: clamp(Math.atan2(sh[1], sh[0]), .35), yaw: clamp(Math.atan2(-sh[2], sh[0]), .7)
       };
     }
-    onPose({ head, body });
+    onPose({ head, body, raw: lm ? { lm, wl: wl || [], aspect: video.videoWidth / Math.max(1, video.videoHeight) } : null });   // raw: untouched landmarks, for counting exercises (exercise.js)
 
     // skeleton overlay
     if (cv.width !== video.videoWidth) { cv.width = video.videoWidth; cv.height = video.videoHeight; }

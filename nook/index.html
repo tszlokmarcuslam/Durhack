@@ -138,7 +138,7 @@
         <span style="width:9px;height:9px;border-radius:50%;background:#5E683C;box-shadow:0 0 0 4px rgba(94,104,60,.18);flex:none"></span>
         <div style="line-height:1.2;white-space:nowrap">
           <div style="font-weight:700;font-size:15px;font-variant-numeric:tabular-nums">{{ onlineCount }} online now</div>
-          <div style="font-size:12px;color:#6B665E">in {{ countryCount }} countries</div>
+          <div style="font-size:12px;color:#6B665E">{{ onlineSub }}</div>
         </div>
         <div style="display:flex;gap:3px;font-size:20px;line-height:1">
           <sc-for list="{{ homeFlags }}" as="f"><span style="opacity:{{ f.op }};transition:opacity .4s ease">{{ f.flag }}</span></sc-for>
@@ -161,6 +161,61 @@
           <span style="overflow:hidden;text-overflow:ellipsis">{{ inviteText }}</span>
           <button type="button" onClick="{{ inviteJoin }}" style="height:34px;padding:0 14px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:11px;font:600 14px 'Figtree',sans-serif">Join</button>
           <button type="button" onClick="{{ inviteSkip }}" style="height:34px;padding:0 12px;border:none;cursor:pointer;background:rgba(248,244,236,.14);color:#F8F4EC;border-radius:11px;font:600 14px 'Figtree',sans-serif">Not now</button>
+        </div>
+      </sc-if>
+
+      <!-- Settings > profile, tags & privacy: the same profiles row as the React app (profile.js) -->
+      <sc-if value="{{ profOpen }}">
+        <div onClick="{{ closeProf }}" style="position:absolute;inset:0;pointer-events:auto;background:rgba(243,238,230,.62)"></div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));max-height:calc(100% - 40px);box-sizing:border-box;display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:26px;box-shadow:0 16px 40px rgba(43,42,39,.18);pointer-events:auto;overflow:hidden">
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:18px 14px 12px 20px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:20px;letter-spacing:-.01em">Your profile</div>
+              <div style="font-size:13px;line-height:1.4;color:#6B665E;margin-top:2px">{{ profSub }}</div>
+            </div>
+            <button type="button" onClick="{{ closeProf }}" aria-label="Close" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div style="display:flex;gap:4px;margin:0 16px;padding:4px;background:#ECE6D9;border-radius:14px;flex:none">
+            <sc-for list="{{ profTabs }}" as="t"><button type="button" onClick="{{ t.pick }}" style="flex:1;height:36px;border:none;cursor:pointer;border-radius:11px;background:{{ t.bg }};box-shadow:{{ t.shadow }};color:#2B2A27;font:600 14px 'Figtree',sans-serif">{{ t.label }}</button></sc-for>
+          </div>
+          <div style="flex:1;min-height:0;overflow:auto;padding:14px 20px 8px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ profFields }}" as="f">
+              <sc-if value="{{ f.head }}"><div style="padding-top:8px;font:700 11px 'Figtree',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6B665E">{{ f.head }}</div></sc-if>
+              <label style="display:flex;flex-direction:column;gap:5px">
+                <span style="display:flex;justify-content:space-between;gap:8px;font:600 13px 'Figtree',sans-serif;color:#2B2A27"><span>{{ f.label }}</span><span style="font-weight:500;color:#8A4A34">{{ f.note }}</span></span>
+                <input value="{{ f.value }}" onChange="{{ f.set }}" placeholder="{{ f.hint }}" style="height:44px;box-sizing:border-box;padding:0 14px;border:1px solid {{ f.border }};border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+              </label>
+            </sc-for>
+            <sc-if value="{{ profIsTags }}">
+              <div style="font:500 13px/1.4 'Figtree',sans-serif;color:#6B665E">{{ profTagsHelp }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ profMyTags }}" as="t"><button type="button" onClick="{{ t.drop }}" title="Remove this tag" style="height:32px;padding:0 10px 0 12px;display:flex;align-items:center;gap:6px;border:none;cursor:pointer;border-radius:999px;background:#5E683C;color:#F8F4EC;font:600 14px 'Figtree',sans-serif"><span>#{{ t.tag }}</span><span style="opacity:.75">×</span></button></sc-for>
+              </div>
+              <div style="display:flex;gap:8px">
+                <input value="{{ profTagDraft }}" onChange="{{ onProfTagDraft }}" onKeyDown="{{ onProfTagKey }}" placeholder="Add your own, like Jazz Piano" aria-label="Add a tag" style="flex:1;min-width:0;height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+                <button type="button" onClick="{{ addProfTag }}" style="height:44px;padding:0 16px;flex:none;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:13px;font:600 15px 'Figtree',sans-serif">Add</button>
+              </div>
+              <sc-for list="{{ profTagGroups }}" as="g">
+                <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px">
+                  <div style="font:700 11px 'Figtree',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6B665E">{{ g.group }}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    <sc-for list="{{ g.tags }}" as="c"><button type="button" onClick="{{ c.flip }}" style="height:32px;padding:0 12px;border:none;cursor:pointer;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font:600 14px 'Figtree',sans-serif">#{{ c.tag }}</button></sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-for list="{{ profToggles }}" as="g">
+              <button type="button" role="switch" onClick="{{ g.flip }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#F3EEE6;border-radius:16px;text-align:left;opacity:{{ g.op }}">
+                <span style="flex:1;min-width:0"><span style="display:block;font:600 15px 'Figtree',sans-serif;color:#2B2A27">{{ g.label }}</span><span style="display:block;margin-top:2px;font:500 13px/1.4 'Figtree',sans-serif;color:#6B665E">{{ g.hint }}</span></span>
+                <span style="width:46px;height:28px;flex:none;border-radius:14px;background:{{ g.track }};position:relative;transition:background .2s ease"><span style="position:absolute;top:3px;left:{{ g.knob }};width:22px;height:22px;border-radius:50%;background:#FBF8F1;box-shadow:0 1px 4px rgba(43,42,39,.25);transition:left .2s ease"></span></span>
+              </button>
+            </sc-for>
+            <sc-if value="{{ profNote }}"><div style="padding:10px 12px;background:#EEF0E2;color:#4E5733;border-radius:12px;font:500 13px/1.4 'Figtree',sans-serif">{{ profNote }}</div></sc-if>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px 16px 20px;border-top:1px solid rgba(43,42,39,.07);flex:none">
+            <div style="flex:1;min-width:0;font:500 13px/1.4 'Figtree',sans-serif;color:{{ profMsgColor }}">{{ profMsg }}</div>
+            <button type="button" onClick="{{ saveProf }}" disabled="{{ profBusy }}" style="height:46px;padding:0 22px;flex:none;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:15px;font:600 16px 'Figtree',sans-serif;opacity:{{ profSaveOp }}">{{ profSaveLabel }}</button>
+          </div>
         </div>
       </sc-if>
 
@@ -306,6 +361,24 @@
         </div>
       </sc-if>
 
+      <!-- they challenged you -->
+      <sc-if value="{{ incomingShow }}">
+        <div style="position:absolute;top:78px;left:{{ stageX }};transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:9px 10px 9px 14px;background:#2B2A27;color:#F8F4EC;border-radius:16px;font:600 14px 'Figtree',sans-serif;white-space:nowrap;box-shadow:0 10px 26px rgba(43,42,39,.25);pointer-events:auto;animation:nookMenu .25s ease-out;max-width:calc(100% - 32px);box-sizing:border-box">
+          <span style="font-size:18px">🥊</span>
+          <span style="overflow:hidden;text-overflow:ellipsis">{{ peerName }} challenges you to 1v1 boxing</span>
+          <button type="button" onClick="{{ acceptChallenge }}" style="height:32px;padding:0 12px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:10px;font:600 13px 'Figtree',sans-serif">Accept</button>
+          <button type="button" onClick="{{ declineChallenge }}" style="height:32px;padding:0 10px;border:none;cursor:pointer;background:rgba(248,244,236,.14);color:#F8F4EC;border-radius:10px;font:600 13px 'Figtree',sans-serif">Decline</button>
+        </div>
+      </sc-if>
+
+      <!-- a real call with your camera off: they only see you idle -->
+      <sc-if value="{{ camNudge }}">
+        <div style="position:absolute;left:{{ stageX }};bottom:100px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;background:rgba(43,42,39,.86);color:#F8F4EC;border-radius:14px;font:600 14px 'Figtree',sans-serif;white-space:nowrap;pointer-events:auto">
+          <span>Turn on your camera so {{ peerName }} sees you move</span>
+          <button type="button" onClick="{{ toggleCam }}" style="height:30px;padding:0 10px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:9px;font:600 13px 'Figtree',sans-serif">Camera on</button>
+        </div>
+      </sc-if>
+
       <!-- a challenge waiting for an answer -->
       <sc-if value="{{ challengePending }}">
         <div style="position:absolute;top:78px;left:{{ stageX }};transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:9px 10px 9px 14px;background:#2B2A27;color:#F8F4EC;border-radius:16px;font:600 14px 'Figtree',sans-serif;white-space:nowrap;box-shadow:0 10px 26px rgba(43,42,39,.25);pointer-events:auto;animation:nookMenu .25s ease-out">
@@ -345,12 +418,15 @@
       </sc-if>
 
       <sc-if value="{{ isSearching }}">
-        <div style="position:absolute;left:{{ stageX }};top:calc(50% + min(17vh,170px));transform:translateX(-50%);width:min(460px,90vw);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transition:left .35s ease">
+        <div style="position:absolute;left:{{ stageX }};top:calc(50% + min(17vh,170px));transform:translateX(-50%);width:min(480px,90vw);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;transition:left .35s ease">
           <div style="display:flex;align-items:center;justify-content:center;gap:12px;height:40px">
             <sc-for list="{{ searchFlags }}" as="f"><span style="font-size:{{ f.size }};line-height:1;opacity:{{ f.op }};transition:opacity .3s ease">{{ f.flag }}</span></sc-for>
           </div>
           <div style="font-weight:700;font-size:clamp(20px,2.4vw,26px);letter-spacing:-.02em">Finding someone {{ regionPhrase }}…</div>
-          <div style="font-size:14px;color:#6B665E">Demo: matches are simulated until the match server is live.</div>
+          <div style="font-size:14px;color:#6B665E">{{ searchNote }}</div>
+          <sc-if value="{{ showBotOffer }}">
+            <button type="button" onClick="{{ practiceBot }}" style="pointer-events:auto;margin-top:4px;height:42px;padding:0 16px;border:1px solid rgba(43,42,39,.12);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:14px;font:600 14px 'Figtree',sans-serif;box-shadow:0 6px 18px rgba(43,42,39,.08)">Practise with a bot while you wait</button>
+          </sc-if>
         </div>
       </sc-if>
 
@@ -390,6 +466,12 @@
         <button type="button" onClick="{{ toggleCam }}" title="{{ camTitle }}" aria-label="{{ camTitle }}" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
         </button>
+        <sc-if value="{{ callReal }}">
+          <button type="button" onClick="{{ toggleMute }}" title="{{ micTitle }}" aria-label="{{ micTitle }}" style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ micBg }};color:{{ micFg }};border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path><sc-if value="{{ micOff }}"><path d="M4 4l16 16"></path></sc-if></svg>
+            <span style="position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:{{ voiceDot }}"></span>
+          </button>
+        </sc-if>
         <button type="button" onClick="{{ toggleChat }}" title="Chat" aria-label="Chat" style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:{{ chatBg }};color:{{ chatFg }};border-radius:18px;transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg>
           <sc-if value="{{ hasUnread }}"><span style="position:absolute;top:5px;right:5px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#B9694C;color:#FBF8F1;font:700 11px/18px 'Figtree',sans-serif;text-align:center">{{ unread }}</span></sc-if>
@@ -592,6 +674,7 @@ class Component extends DCLogic {
     // call extras: options menu on the other person, party, 1v1 boxing
     party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false,
     // accounts, real friends and parties, AI companion (backend.js, served by the app's dev server)
+    prof: { open: false, tab: 'profile', form: null, errs: {}, busy: false, msg: '', ok: true, draft: '' },
     beV: 0, accountOpen: false, acct: { email: '', password: '', username: '', display: '', msg: '', ok: true, busy: false }, addName: '', friendsMsg: '',
     comp: { open: false, msgs: [], draft: '', busy: false, mode: '' }, skippedInvite: null
   };
@@ -602,10 +685,11 @@ class Component extends DCLogic {
   componentDidMount() {
     this.alive = true;
     import(new URL('moderation.js', document.baseURI).href).then(m => { this.mod = m; });
+    import(new URL('profile.js', document.baseURI).href).then(m => { this.P = m; });
     // the app's backend (accounts, friends, parties, AI companion); only reachable through `npm run dev`
     import(new URL('backend.js', document.baseURI).href)
-      .then(B => { if (!this.alive) return; this.B = B; this.be = B.createBackend(() => this.onBackend()); this.onBackend(); })
-      .catch(e => { console.warn('[nook] backend unavailable (open the page via npm run dev):', e); this.beFailed = true; this.forceUpdate(); });
+      .then(B => { if (!this.alive) return; this.B = B; this.be = B.createBackend(() => this.onBackend()); this.onBackend(); this.initNet(B.supabaseClient); })
+      .catch(e => { console.warn('[nook] backend unavailable (open the page via npm run dev):', e); this.beFailed = true; this.forceUpdate(); this.initNet(null); });
     this.iv = setInterval(() => {
       if (!this.alive) return;
       const patch = { now: Date.now() };
@@ -648,6 +732,7 @@ class Component extends DCLogic {
     if (this.trk) this.trk.stop();
     if (this.onKey) { window.removeEventListener('keydown', this.onKey); window.removeEventListener('keyup', this.onKey); }
     if (this.arena) this.arena.dispose();
+    this.leaveLink(); if (this.net) this.net.close();
     if (this.wf) this.wf.dispose();
     if (this.nook) this.nook.dispose();
   }
@@ -691,12 +776,63 @@ class Component extends DCLogic {
             .concat(this.N.PRESETS.slice(1).map((p, i) => ({ id: 'demo-' + p.name, name: p.name, flag: '', sub: i < 3 ? 'Online' : 'Offline', thumb: st.thumbs[i + 1], online: i < 3, cfg: p })));
         },
         onEnter: () => this.joinWorld(), onLeave: () => this.setState({ view: 'home', menu: null }),
+        // signed in (backend.js): the island, invites and challenges reach your real friends
+        backend: () => this.be, friendThumb: id => this.state.fthumbs[id],
         // a match on the island turns the camera on for body tracking, and puts it back the way it was afterwards
         onMatch: on => { if (on) { this.camWas = this.state.camOn; this.setState({ camOn: true, camErr: '' }); } else if (!this.camWas) this.setState({ camOn: false, camErr: '' }); },
         tracking: () => ({ on: this.state.camOn, state: this.state.track, err: this.state.camErr })
       });
       this.forceUpdate();
     });
+  }
+  /* ---------- Settings > profile, tags & privacy (profile.js: the same profiles row as the React app) ---------- */
+  setProf(p) { this.setState(s => ({ prof: Object.assign({}, s.prof, p) })); }
+  setProfForm(patch) { this.setState(s => ({ prof: Object.assign({}, s.prof, { form: Object.assign({}, s.prof.form, patch), msg: '' }) })); }
+  openProfileSheet() {
+    const P = this.P; if (!P) return this.flash('Still loading. Try again in a moment.');
+    const be = this.be, user = be && be.state.user, known = be && be.state.profile, base = P.emptyProfile();
+    if (known) { base.username = known.username; base.displayName = known.displayName; }
+    this.setState({ pickOpen: false, accountOpen: false, prof: { open: true, tab: 'profile', form: base, errs: {}, busy: !!user, msg: user ? 'Loading your profile…' : '', ok: true, draft: '' } });
+    if (user) P.loadProfile(be.client, user.id).then(r => { if (this.alive && this.state.prof.open) this.setProf(r.error ? { busy: false, msg: r.error, ok: false } : { busy: false, msg: '', form: r.form || base }); });
+  }
+  saveProfileSheet() {
+    const P = this.P, be = this.be, user = be && be.state.user, pr = this.state.prof;
+    if (!user) return this.setState(s => ({ accountOpen: true, prof: Object.assign({}, s.prof, { open: false }) }));   // not signed in: go and sign in
+    const errs = P.validateProfile(pr.form), bad = Object.keys(errs);
+    if (bad.length) return this.setProf({ errs, ok: false, msg: 'Fix the highlighted fields.', tab: bad.length === 1 && errs.tags ? 'tags' : 'profile' });
+    this.setProf({ busy: true, errs: {}, msg: 'Saving…', ok: true });
+    P.saveProfile(be.client, user.id, pr.form).then(err => { if (!this.alive) return; this.setProf({ busy: false, msg: err || 'Saved.', ok: !err }); if (!err && be.reloadProfile) be.reloadProfile(); });
+  }
+  profVals(st) {
+    const pr = st.prof, P = this.P, f = pr.form, be = this.be, signed = !!(be && be.state.user);
+    if (!pr.open || !P || !f) return { profOpen: false, profTabs: [], profFields: [], profToggles: [], profMyTags: [], profTagGroups: [], profIsTags: false, profNote: '' };
+    const border = k => pr.errs[k] ? '#B9694C' : 'rgba(43,42,39,.12)';
+    const fld = (k, label, hint, max, head) => ({ head: head || '', label, hint: hint || '', value: f[k], note: pr.errs[k] || '', border: border(k), set: e => this.setProfForm({ [k]: e.target.value.slice(0, max) }) });
+    const link = (k, label, head) => ({ head: head || '', label, hint: 'https://', value: f.social[k], note: pr.errs[k] || '', border: border(k), set: e => this.setProfForm({ social: Object.assign({}, f.social, { [k]: e.target.value.slice(0, 200) }) }) });
+    const tog = (k, label, hint, dim) => ({ label, hint, flip: () => this.setProfForm({ [k]: !f[k] }), track: f[k] ? '#5E683C' : '#D2CABC', knob: f[k] ? '21px' : '3px', op: dim ? .55 : 1 });
+    const has = t => f.tags.some(x => P.tagKey(x) === P.tagKey(t));
+    const flip = t => this.setProfForm({ tags: has(t) ? f.tags.filter(x => P.tagKey(x) !== P.tagKey(t)) : f.tags.length < P.MAX_TAGS ? f.tags.concat(t) : f.tags });
+    const add = () => { const t = P.toTag(pr.draft); if (!t) return this.setProf({ msg: 'Tags are 2 to 30 letters or numbers.', ok: false }); if (!has(t)) flip(t); this.setProf({ draft: '' }); };
+    const hidden = !f.isDiscoverable;
+    return {
+      profOpen: true, closeProf: () => this.setProf({ open: false }),
+      profSub: signed ? 'Everything stays private until you switch it on under Privacy.' : 'Have a look around. Sign in to save it.',
+      profTabs: [['profile', 'Profile'], ['tags', 'Tags'], ['privacy', 'Privacy']].map(t => ({ label: t[1], pick: () => this.setProf({ tab: t[0] }), bg: pr.tab === t[0] ? '#FBF8F1' : 'transparent', shadow: pr.tab === t[0] ? '0 1px 4px rgba(43,42,39,.14)' : 'none' })),
+      profFields: pr.tab !== 'profile' ? [] : [fld('displayName', 'Display name', 'The name people will see', 40), fld('username', 'Username', '3 to 24 letters, numbers or _', 24), fld('bio', 'Short bio', 'A line about you', 300),
+        fld('university', 'University', '', 60, 'Where you study'), fld('subject', 'Course or subject', 'e.g. Mathematics', 60), fld('city', 'City (optional)', 'e.g. Durham', 60),
+        link('website', 'Website', 'Links (optional)'), link('github', 'GitHub'), link('linkedin', 'LinkedIn'), link('instagram', 'Instagram')],
+      profIsTags: pr.tab === 'tags', profTagsHelp: 'Tags help people who share your interests find you. ' + f.tags.length + ' of ' + P.MAX_TAGS + ' picked.' + (pr.errs.tags ? ' ' + pr.errs.tags + '.' : ''),
+      profMyTags: f.tags.map(t => ({ tag: t, drop: () => flip(t) })),
+      profTagDraft: pr.draft, onProfTagDraft: e => this.setProf({ draft: e.target.value.slice(0, 40), msg: '' }), onProfTagKey: e => { if (e.key === 'Enter') add(); }, addProfTag: add,
+      profTagGroups: P.CURATED_TAGS.map(g => ({ group: g.group, tags: g.tags.map(t => ({ tag: t, flip: () => flip(t), bg: has(t) ? '#5E683C' : '#ECE6D9', fg: has(t) ? '#F8F4EC' : '#2B2A27' })) })),
+      profToggles: pr.tab !== 'privacy' ? [] : [
+        tog('isDiscoverable', 'Let the companion suggest me to other players', 'When off, you never appear in anyone’s search results.'),
+        tog('shareLocation', 'Show and search by my city', 'Others can find you by city and see it on your card.', hidden),
+        tog('shareEducation', 'Show and search by my university and subject', 'Others can find you by university or course.', hidden),
+        tog('shareInterests', 'Show and search by my community tags', 'Some tags say personal things about you, like communities you belong to. Only share what you’re comfortable with.', hidden)],
+      profNote: pr.tab === 'privacy' && hidden ? 'You’re hidden. The companion won’t suggest you to other players.' : '',
+      profMsg: pr.msg, profMsgColor: pr.ok ? '#6B665E' : '#8A4A34', profBusy: pr.busy, profSaveOp: pr.busy ? .5 : 1, profSaveLabel: signed ? 'Save' : 'Sign in to save', saveProf: () => this.saveProfileSheet()
+    };
   }
   joinWorld() { if (this.state.call) this.endCall(); this.setState({ view: 'world', menu: null, pickOpen: false, chatOpen: false }); }
   // what the World page on the home screen shows
@@ -729,6 +865,7 @@ class Component extends DCLogic {
           if (p.body.legs[1].w > .5 || p.body.legs[-1].w > .5) this.legsAt = now;
         }
         if (this.nook) this.nook.setTrack(p);
+        if (this.link) this.link.sendPose(p); // in a real call, the other person sees you move
       };
       (navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? import(new URL('tracking.js', document.baseURI).href) : Promise.reject({ name: 'Insecure' }))
         .then(M => M.startTracking({ stage: this.camStageRef.current, onPose }))
@@ -750,37 +887,112 @@ class Component extends DCLogic {
     if (!want && this.trk) { this.trk.stop(); this.trk = null; if (this.nook) this.nook.setTrack(null); this.setState({ track: 'off' }); }
   }
 
-  /* ---------- the call ---------- */
+  /* ---------- the call: real people anywhere (callnet.js over Supabase Realtime), or a practice bot ---------- */
+  initNet(sb) {
+    if (this.net || this.netLoading || !this.alive) return;
+    this.netLoading = true;
+    import(new URL('callnet.js', document.baseURI).href).then(C => {
+      if (!this.alive) return;
+      this.net = C.createCallNet(sb || null);
+      this.netOnline = this.net.goOnline({ code: this.state.me }, o => this.alive && this.setState({ netOnline: o }));
+      this.forceUpdate();
+    }).catch(e => console.warn('[nook] calls offline', e));
+  }
+  isRealCall() { const c = this.state.call; return !!(c && c.peer && c.peer.real); }
+  // what the other person learns about you when you're matched
+  myCallMeta() {
+    const st = this.state, c = BY[st.me] || BY.GB, s = this.be && this.be.state, prof = s && s.profile;
+    let tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* no time zone */ }
+    if (!this.guestName) this.guestName = 'Guest ' + (100 + Math.floor(Math.random() * 900));
+    return { name: prof ? prof.displayName : this.guestName, code: c.code, region: c.region, pref: st.region, tz, cfg: st.cfg, username: prof ? prof.username : '', userId: s && s.user && prof ? s.user.id : '' };
+  }
+  // a look sent by someone else: keep only valid options
+  cleanCfg(c) { const O = this.N.OPTIONS, out = {}; Object.keys(O).forEach(k => { const v = c && c[k]; out[k] = Number.isInteger(v) && v >= 0 && v < O[k].length ? v : 0; }); return out; }
   startCall() {
     this.setState({ view: 'call', menu: null, pickOpen: false, chatOpen: false, chatDraft: '', lockUntil: 0 });
     this.searchNext();
   }
+  leaveLink() {
+    if (this.link) { this.link.leave(); this.link = null; }
+    if (this.search) { this.search.cancel(); this.search = null; }
+    if (this.nook) this.nook.setPeerTrack(null);
+  }
   searchNext() {
-    this.clearTimers(); this.stopMatch();
+    this.clearTimers(); this.stopMatch(); this.leaveLink();
     const n = ++this.callN, old = this.state.call;
     if (old && old.peer && old.peer.thumb && !this.state.friendsAdded.concat(this.state.party).some(f => f.id === old.peer.id)) URL.revokeObjectURL(old.peer.thumb);
     if (this.nook) { this.nook.setPeer(null); this.nook.setSearching(true); }
-    this.setState({ call: { phase: 'searching' }, chat: [], unread: 0, strikes: 0, peerMenu: null, challenge: null, partyPending: null, hintUntil: 0 });
-    this.later(() => n === this.callN && this.match(n), 1600 + Math.random() * 1400);
+    this.setState({ call: { phase: 'searching', since: Date.now() }, chat: [], unread: 0, strikes: 0, peerMenu: null, challenge: null, partyPending: null, hintUntil: 0, incoming: null, waitingCount: 0, voice: '', muted: false });
+    this.beginSearch(n);
   }
-  match(n) {
-    if (!this.nook) { this.later(() => n === this.callN && this.match(n), 400); return; }
+  beginSearch(n) {
+    if (n !== this.callN) return;
+    if (!this.net || !this.nook) { this.later(() => this.beginSearch(n), 400); return; }
+    this.search = this.net.search(this.myCallMeta(), {
+      onWaiting: k => { if (n === this.callN && this.state.waitingCount !== k) this.setState({ waitingCount: k }); },
+      onMatch: m => { if (n !== this.callN) return; this.search = null; this.realMatch(n, m); }
+    });
+  }
+  realMatch(n, m) {
+    const P = m.peer || {}, c = BY[P.code] || null, cfg = this.cleanCfg(P.cfg);
+    let name = String(P.name || 'Guest').slice(0, 40); if (this.mod && !this.mod.checkMessage(name).ok) name = 'Guest';
+    const peer = { id: 'net-' + (P.userId || P.id), real: true, name, code: c ? c.code : '', country: c ? c.name : 'Somewhere', flag: c ? c.flag : '🌐', city: '', tz: P.tz || '', cfg, tint: pick(TINTS), username: P.username || '', userId: P.userId || '' };
+    peer.thumb = this.nook.thumb(cfg);
+    this.nook.setSearching(false); this.nook.setPeer(cfg, peer.tint);
+    this.hintsShown = (this.hintsShown || 0) + 1;
+    this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0, voice: 'connecting' });
+    this.link = this.net.join(m.room, m.host, {
+      onMsg: (type, data) => { if (n === this.callN) this.onPeerMsg(type, data); },
+      onPose: p => { if (n === this.callN && this.nook) this.nook.setPeerTrack(p); },
+      onLeft: reason => { if (n !== this.callN) return; this.link = null; this.flash(reason === 'lost' ? 'Lost the connection to ' + peer.name : peer.name + ' left the call'); this.searchNext(); },
+      onVoice: v => { if (n === this.callN) this.setState({ voice: v }); },
+      onLevel: v => { if (v > .06 && this.nook) this.nook.peerTalk(.3); }
+    });
+  }
+  // nobody around: a simulated stranger to practise with (the original demo)
+  practiceBot() { const n = this.callN; this.leaveLink(); this.botMatch(n); }
+  botMatch(n) {
+    if (!this.nook) { this.later(() => n === this.callN && this.botMatch(n), 400); return; }
     const pool = this.state.region === 'Anywhere' ? COUNTRIES : COUNTRIES.filter(c => c.region === this.state.region);
     const c = pick(pool), O = this.N.OPTIONS, cfg = {};
     Object.keys(O).forEach(k => { cfg[k] = Math.floor(Math.random() * O[k].length); });
     if (cfg.hairStyle === 6 && Math.random() < .7) cfg.hairStyle = 1;
-    const peer = { id: c.code + '-' + Date.now().toString(36), name: pick(c.names), code: c.code, country: c.name, flag: c.flag, city: pick(c.cities), tz: c.tz, cfg, tint: pick(TINTS) };
+    const peer = { id: c.code + '-' + Date.now().toString(36), bot: true, name: pick(c.names), code: c.code, country: c.name, flag: c.flag, city: pick(c.cities), tz: c.tz, cfg, tint: pick(TINTS) };
     peer.thumb = this.nook.thumb(cfg);
     this.nook.setSearching(false); this.nook.setPeer(cfg, peer.tint);
     this.hintsShown = (this.hintsShown || 0) + 1;
     this.setState({ call: { phase: 'live', peer, since: Date.now() }, hintUntil: this.hintsShown <= 3 ? Date.now() + 7000 : 0 });
     if (Math.random() < .8) this.later(() => n === this.callN && this.peerSays(fill(pick(GREET), peer)), 1800 + Math.random() * 1600);
   }
+  // messages from the real person on the other end
+  onPeerMsg(type, d) {
+    const call = this.state.call, p = call && call.peer; if (!p) return;
+    if (type === 'chat') this.peerSays(String(d || '').slice(0, 300));
+    else if (type === 'friend') this.flash(p.name + ' ' + p.flag + ' added you as a friend 💛');
+    else if (type === 'challenge') { if (this.state.match) { if (this.link) this.link.send('challenge-reply', { accept: false }); } else this.setState({ incoming: { at: Date.now() }, peerMenu: null }); }
+    else if (type === 'challenge-cancel') this.setState({ incoming: null });
+    else if (type === 'challenge-reply') {
+      if (!this.state.challenge) return;
+      this.setState({ challenge: null });
+      if (d && d.accept) { this.flash(p.name + ' accepted! 🥊'); this.beginMatch(); } else this.flash(p.name + ' said maybe next time');
+    }
+    else if (type === 'ready') { this.peerReady = true; this.maybeStartRound(); }
+    else if (type === 'punch') this.incomingPunch(d || {});
+    else if (type === 'hit') this.punchResult(d || {});
+    else if (type === 'rematch') { const m = this.state.match; if (m && m.phase === 'over') this.startRound(); }
+    else if (type === 'leave-match') this.leaveMatch(true);
+  }
+  answerChallenge(accept) {
+    this.setState({ incoming: null });
+    if (this.link) this.link.send('challenge-reply', { accept });
+    if (accept) this.beginMatch();
+  }
+  toggleMute() { const m = !this.state.muted; this.setState({ muted: m }); if (this.link) this.link.setMuted(m); }
   skip() { const c = this.state.call; if (c && c.phase === 'live') this.searchNext(); }
   endCall() {
-    this.clearTimers(); this.stopMatch(); this.callN++;
+    this.clearTimers(); this.stopMatch(); this.leaveLink(); this.callN++;
     if (this.nook) { this.nook.setPeer(null); this.nook.setSearching(false); }
-    this.setState({ view: 'home', call: null, chatOpen: false, chat: [], unread: 0, menu: null, peerMenu: null, challenge: null, partyPending: null });
+    this.setState({ view: 'home', call: null, chatOpen: false, chat: [], unread: 0, menu: null, peerMenu: null, challenge: null, partyPending: null, incoming: null, voice: '' });
   }
   peerSays(text) {
     const call = this.state.call; if (!call || call.phase !== 'live') return;
@@ -801,14 +1013,21 @@ class Component extends DCLogic {
     }
     this.setState({ chat: s.chat.concat({ who: 'you', text }).slice(-60), chatDraft: '' });
     const n = this.callN, p = call.peer;
+    if (p.real) { if (this.link) this.link.send('chat', text); return; }
     if (Math.random() < .85) this.later(() => n === this.callN && this.peerSays(fill(pick(REPLY), p)), 1300 + Math.random() * 1700);
   }
   addFriend() {
     const call = this.state.call; if (!call || call.phase !== 'live') return;
     const p = call.peer; if (this.state.friendsAdded.some(f => f.id === p.id)) return;
-    const list = [{ id: p.id, name: p.name, code: p.code, city: p.city, cfg: p.cfg, at: Date.now() }].concat(this.state.friendsAdded).slice(0, 50);
+    const list = [{ id: p.id, name: p.name, code: p.code, city: p.city || p.country, cfg: p.cfg, at: Date.now() }].concat(this.state.friendsAdded).slice(0, 50);
     LS.set('nook.friends', list);
     this.setState(s => ({ friendsAdded: list, fthumbs: Object.assign({}, s.fthumbs, { [p.id]: p.thumb }) }));
+    if (p.real) {
+      if (this.link) this.link.send('friend');
+      // both signed in: a real friend request (shows up in their Friends menu)
+      const s = this.be && this.be.state;
+      if (p.username && s && s.profile) { this.friendAct(this.be.addFriend(p.username)); return; }
+    }
     this.flash(p.name + ' ' + p.flag + ' is now in your friends list');
   }
 
@@ -818,7 +1037,7 @@ class Component extends DCLogic {
       if (!this.alive || !this.nook) return;
       this.arena = A.createArena(this.nook, {
         onPeerClick: (x, y) => this.openPeerMenu(x + 14, y - 40),
-        onReady: () => this.startRound(),
+        onReady: () => this.arenaReady(),
         onGone: () => this.setState({ match: null }),
         onPunch: s => this.throwPunch(s, true)
       });
@@ -842,6 +1061,14 @@ class Component extends DCLogic {
   inviteParty() {
     const st = this.state, c = st.call; if (!c || c.phase !== 'live') return;
     const p = c.peer, n = this.callN;
+    if (p.real) {
+      // real parties are for friends with accounts (the database enforces it)
+      const s = this.be && this.be.state, f = s && s.profile ? s.friends.find(x => x.userId === p.userId && x.status === 'accepted') : null;
+      this.setState({ peerMenu: null });
+      if (f) this.friendAct(this.be.invite(f));
+      else this.flash(!(s && s.profile) || !p.userId ? 'Parties need accounts: you both need to sign in, then add each other as friends.' : 'Add ' + p.name + ' as a friend first. Parties are for friends.');
+      return;
+    }
     if (st.party.some(f => f.id === p.id) || st.partyPending || st.party.length >= 3) return;
     this.setState({ partyPending: p.id, peerMenu: null });
     this.flash('Party invite sent to ' + p.name + ' ' + p.flag);
@@ -860,7 +1087,12 @@ class Component extends DCLogic {
     const st = this.state, c = st.call; if (!c || c.phase !== 'live' || st.match || st.challenge || !this.arena) return;
     const p = c.peer, n = this.callN;
     this.setState({ challenge: { at: Date.now() }, peerMenu: null, chatOpen: false });
-    // simulated answer until there is a server
+    if (p.real) {
+      if (this.link) this.link.send('challenge');
+      this.later(() => { if (n === this.callN && this.state.challenge) { this.setState({ challenge: null }); if (this.link) this.link.send('challenge-cancel'); this.flash(p.name + " didn't answer"); } }, 20000);
+      return;
+    }
+    // practice bot: simulated answer
     this.later(() => {
       if (n !== this.callN || !this.state.challenge) return;
       this.setState({ challenge: null });
@@ -869,9 +1101,20 @@ class Component extends DCLogic {
     }, 1400 + Math.random() * 1000);
   }
   beginMatch() {
-    this.setState({ match: { phase: 'enter', hpMe: 100, hpThem: 100, landed: 0, blocked: 0, taken: 0 }, chatOpen: false, peerMenu: null, hintUntil: 0 });
+    this.myReady = false; this.peerReady = !this.isRealCall(); // a bot is always ready
+    this.setState({ match: { phase: 'enter', hpMe: 100, hpThem: 100, landed: 0, blocked: 0, taken: 0 }, chatOpen: false, peerMenu: null, hintUntil: 0, incoming: null, challenge: null });
     this.arena.start();
   }
+  // the ring is built on this side; with a real person, start when both rings are ready
+  arenaReady() {
+    this.myReady = true;
+    if (this.isRealCall()) {
+      const n = this.callN, ping = () => { const m = this.state.match; if (n !== this.callN || !m || m.phase !== 'enter') return; if (this.link) this.link.send('ready'); this.later(ping, 1000); };
+      ping();
+    }
+    this.maybeStartRound();
+  }
+  maybeStartRound() { const m = this.state.match; if (this.myReady && this.peerReady && m && m.phase === 'enter') this.startRound(); }
   patchMatch(p, done) { this.setState(s => ({ match: s.match ? Object.assign({}, s.match, p) : s.match }), done); }
   startRound() {
     const n = this.callN;
@@ -882,8 +1125,30 @@ class Component extends DCLogic {
       if (n !== this.callN || !this.state.match) return;
       this.fx('banner', 'Fight!');
       this.patchMatch({ phase: 'fight', endsAt: Date.now() + 60000 });
-      this.arena.setFight(true); this.aiStep(n);
+      this.arena.setFight(true);
+      if (!this.isRealCall()) this.aiStep(n);
     }, 1200);
+  }
+  // real opponent: their punch arrives, you check your own guard and report the damage back
+  incomingPunch(d) {
+    const m = this.state.match; if (!m || m.phase !== 'fight' || !this.arena) return;
+    const s = d.s === 1 ? 1 : -1;
+    if (!d.tracked) this.arena.peerPunch(-s); // their keyboard punch, seen from your side
+    const n = this.callN;
+    this.later(() => {
+      const mm = this.state.match; if (n !== this.callN || !mm || mm.phase !== 'fight') return;
+      const blocked = this.arena.isGuarding(), dmg = blocked ? 1 : (s === 1 ? 9 : 7) + Math.floor(Math.random() * 4), hp = Math.max(0, mm.hpMe - dmg);
+      if (blocked) this.fx('pop', 'Blocked!', 'me', '#C9D98F'); else { this.arena.hit('me'); this.fx('flash'); this.fx('pop', '-' + dmg, 'me', '#E3A27F'); }
+      if (this.link) this.link.send('hit', { id: d.id, s, dmg, blocked, hp });
+      this.patchMatch(blocked ? { hpMe: hp, blocked: mm.blocked + 1 } : { hpMe: hp, taken: mm.taken + 1 }, () => this.checkEnd());
+    }, d.tracked ? 60 : 300);
+  }
+  // real opponent: how your punch landed
+  punchResult(d) {
+    const mm = this.state.match; if (!mm || mm.phase !== 'fight' || !this.arena) return;
+    if (d.blocked) this.fx('pop', 'Blocked', 'peer', '#E4E6D2');
+    else { this.arena.hit('peer'); this.fx('pop', (d.s === 1 ? 'Cross! ' : 'Jab! ') + '-' + d.dmg, 'peer', '#C9D98F'); }
+    this.patchMatch({ hpThem: Math.max(0, Number(d.hp) || 0), landed: mm.landed + (d.blocked ? 0 : 1) }, () => this.checkEnd());
   }
   // you punch: side -1 = jab (near arm), 1 = cross. tracked = thrown with your real arm (already animated)
   throwPunch(s, tracked) {
@@ -891,6 +1156,8 @@ class Component extends DCLogic {
     const t = Date.now(); this.lastPunch = this.lastPunch || {};
     if (t - (this.lastPunch[s] || 0) < 280) return; this.lastPunch[s] = t;
     if (!tracked) this.arena.myPunch(s);
+    // real opponent: they resolve it against their own guard and send back a 'hit'
+    if (this.isRealCall()) { this.punchId = (this.punchId || 0) + 1; if (this.link) this.link.send('punch', { s, tracked: !!tracked, id: this.punchId }); return; }
     // sometimes they read it and cover up
     if (!this.arena.peerGuarding() && Math.random() < .22) { this.arena.peerGuard(true); setTimeout(() => this.arena && this.arena.peerGuard(false), 450); }
     const n = this.callN;
@@ -932,9 +1199,10 @@ class Component extends DCLogic {
     const n = this.callN; this.later(() => { if (n === this.callN && this.state.match) this.patchMatch({ showResult: true }); }, 1600);
   }
   setGuard(on) { if (this.arena) this.arena.myGuard(on); if (this.state.keyGuard !== on) this.setState({ keyGuard: on }); }
-  rematch() { if (this.state.match) this.startRound(); }
-  leaveMatch() {
+  rematch() { if (!this.state.match) return; if (this.isRealCall() && this.link) this.link.send('rematch'); this.startRound(); }
+  leaveMatch(fromPeer) {
     if (!this.state.match || !this.arena) return;
+    if (!fromPeer && this.isRealCall() && this.link) this.link.send('leave-match');
     this.setGuard(false); this.arena.setFight(false);
     this.patchMatch({ phase: 'leaving', showResult: false });
     this.arena.leave();
@@ -1072,6 +1340,37 @@ class Component extends DCLogic {
       compPlaceholder: ready ? 'Ask the companion…' : 'Ask the companion (sign in first)…'
     };
   }
+  // real calls: searching text, voice, incoming challenge, and the real "online now" count
+  callNetVals(st, v, p) {
+    const net = this.net, internet = !!(net && net.mode === 'internet'), call = st.call;
+    const live = !!(call && call.phase === 'live'), searching = !!(call && call.phase === 'searching');
+    const k = st.waitingCount || 0, real = !!(p && p.real), voice = st.voice || '', noMic = voice === 'nomic' || voice === 'listen' || voice === 'unsupported';
+    const vals = {
+      searchNote: !net ? 'Connecting…'
+        : internet ? (k ? k + (k === 1 ? ' other person is' : ' other people are') + ' looking right now' : 'Waiting for someone to press Call. Your camera picture never leaves your device.')
+        : 'Test mode: matching other tabs of this browser. Add your Supabase keys to .env to match people anywhere.',
+      showBotOffer: searching && st.now - (call.since || st.now) > 8000, practiceBot: () => this.practiceBot(),
+      callReal: real, toggleMute: () => this.toggleMute(),
+      micOff: st.muted || noMic, micBg: st.muted || noMic ? '#ECE6D9' : '#5E683C', micFg: st.muted || noMic ? '#2B2A27' : '#F8F4EC',
+      micTitle: noMic ? 'No microphone: allow it in your browser to talk' : st.muted ? 'Unmute' : 'Mute',
+      voiceDot: voice === 'on' ? '#8FD18A' : voice === 'failed' || noMic ? '#B9694C' : '#E3C46B',
+      // (voice states from callnet.js: connecting, on, listen = connected without your mic, nomic, failed, unsupported)
+      incomingShow: live && !!st.incoming && !st.match, acceptChallenge: () => this.answerChallenge(true), declineChallenge: () => this.answerChallenge(false),
+      camNudge: real && live && !st.camOn && !st.match && !st.chatOpen && !(st.hintUntil > st.now) && !st.incoming && !st.challenge && !st.peerMenu,
+      cancelChallenge: () => { this.setState({ challenge: null }); if (this.isRealCall() && this.link) this.link.send('challenge-cancel'); },
+      peerPlace: !p ? '' : p.real
+        ? p.country + (p.tz ? ' · ' + localTime(p.tz) + ' there' : '') + ' · ' + (voice === 'on' ? 'voice on' : voice === 'listen' ? 'you can hear them · your mic is off' : voice === 'connecting' ? 'connecting voice…' : noMic ? 'your mic is off' : voice === 'failed' ? 'voice unavailable · chat instead' : 'live')
+        : p.city + ', ' + p.country + ' · ' + localTime(p.tz) + ' there' + (p.bot ? ' · practice bot' : '')
+    };
+    const o = st.netOnline;
+    if (o) {
+      const fl = [...new Set(o.codes)].map(c => BY[c]).filter(Boolean), beat = Math.floor(st.now / 2500);
+      vals.onlineCount = o.count.toLocaleString('en-GB');
+      vals.onlineSub = internet ? 'in ' + Math.max(1, fl.length) + (fl.length === 1 ? ' country' : ' countries') : 'test mode: this browser only';
+      vals.homeFlags = fl.length ? Array.from({ length: Math.min(8, fl.length) }, (_, i) => ({ flag: fl[(beat + i) % fl.length].flag, op: 1 })) : [];
+    } else vals.onlineSub = 'connecting…';
+    return vals;
+  }
   // what the options menu, the party strip and the boxing HUD show
   callExtras(st, v, p, isFriend, stageX, url) {
     const m = st.match, live = !!p, inArena = v === 'call' && !!m;
@@ -1177,9 +1476,9 @@ class Component extends DCLogic {
           call: [it('Start a call', () => this.startCall(), true), it('Join with a code', no)],
           friends: [],
           world: [it('Join the world', () => this.joinWorld(), true), it('Invite friends', () => this.wf && this.wf.openInvite())],
-          settings: [it('Country: ' + me.flag + ' ' + me.name, () => this.setState({ pickOpen: true })), it('Camera: ' + (st.camOn ? 'On' : 'Off'), () => this.setState(s => ({ camOn: !s.camOn }))), it('Island motion: ' + (st.orbitOff ? 'Off' : 'On'), () => this.setState(s => ({ orbitOff: !s.orbitOff })))]
+          settings: [it('Profile, tags & privacy', () => this.openProfileSheet()), it('Country: ' + me.flag + ' ' + me.name, () => this.setState({ pickOpen: true })), it('Camera: ' + (st.camOn ? 'On' : 'Off'), () => this.setState(s => ({ camOn: !s.camOn }))), it('Island motion: ' + (st.orbitOff ? 'Off' : 'On'), () => this.setState(s => ({ orbitOff: !s.orbitOff })))]
         };
-        return { isMain: !menu, isSub: !!menu, isFriends: menu === 'friends', isCallMenu: menu === 'call', isWorldMenu: menu === 'world', ...this.worldVals(), menuTitle: ({ call: 'Call', friends: 'Friends', world: 'World', settings: 'Settings' })[menu] || '', menuItems: ITEMS[menu] || [], openCall: open('call'), openFriends: open('friends'), openWorld: open('world'), openSettings: open('settings'), closeMenu: open(null) };
+        return { isMain: !menu, isSub: !!menu, isFriends: menu === 'friends', isCallMenu: menu === 'call', isWorldMenu: menu === 'world', ...this.worldVals(), ...this.profVals(st), menuTitle: ({ call: 'Call', friends: 'Friends', world: 'World', settings: 'Settings' })[menu] || '', menuItems: ITEMS[menu] || [], openCall: open('call'), openFriends: open('friends'), openWorld: open('world'), openSettings: open('settings'), closeMenu: open(null) };
       })(),
       toggleCam: () => this.setState(s => ({ camOn: !s.camOn, camErr: '' })), camBg: st.camOn ? '#5E683C' : v === 'call' ? '#ECE6D9' : '#FBF8F1', camFg: st.camOn ? '#F8F4EC' : '#2B2A27',
       camTitle: st.camOn ? 'Turn camera off' : 'Turn camera on: scans your body and moves your avatar',
@@ -1241,6 +1540,7 @@ class Component extends DCLogic {
 
       ...this.callExtras(st, v, p, isFriend, stageX, url),
       ...this.accountVals(st, v, url),
+      ...this.callNetVals(st, v, p),
       hasToast: !!st.toast, toast: st.toast, toastX: v === 'call' && !st.match ? stageX : '50%', toastBottom: v === 'call' ? 100 : 28
     };
   }

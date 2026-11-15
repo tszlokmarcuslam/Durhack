@@ -93,6 +93,8 @@ const CSS = `
 .nw-fr button{flex:none;height:34px;padding:0 15px;border-radius:999px;background:#5E683C;color:#F8F4EC;font:600 14px 'Figtree',sans-serif;transition:transform .15s ease}
 .nw-fr button:hover{transform:translateY(-1px)}
 .nw-fr em{flex:none;height:34px;padding:0 12px;display:flex;align-items:center;border-radius:999px;background:#E4E6D2;color:#5E683C;font:600 13px 'Figtree',sans-serif;font-style:normal;white-space:nowrap}
+.nw-fr em.off{background:#ECE6D9;color:#6B665E}
+.nw-none{padding:16px 10px;font:500 14px/1.4 'Figtree',sans-serif;color:#6B665E;text-align:center}
 .nw-inv footer{padding:10px 18px 14px;font:500 12px/1.4 'Figtree',sans-serif;color:#6B665E;border-top:1px solid rgba(43,42,39,.07)}
 .nw-tag{pointer-events:auto;cursor:pointer;transition:background .2s ease,color .2s ease}
 .nw-tag--near{background:#2B2A27;color:#F8F4EC}
@@ -131,6 +133,9 @@ const CSS = `
 .nw-side.r .nw-hp u{margin-left:auto}
 .nw-side.hit{animation:nwHit .3s ease}
 @keyframes nwHit{35%{transform:scale(1.05);background:#F6D9CC}}
+.nw-num{display:none;flex:none;min-width:46px;font:700 32px/1 'Figtree',sans-serif;font-style:normal;font-variant-numeric:tabular-nums;text-align:center}
+.nw-bars.nums .nw-num{display:block}
+.nw-bars.nums .nw-hp{display:none}
 .nw-clock{flex:none;min-width:56px;height:40px;padding:0 8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:#2B2A27;color:#F8F4EC;border-radius:14px;font:700 17px 'Figtree',sans-serif;font-variant-numeric:tabular-nums}
 .nw-banner{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);font:700 clamp(40px,9vw,92px)/1 'Figtree',sans-serif;letter-spacing:.02em;white-space:nowrap;color:#F8F4EC;text-shadow:0 6px 30px rgba(0,0,0,.5);text-align:center;opacity:0;transition:opacity .35s ease}
 .nw-banner.on{opacity:1}
@@ -148,6 +153,7 @@ const ICON = d => '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" s
 const I = {
   back: '<path d="M15 6l-6 6 6 6"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>',
   invite: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M19 8v6M16 11h6"/>',
+  pushup: '<circle cx="19" cy="8" r="2"/><path d="M3 18l13-7 3 1M8 15.5V19M16 11l-1 6"/>', squat: '<circle cx="12" cy="4.5" r="2"/><path d="M12 7v5l-5 2 1 6M12 12l5 2-1 6M5 9h14"/>', plank: '<circle cx="19" cy="10" r="2"/><path d="M3 17l13-4M16 13v4h4M3 20h18"/>',
   glove: '<path d="M7 11V7a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H9a2 2 0 0 1-2-2z"/><path d="M7 11H5.5a2 2 0 0 0 0 4H7M8 17v4h8v-4"/>',
   mark: '<svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"/><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"/><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"/></svg>'
 };
@@ -217,7 +223,8 @@ export function createWorldApp(o) {
   const peers = new Map();    // people in other windows: id -> { id, name, flag, cfg, thumb, inWorld, last }
   const sent = new Map();     // who you invited: id -> 'sent' | 'later'
   const joined = new Map();   // simulated friends who came over: id -> def
-  const post = m => { if (bc) try { bc.postMessage(Object.assign({ from: uid }, m)); } catch (e) {} };
+  let chan = null, localId = '', tickN = 0;   // chan: the internet channel while you are signed in (see syncNet)
+  const post = m => { const msg = Object.assign({ from: uid }, m); try { if (chan) { const r = chan.ch.send({ type: 'broadcast', event: 'w', payload: msg }); if (r && r.catch) r.catch(() => {}); } else if (bc) bc.postMessage(msg); } catch (e) {} };
   const hello = ask => post({ t: 'hello', p: myCard(), inWorld: active, ask: !!ask });
   function meet(id, p, inWorld) {
     let pr = peers.get(id); if (!pr) { pr = { id, key: '' }; peers.set(id, pr); }
@@ -230,7 +237,7 @@ export function createWorldApp(o) {
   function drop(id) { const pr = peers.get(id); if (!pr) return; if (match && match.opp.id === id) games.gone(); if (contact && contact.id === id) closePop(); if (pr.thumb) URL.revokeObjectURL(pr.thumb); peers.delete(id); sent.delete(id); world.remove(id); refresh(); }
   function onNet(e) {
     const m = e.data; if (!m || typeof m !== 'object' || typeof m.from !== 'string' || !m.from) return;
-    if (m.from === uid) { if (m.t === 'hello') { uid = rid(); uname = ''; SS.set('nook.uid', uid); SS.set('nook.uname', ''); hello(true); } return; }   // a duplicated tab took our id: get a new one
+    if (m.from === uid) { if (m.t === 'hello' && !chan) { uid = rid(); uname = ''; SS.set('nook.uid', uid); SS.set('nook.uname', ''); hello(true); } return; }   // a duplicated tab took our id: get a new one
     if (m.t === 'bye') return drop(m.from);
     const pr = m.p && typeof m.p === 'object' ? meet(m.from, m.p, m.t === 'hello' ? m.inWorld : null) : peers.get(m.from);
     if (!pr) return;
@@ -246,11 +253,31 @@ export function createWorldApp(o) {
       note({ thumb: pr.thumb, parts: [{ b: pr.name }, m.ok ? ' is joining you on the island' : ' can’t join right now'] }); refresh();
     }
   }
-  if (bc) bc.onmessage = onNet;
-  const beat = setInterval(() => { hello(false); const now = Date.now(); [...peers.values()].forEach(pr => { if (now - pr.last > 7000) drop(pr.id); }); }, 2000);
+  if (bc) bc.onmessage = e => { if (!chan) onNet(e); };
+  /* ---------- real accounts (backend.js) ----------
+     Signed in with a profile: the same messages go over a Supabase realtime channel instead, so they reach your friends
+     on their own computers. Your id is then your account id and your name is your profile name. Signed out: other
+     windows of this browser, as before. */
+  const account = () => { const be = o.backend && o.backend(), s = be && be.state; return be && be.client && s && s.user && s.profile ? { be, sb: be.client, id: String(s.user.id), name: s.profile.displayName || s.profile.username } : null; };
+  function syncNet() {
+    const a = account();
+    if (a && (!chan || chan.uid !== a.id)) {
+      if (chan) try { chan.sb.removeChannel(chan.ch); } catch (e) {}
+      [...peers.keys()].forEach(drop);
+      const ch = a.sb.channel('nook-world', { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'w' }, ({ payload }) => onNet({ data: payload })).subscribe(status => { if (status === 'SUBSCRIBED') hello(true); });
+      if (!chan) localId = uid;
+      chan = { ch, sb: a.sb, uid: a.id }; uid = a.id; uname = str(a.name, 20);
+    } else if (!a && chan) {   // signed out again
+      try { chan.sb.removeChannel(chan.ch); } catch (e) {}
+      chan = null; [...peers.keys()].forEach(drop); uid = localId || rid(); uname = SS.get('nook.uname'); hello(true);
+    }
+  }
+  const beat = setInterval(() => { syncNet(); hello(false); const now = Date.now(); [...peers.values()].forEach(pr => { if (now - pr.last > 7000) drop(pr.id); }); }, 2000);
   const pulse = setInterval(() => {
-    if (active && peers.size) { const s = world.state(); if (s) post({ t: 'state', s }); }
-    if (match && match.remote) { const a = games.poseOut(); if (a) post({ t: 'game', k: 'pose', to: match.opp.id, a }); }
+    tickN++;   // over the internet send less often, to stay inside the channel's message limit
+    if (active && peers.size && !match && (!chan || tickN % 3 === 0)) { const s = world.state(); if (s) post({ t: 'state', s }); }
+    if (match && match.remote && (!chan || tickN % 2 === 0)) { const a = games.poseOut(); if (a) post({ t: 'game', k: 'pose', to: match.opp.id, a }); }
   }, 100);
   const onHide = () => post({ t: 'bye' });
   window.addEventListener('pagehide', onHide);
@@ -272,7 +299,15 @@ export function createWorldApp(o) {
     refresh();
   }
   function friendRows() {
-    const rows = [];
+    const rows = [], a = account();
+    if (a) {   // signed in: your real friends. Only the ones who have Nook open right now can get an invite.
+      a.be.state.friends.filter(f => f.status === 'accepted').forEach(f => {
+        const id = String(f.userId), pr = peers.get(id), on = a.be.state.online && a.be.state.online.has(f.userId);
+        rows.push(pr ? { id, kind: 'peer', name: f.displayName, sub: pr.inWorld ? 'On the island' : 'On Nook now', thumb: pr.thumb, online: true, here: !!pr.inWorld }
+          : { id, kind: 'away', name: f.displayName, sub: on ? 'Online, but not on Nook' : 'Offline', thumb: o.friendThumb ? o.friendThumb(f.userId) : undefined, online: false, here: false });
+      });
+      return rows.sort((x, y) => (y.kind === 'peer') - (x.kind === 'peer'));
+    }
     peers.forEach(pr => rows.push({ id: pr.id, kind: 'peer', name: pr.name + ' ' + pr.flag, sub: 'Online in another window', thumb: pr.thumb, online: true, here: !!pr.inWorld }));
     o.friends().forEach(f => rows.push(Object.assign({ kind: 'sim', here: joined.has(f.id) }, f)));
     return rows;
@@ -289,11 +324,13 @@ export function createWorldApp(o) {
       const row = el('div', 'nw-fr'), who = el('span'); who.append(el('strong', null, f.name), el('small', null, f.here ? 'On the island' : sent.get(f.id) === 'later' ? 'Will see it when they’re back' : f.sub));
       row.append(face('nw-av' + (f.online ? ' on' : ''), f.thumb), who);
       if (f.here) row.appendChild(el('em', null, 'Here'));
+      else if (f.kind === 'away') row.appendChild(el('em', 'off', 'Not here'));
       else if (sent.has(f.id)) row.appendChild(el('em', null, 'Invited ✓'));
       else { const b = el('button', null, 'Invite'); b.type = 'button'; b.setAttribute('aria-label', 'Invite ' + f.name); b.onclick = () => invite(f); row.appendChild(b); }
       list.appendChild(row);
     });
-    inv.append(head, list, el('footer', null, 'Demo: these friends are simulated until accounts are live. Open this page in a second window to send a real invite.'));
+    const real = !!account(); if (real && !list.children.length) list.appendChild(el('div', 'nw-none', 'No friends yet. Add people from Friends on the home screen.'));
+    inv.append(head, list, el('footer', null, real ? 'Friends get your invite when they have Nook open.' : 'Demo: these friends are simulated until you sign in. Open this page in a second window to send a real invite.'));
   }
   function openInvite() { invWrap.className = 'nw-inv-wrap on' + (active ? '' : ' dim'); drawInvite(); }
   function closeInvite() { invWrap.className = 'nw-inv-wrap'; }
@@ -331,14 +368,14 @@ export function createWorldApp(o) {
   });
   let contact = null, pending = null, match = null, barsTimer = 0; const asks = new Map();
   const matchEl = el('div', 'nw-match'), bars = el('div', 'nw-bars'), sideMe = el('div', 'nw-side'), sideThem = el('div', 'nw-side r'), clockEl = el('div', 'nw-clock'), banner = el('div', 'nw-banner'), ctl = el('div', 'nw-ctl'), chip = el('div', 'nw-chip');
-  const punchL = el('button', 'nw-pill nw-punch', 'Left punch'), punchR = el('button', 'nw-pill nw-punch', 'Right punch'), quitBtn = el('button', 'nw-pill nw-quit', 'Leave match');
-  punchL.type = punchR.type = quitBtn.type = 'button';
-  bars.append(sideMe, clockEl, sideThem); ctl.append(chip, punchL, punchR); matchEl.append(bars, banner, ctl, quitBtn); hud.appendChild(matchEl);
+  const punchL = el('button', 'nw-pill nw-punch', 'Left punch'), punchR = el('button', 'nw-pill nw-punch', 'Right punch'), quitBtn = el('button', 'nw-pill nw-quit', 'Leave match'), repBtn = el('button', 'nw-pill nw-go nw-punch', 'Rep');
+  punchL.type = punchR.type = quitBtn.type = repBtn.type = 'button';
+  bars.append(sideMe, clockEl, sideThem); ctl.append(chip, punchL, punchR, repBtn); matchEl.append(bars, banner, ctl, quitBtn); hud.appendChild(matchEl);
   // everyone you can meet on the island: simulated people, friends who came over, people in other windows
   function who(id) {
     const c = o.crowd.find(x => x.id === id); if (c) return { id, kind: 'npc', name: c.name, flag: c.flag || '', thumb: c.thumb, place: c.place || 'On the island' };
     const j = joined.get(id); if (j) return { id, kind: 'friend', name: j.name, flag: j.flag || '', thumb: j.thumb, place: 'Your friend' };
-    const pr = peers.get(id); return pr ? { id, kind: 'peer', name: pr.name, flag: pr.flag || '', thumb: pr.thumb, place: 'Playing in another window' } : null;
+    const pr = peers.get(id); return pr ? { id, kind: 'peer', name: pr.name, flag: pr.flag || '', thumb: pr.thumb, place: chan ? 'On the island with you' : 'Playing in another window' } : null;
   }
   const label = c => c.name + (c.flag ? ' ' + c.flag : '');
   const gameRow = (g, pick) => {
@@ -349,6 +386,9 @@ export function createWorldApp(o) {
   const pop = el('div', 'nw-pop off'); hud.appendChild(pop);
   const PICKS = [
     { id: 'boxing', mode: '1v1', group: 'Challenge to a 1v1', name: 'Boxing', line: 'Your own arms throw the punches', color: '#C2452D', icon: I.glove },
+    { id: 'pushups', mode: '1v1', name: 'Push-ups', line: 'Most push-ups in 40 seconds', color: '#5E683C', icon: I.pushup },
+    { id: 'squats', mode: '1v1', name: 'Squats', line: 'Most squats in 40 seconds', color: '#C08A3A', icon: I.squat },
+    { id: 'plank', mode: '1v1', name: 'Plank', line: 'Hold good form the longest', color: '#4C5FA8', icon: I.plank },
     { id: 'dance', mode: 'together', group: 'Play together', name: 'Dance floor', line: 'Dance together, your body leads', color: '#5C5E78', icon: GAMES[1].icon }
   ];
   function openContact(id) {
@@ -365,7 +405,7 @@ export function createWorldApp(o) {
       const wait = el('div', 'nw-pop-wait'), no = el('button', 'nw-pop-no', 'Cancel'); no.type = 'button'; no.onclick = () => { cancelAsk(); drawPop(); };
       wait.append(html('div', 'nw-dots', '<i></i><i></i><i></i>'), el('b', null, 'Asking ' + c.name + '…'), el('small', null, MATCHES[pending.game].name + ' starts when they accept.'), no); pop.appendChild(wait); return;
     }
-    PICKS.forEach(g => pop.append(el('div', 'nw-pop-label', g.group), gameRow(g, () => ask(g.id, g.mode))));
+    PICKS.forEach(g => { if (g.group) pop.appendChild(el('div', 'nw-pop-label', g.group)); pop.appendChild(gameRow(g, () => ask(g.id, g.mode))); });
   }
   // walk away and the menu closes
   const nearCheck = setInterval(() => { if (!contact || pending || !active) return; const a = world.me(), b = world.person(contact.id); if (!a || !b || Math.hypot(a.x - b.x, a.z - b.z) > 3.4) closePop(); }, 600);
@@ -381,7 +421,7 @@ export function createWorldApp(o) {
   function startMatch(q) {
     const opp = who(q.oppId), sp = opp && active ? games.start(q) : null; if (!sp) return null;
     match = { opp, game: q.game, remote: !!q.remote }; pending = null; closePop(); setPhone(false); closeInvite(); hud.classList.add('game');
-    const mk = (side, name, thumb, red) => { side.textContent = ''; side.classList.toggle('red', red); const d = el('div'), hp = el('div', 'nw-hp'); hp.appendChild(el('u')); d.append(el('b', null, name), hp); side.append(face('nw-av', thumb), d); };
+    const mk = (side, name, thumb, red) => { side.textContent = ''; side.classList.toggle('red', red); const d = el('div'), hp = el('div', 'nw-hp'); hp.appendChild(el('u')); d.append(el('b', null, name), hp); side.append(face('nw-av', thumb), d, el('em', 'nw-num', '0')); };
     mk(sideMe, 'You', o.profile().thumb, !!q.role); mk(sideThem, label(opp), opp.thumb, !q.role);   // blue for who asked, red for who accepted
     if (o.onMatch) o.onMatch(true);   // turns the camera on for body tracking
     clearInterval(barsTimer); barsTimer = setInterval(drawBars, 200); matchPhase('in');
@@ -390,8 +430,9 @@ export function createWorldApp(o) {
   function say(text, sub, code) { banner.textContent = ''; banner.className = 'nw-banner' + (text ? ' on' : '') + (code ? ' code' : ''); if (text) { banner.append(text); if (sub) banner.appendChild(el('small', null, sub)); } }
   function matchPhase(ph, result) {
     if (!match) return; const nm = match.opp.name, box = match.game === 'boxing';
-    if (ph === 'in') say(MATCHES[match.game].name.toUpperCase(), 'with ' + nm, true);
-    else if (ph === 'play') { say(box ? 'FIGHT!' : 'DANCE!'); later(() => { if (match && games.info() && games.info().phase === 'play') say(''); }, 1300); }
+    const G = MATCHES[match.game];
+    if (ph === 'in') say(G.name.toUpperCase(), 'with ' + nm + (G.setup ? ' · ' + G.setup : ''), true);
+    else if (ph === 'play') { say(G.kind ? 'GO!' : box ? 'FIGHT!' : 'DANCE!'); later(() => { if (match && games.info() && games.info().phase === 'play') say(''); }, 1300); }
     else if (ph === 'over') { if (result === 'win') say('YOU WIN'); else if (result === 'lose') say(nm.toUpperCase() + ' WINS'); else if (result === 'draw') say('DRAW'); else if (result === 'gone') say('MATCH OVER', nm + ' left'); else say(''); }
     else if (ph === 'out') say('');
     else if (ph === 'end') endMatch(result);
@@ -400,21 +441,32 @@ export function createWorldApp(o) {
   function endMatch(result) {
     const mm = match; if (!mm) return; match = null; clearInterval(barsTimer); hud.classList.remove('game'); say('');
     if (o.onMatch) o.onMatch(false);
-    const G = MATCHES[mm.game].name, t = result === 'win' ? ['You beat ', { b: mm.opp.name }, ' at ' + G] : result === 'lose' ? [{ b: mm.opp.name }, ' beat you at ' + G] : result === 'draw' ? ['A draw with ', { b: mm.opp.name }] : null;
+    const M = MATCHES[mm.game], G = M.name, sc = M.kind && mm.last ? ', ' + mm.last[0] + ' to ' + mm.last[1] : '';
+    const t = result === 'win' ? ['You beat ', { b: mm.opp.name }, ' at ' + G + sc] : result === 'lose' ? [{ b: mm.opp.name }, ' beat you at ' + G + sc] : result === 'draw' ? ['A draw with ', { b: mm.opp.name }, sc] : null;
     if (t) note({ thumb: mm.opp.thumb, parts: t });
   }
   function drawBars() {
-    const i = games.info(); if (!i || !match) return; const box = match.game === 'boxing', tr = o.tracking ? o.tracking() : {}, playing = i.phase === 'play';
-    bars.style.display = box ? '' : 'none';
+    const i = games.info(); if (!i || !match) return;
+    const G = MATCHES[match.game], box = match.game === 'boxing', gym = !!G.kind, hold = G.kind === 'hold', tr = o.tracking ? o.tracking() : {}, playing = i.phase === 'play';
+    bars.style.display = box || gym ? '' : 'none'; bars.classList.toggle('nums', gym);
     sideMe.querySelector('u').style.width = i.hp[0] + '%'; sideThem.querySelector('u').style.width = i.hp[1] + '%';
+    if (gym) { const show = v => hold ? Math.floor(v) + 's' : String(Math.round(v)); match.last = i.score.map(show); sideMe.querySelector('em').textContent = match.last[0]; sideThem.querySelector('em').textContent = match.last[1]; }
     clockEl.textContent = Math.floor(i.clock / 60) + ':' + String(Math.ceil(i.clock) % 60).padStart(2, '0');
-    const text = i.tracking ? 'Body tracking on' : tr.on && tr.state !== 'on' ? 'Starting your camera…' : tr.on ? 'Step back so the camera sees your arms' : box ? 'No camera: J and K punch, Shift for body shots' : 'No camera: your avatar dances by itself';
-    if (chip.textContent !== text) chip.textContent = text; chip.classList.toggle('live', !!i.tracking);
-    const keys = box && playing && !i.tracking; punchL.style.display = punchR.style.display = keys ? '' : 'none'; ctl.style.display = i.phase === 'out' ? 'none' : '';
+    const camera = tr.on && tr.state !== 'on' ? 'Starting your camera…' : tr.on ? (gym ? 'Step back so the camera sees your whole body' : 'Step back so the camera sees your arms') : '';
+    const noCam = box ? 'No camera: J and K punch, Shift for body shots' : hold ? 'No camera: hold Space to hold your plank' : gym ? 'No camera: hold Space to go down, let go to count a rep' : 'No camera: your avatar dances by itself';
+    const text = playing && i.cue ? i.cue : i.tracking ? 'Body tracking on' : camera || noCam;   // i.cue: what the counter needs from you, e.g. "Keep a hip, knee and ankle in view."
+    if (chip.textContent !== text) chip.textContent = text; chip.classList.toggle('live', !!i.tracking && !(playing && i.cue));
+    const keys = box && playing && !i.tracking; punchL.style.display = punchR.style.display = keys ? '' : 'none';
+    repBtn.style.display = gym && playing && !i.tracking ? '' : 'none'; repBtn.textContent = hold ? 'Hold' : 'Rep';
+    ctl.style.display = i.phase === 'out' ? 'none' : '';
   }
   punchL.onpointerdown = () => games.punch(1, 'head'); punchR.onpointerdown = () => games.punch(-1, 'head');
   quitBtn.onclick = () => { if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.quit(); };
-  const onGameKey = e => { if (!match || e.repeat || e.metaKey || e.ctrlKey) return; if (e.code === 'KeyJ') games.punch(1, e.shiftKey ? 'body' : 'head'); else if (e.code === 'KeyK') games.punch(-1, e.shiftKey ? 'body' : 'head'); };
+  const press = down => games.press(down);
+  repBtn.onpointerdown = e => { try { repBtn.setPointerCapture(e.pointerId); } catch (er) {} press(true); }; repBtn.onpointerup = repBtn.onpointercancel = () => press(false);
+  const onGameKeyUp = e => { if (match && e.code === 'Space') press(false); };
+  window.addEventListener('keyup', onGameKeyUp);
+  const onGameKey = e => { if (!match || e.metaKey || e.ctrlKey) return; if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) press(true); return; } if (e.repeat) return; if (e.code === 'KeyJ') games.punch(1, e.shiftKey ? 'body' : 'head'); else if (e.code === 'KeyK') games.punch(-1, e.shiftKey ? 'body' : 'head'); };
   window.addEventListener('keydown', onGameKey);
   // messages about a match from someone in another window
   function onGameMsg(pr, m) {
@@ -468,13 +520,13 @@ export function createWorldApp(o) {
       return { count: o.crowd.length + joined.size + there.length, faces: [...joined.values()].map(d => d.thumb).concat(there.map(pr => pr.thumb), o.crowd.map(c => c.thumb)).filter(Boolean), friends: [...joined.values()].map(d => d.name) };
     },
     dispose() {
-      api.leave(); clearInterval(beat); clearInterval(pulse); timers.forEach(clearTimeout); post({ t: 'bye' }); if (bc) bc.close();
-      window.removeEventListener('pagehide', onHide); window.removeEventListener('keydown', onEsc); window.removeEventListener('keydown', onGameKey); clearInterval(barsTimer); clearInterval(nearCheck);
+      api.leave(); clearInterval(beat); clearInterval(pulse); timers.forEach(clearTimeout); post({ t: 'bye' }); if (bc) bc.close(); if (chan) try { chan.sb.removeChannel(chan.ch); } catch (e) {}
+      window.removeEventListener('pagehide', onHide); window.removeEventListener('keydown', onEsc); window.removeEventListener('keydown', onGameKey); window.removeEventListener('keyup', onGameKeyUp); clearInterval(barsTimer); clearInterval(nearCheck);
       nook.setWorldTick(null); world.dispose(); hud.remove(); invWrap.remove(); notes.remove();
     }
   };
   // Handy in the browser console: nookWorld.play('boxing') or nookWorld.play('dance') starts a match with a simulated player
   // (join the island first). Not used by the app itself.
-  window.nookWorld = { world, games, play: (game, id) => startMatch({ game: game || 'boxing', oppId: id || o.crowd[0].id, role: 0 }) };
+  window.nookWorld = { world, games, useBackend: fn => { o.backend = fn; syncNet(); }, play: (game, id) => startMatch({ game: game || 'boxing', oppId: id || o.crowd[0].id, role: 0 }) };
   return api;
 }

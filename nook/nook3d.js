@@ -271,6 +271,11 @@ export function createNook(T, els, cb) {
     tv.copy(S.up).applyQuaternion(qB); q1.setFromUnitVectors(DOWN, tv); root.quaternion.slerp(q1, S.w);
     tv.copy(S.fore).applyQuaternion(qB).applyQuaternion(q2.copy(root.quaternion).invert()); q1.setFromUnitVectors(DOWN, tv); joint.quaternion.slerp(q1, S.w);
   };
+  // the other person's live body tracking in a real call (already un-mirrored), smoothed the same way as yours
+  let peerTrack = null, peerTrackAt = 0;
+  const PT = { w: 0, yaw: 0, roll: 0, hy: 0, hp: 0, hr: 0, 1: limbS(), [-1]: limbS(), L: { 1: limbS(), [-1]: limbS() } };
+  const flipLimb = l => l ? { up: [-l.up[0], l.up[1], l.up[2]], fore: [-l.fore[0], l.fore[1], l.fore[2]], w: l.w } : null;
+  const livePeerTrack = () => peerTrack && performance.now() / 1000 - peerTrackAt < 1.5 ? peerTrack : null;
   let globe, globeM, ring; const pins = [];
   (function buildRoom() {
     seed = 31;
@@ -368,8 +373,23 @@ export function createNook(T, els, cb) {
         peer.scale.setScalar(Math.max(.001, backOut(Math.min(1, age / .6))));
         talkK += ((t < talkUntil ? 1 : 0) - talkK) * Math.min(1, dt * 5);
         u.wv = (u.wv || 0) + ((age > .35 && age < 2.4 ? 1 : 0) - (u.wv || 0)) * Math.min(1, dt * 8);
-        peer.rotation.y = sin(t * .23) * .1;
-        pose(peer, t, { wave: u.wv, lookX: sin(t * .37) * .14 + talkK * sin(t * 2.9) * .07, pitch: sin(t * .53) * .04 + talkK * (sin(t * 6.5) * .06 + .02), roll: sin(t * .29) * .05 });
+        // a real person: their head, arms, legs and lean come from their camera; otherwise a friendly idle
+        const rp = livePeerTrack(), hd = rp && rp.head, bd = rp && rp.body;
+        const kt = Math.min(1, dt * 10), kb = Math.min(1, dt * 12), kw = Math.min(1, dt * 5);
+        PT.hy += ((hd ? hd.yaw : 0) - PT.hy) * kt; PT.hp += ((hd ? hd.pitch : 0) - PT.hp) * kt; PT.hr += ((hd ? hd.roll : 0) - PT.hr) * kt;
+        PT.w += ((bd ? 1 : 0) - PT.w) * kw; PT.yaw += ((bd ? bd.yaw : 0) - PT.yaw) * kb; PT.roll += ((bd ? bd.roll : 0) - PT.roll) * kb;
+        const by = PT.yaw * .8 * PT.w, br = PT.roll * .7 * PT.w, nod = talkK * (sin(t * 6.5) * .06 + .02);
+        peer.rotation.y = rp ? 0 : sin(t * .23) * .1;
+        pose(peer, t, hd
+          ? { wave: bd ? 0 : u.wv, lookX: PT.hy - by, pitch: PT.hp + nod * .5, roll: PT.hr - br }
+          : { wave: bd ? 0 : u.wv, lookX: sin(t * .37) * .14 + talkK * sin(t * 2.9) * .07, pitch: sin(t * .53) * .04 + nod, roll: sin(t * .29) * .05 });
+        u.body.rotation.set(0, by, br);
+        if (bd || PT[1].w > .001 || PT[-1].w > .001 || PT.L[1].w > .001 || PT.L[-1].w > .001) {
+          qB.copy(u.body.quaternion).invert();
+          [1, -1].forEach(s => { aim(PT[s], bd && bd.arms[s], u.arms[s], u.elbows[s], kb, kw); aim(PT.L[s], bd && bd.legs && bd.legs[s], u.legs[s], u.knees[s], kb, kw); });
+          const legW = Math.max(PT.L[1].w, PT.L[-1].w);
+          if (legW > .001) { peer.updateMatrixWorld(true); const low = Math.min(u.feet[1].getWorldPosition(tv).y, u.feet[-1].getWorldPosition(tv).y) - peer.position.y; u.body.position.y -= low * legW; }
+        }
       }
       if (arenaTick) arenaTick(t, dt); // may re-pose the avatars, move the camera and swap the room for the ring
       rW.render(sC, camC);
@@ -416,6 +436,7 @@ export function createNook(T, els, cb) {
     // Call: show the matched person's avatar (null = they left). tint recolours the room wall.
     setPeer(c, tint) {
       if (peer) { if (peerOut) { sC.remove(peerOut.g); disposeObj(peerOut.g); } peerOut = { g: peer, k: 0 }; peer = null; }
+      peerTrack = null; PT.w = PT[1].w = PT[-1].w = PT.L[1].w = PT.L[-1].w = 0;
       if (c) { peer = buildAvatar(c); peerHead = headY(peer); peer.scale.setScalar(.001); sC.add(peer); peerT0 = performance.now() / 1000; talkUntil = 0; if (tint) wallC.color.set(tint); }
     },
     setSearching(on) { searching = !!on; },
@@ -424,10 +445,21 @@ export function createNook(T, els, cb) {
       return {
         T, sC, camC, roomG, keyC, renderer: rW, root: els.root, avatarCanvas: els.avatar,
         P, G3, M, BOX, CYL6, CYL8, ICO0, ICO1, CONE8, buildAvatar, pose, disposeObj,
-        view: () => view, getPeer: () => peer, getMe: () => stageAv, getCfg: () => cfg, getTrack: () => track
+        view: () => view, getPeer: () => peer, getMe: () => stageAv, getCfg: () => cfg, getTrack: () => track, getPeerTrack: livePeerTrack
       };
     },
     setArenaTick(fn) { arenaTick = fn; },
+    // Real calls: the other person's tracking as they sent it (their mirror view). Flipped here so you see them
+    // as if facing them: their right hand is their avatar's right hand. null = no tracking from them.
+    setPeerTrack(p) {
+      if (!p) { peerTrack = null; return; }
+      const b = p.body;
+      peerTrack = {
+        head: p.head ? { yaw: -p.head.yaw, pitch: p.head.pitch, roll: -p.head.roll } : null,
+        body: b ? { yaw: -b.yaw, roll: -b.roll, arms: { 1: flipLimb(b.arms[-1]), [-1]: flipLimb(b.arms[1]) }, legs: b.legs ? { 1: flipLimb(b.legs[-1]), [-1]: flipLimb(b.legs[1]) } : null } : null
+      };
+      peerTrackAt = performance.now() / 1000;
+    },
     peerTalk(sec) { talkUntil = performance.now() / 1000 + sec; },
     setCallShift(px) { shiftT = px; },
     setPip(right) { if (view === 'call') els.avatar.style.right = right + 'px'; },

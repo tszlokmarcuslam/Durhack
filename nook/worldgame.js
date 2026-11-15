@@ -2,7 +2,10 @@
 // the game's arena appears in its place. The avatars never leave the spot: the world changes around them.
 //  - Boxing: your webcam (tracking.js) moves your avatar's arms, head and lean. No camera: J and K punch.
 //  - Dance floor: the same body tracking, no score.
+//  - Push-ups, squats, plank: a 1v1 in a small gym. Your webcam counts your reps or times your hold (exercise.js). No camera: Space.
 // Everything here works on the island scene from nook3d.js (kit.isl) and the people from world.js.
+import * as EX from './exercise.js';
+
 const PI = Math.PI, TAU = PI * 2, sin = Math.sin, cos = Math.cos;
 const clamp01 = v => Math.max(0, Math.min(1, v)), smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 const turn = (a, b, k) => a + (((b - a) % TAU + TAU + PI) % TAU - PI) * k;
@@ -11,7 +14,11 @@ const FRONT = k => 1.15 * (Math.exp(4.85 * clamp01(k)) - 1);    // how far the w
 const HP = 100, ROUND = 75, DMG = { head: 10, blocked: 2, body: 6 };
 export const GAMES = {
   boxing: { name: 'Boxing', gap: .62, bars: true },       // gap: how far apart the two players stand
-  dance: { name: 'Dance floor', gap: 1.25, bars: false }
+  dance: { name: 'Dance floor', gap: 1.25, bars: false },
+  // gym games. kind 'reps': most reps before the clock runs out. kind 'hold': most seconds held in good form.
+  pushups: { name: 'Push-ups', gap: 1.5, gym: true, kind: 'reps', mode: 'pushup', secs: 40, setup: 'Camera side-on, near the floor' },
+  squats: { name: 'Squats', gap: 1.5, gym: true, kind: 'reps', mode: 'squat', secs: 40, setup: 'Stand side-on, whole body in view' },
+  plank: { name: 'Plank', gap: 1.5, gym: true, kind: 'hold', secs: 60, setup: 'Camera side-on, near the floor' }
 };
 
 /* The effect is added to the island's own materials. Names start with "nw" so they cannot clash with other shader add-ons. */
@@ -100,7 +107,16 @@ export function createGames(T, kit, world, cb = {}) {
     }
     return g;
   }
-  const arenas = {}, arena = game => arenas[game] || (arenas[game] = game === 'boxing' ? ring() : dance());
+  // the gym for push-ups, squats and the plank: both players face the same way (+z), each on their own mat
+  function gym() {
+    const g = new T.Group(); ground(g, .24);
+    part(g, BOX, M('#D9CDB6'), [0, -.13, .5], [4.6, .2, 3.9]);   // wooden floor
+    [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(c => part(g, BOX, M(c[1]), [c[0] * .75, -.012, .55], [1, .03, 2.4]).castShadow = false);   // mats: blue for who asked, red for who accepted
+    part(g, BOX, M('#2B2A27'), [0, .28, -1.1], [1.9, .06, .32]); [-.8, .8].forEach(x => part(g, BOX, M('#2B2A27'), [x, .1, -1.1], [.06, .36, .3]));   // a rack of weights behind them
+    [-.6, 0, .6].forEach((x, i) => { part(g, CYL, M(['#5E683C', '#C08A3A', '#5C5E78'][i]), [x, .43, -1.1], [.13, .09, .13], [PI / 2, 0, 0]); part(g, CYL, M('#F3EEE6'), [x, .43, -1.1], [.035, .26, .035], [PI / 2, 0, 0]); });
+    return g;
+  }
+  const arenas = {}, arena = game => { const k = GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : gym()); };
   const spot = new T.SpotLight('#FFF1DC', 0, 0, .75, .6, 0); spot.position.set(0, 5.5, 0);
   const sparks = [0, 1, 2].map(() => { const s = new T.Mesh(STAR, new T.MeshBasicMaterial({ color: '#FFF6D8', transparent: true, depthWrite: false })); s.visible = false; s.userData.t = 1; return s; });
   let warm = false;
@@ -115,7 +131,8 @@ export function createGames(T, kit, world, cb = {}) {
     goal: { 1: limb(), [-1]: limb() }, cur: { 1: limb(), [-1]: limb() }, tracked: { 1: false, [-1]: false },
     lean: { x: 0, yaw: 0, roll: 0 }, leanT: { x: 0, yaw: 0, roll: 0 }, head: { yaw: 0, pitch: 0, roll: 0 }, headT: { yaw: 0, pitch: 0, roll: 0 },
     punch: null, rest: 0, cool: { 1: 0, [-1]: 0 }, gloves: [], gPos: { 1: new T.Vector3(), [-1]: new T.Vector3() }, gVel: { 1: new T.Vector3(), [-1]: new T.Vector3() },
-    headPos: new T.Vector3(), chestPos: new T.Vector3(), guard: false, flinch: 0, fall: 0, fallT: 0, ai: { mode: 'guard', t: 1.2 }
+    headPos: new T.Vector3(), chestPos: new T.Vector3(), guard: false, flinch: 0, fall: 0, fallT: 0, ai: { mode: 'guard', t: 1.2 },
+    score: 0, depth: 0, depthT: 0, pitch: 0, holding: false, counter: null, keyDown: false, keyAt: 0, lastRep: 0, npc: { p: 0, dur: 1.5, rest: .4, done: false }   // gym games
   });
   // direction (into tv) of a straight arm from the shoulder to a point in the world
   const aimDir = (F, s, target) => { tv.copy(target); F.p.av.worldToLocal(tv); tv.x -= s * .19; tv.y -= 1.42; tv.z -= 1.42 * F.lean.x; return tv.normalize(); };
@@ -177,6 +194,65 @@ export function createGames(T, kit, world, cb = {}) {
     F.gloves.forEach(gl => { gl.scale.lerp(gl.userData.size, Math.min(1, dt * 8)); });
   }
 
+  /* ---------- push-ups, squats and the plank (counting comes from exercise.js) ---------- */
+  // One frame of the contest: your camera counts you, the computer player (or the other window) keeps their own score.
+  function exercise(A, B, t, dt, G) {
+    const tr = kit.track ? kit.track() : null, raw = tr && tr.raw, hold = G.kind === 'hold';
+    m.tracking = !!(raw && raw.lm && raw.lm.length); m.cue = '';
+    if (!hold) {
+      if (m.tracking) {
+        const s = EX.measure(raw.lm, G.mode, 0, raw.aspect || 1.33, A.counter.trackedSide, raw.wl || []);
+        A.counter.update(s, performance.now()); A.score = A.counter.count;
+        const dep = A.counter.depth(s); A.depthT = dep != null ? clamp01(dep / .3) : s.valid && s.contracted ? 1 : 0;
+        m.cue = !s.valid ? s.hint : A.counter.phase === 'ready' ? 'Start with straight ' + (G.mode === 'squat' ? 'legs' : 'arms') : '';
+      } else A.depthT = A.keyDown ? 1 : 0;   // no camera: Space goes down, letting go comes back up and counts
+      if (!m.remote) {
+        const N = B.npc; N.p += dt / N.dur;
+        if (N.p >= 1 && !N.done) { B.score++; N.done = true; }
+        if (N.p >= 1 + N.rest) { N.p = 0; N.done = false; N.dur = (1.15 + Math.random() * .7) * (1 + B.score * .02); N.rest = .1 + Math.random() * .35; }   // gets tired
+        B.depthT = N.p < 1 ? sin(N.p * PI) : 0;
+      }
+    } else {
+      if (m.tracking) { const f = EX.measurePlank(raw.lm, 0, raw.aspect || 1.33); A.holding = f.kind === 'holding'; if (!A.holding) m.cue = f.cue; } else A.holding = A.keyDown;
+      if (A.holding) A.score += dt;
+      if (!m.remote) { const N = B.npc; N.p -= dt; if (N.p <= 0) { B.holding = !B.holding; N.p = B.holding ? 6 + Math.random() * 9 : .8 + Math.random() * 1.4; } if (B.holding) B.score += dt; }
+    }
+    const edge = hold ? .25 : 0;
+    if (m.clock <= 0) finish(A.score > B.score + edge ? 'win' : B.score > A.score + edge ? 'lose' : 'draw');
+  }
+  // The avatar does the exercise: `depth` 0..1 is how far down a rep is. Standing again once the round is over.
+  function exercisePose(F, t, dt, G) {
+    const u = F.u, live = m.phase === 'in' || m.phase === 'play', mode = !live ? 'stand' : G.mode || 'plank', floor = mode === 'pushup' || mode === 'plank', kb = Math.min(1, dt * 14);
+    F.k += ((F.there ? 1 : 0) - F.k) * Math.min(1, dt * 5); F.depth += ((live ? F.depthT : 0) - F.depth) * Math.min(1, dt * 12);
+    const d = F.depth;
+    // how far the body tips forward from standing: push-up top 1.12, push-up bottom 1.34, forearm plank 1.36 (it shakes when the form breaks)
+    const tip = !floor ? 0 : mode === 'plank' ? 1.36 + (m.phase === 'play' && !F.holding ? sin(t * 13) * .03 : 0) : 1.12 + d * .22;
+    F.pitch += (tip * F.k - F.pitch) * Math.min(1, dt * 5);
+    const th = F.pitch, dy = -cos(th), dz = sin(th);   // "towards the floor", as the avatar sees it
+    [1, -1].forEach(s => {
+      const g = F.goal[s];
+      if (mode === 'pushup') { g.fore.set(0, dy, dz); g.up.set(s * .5 * d, dy * (1 - d) - .7 * d, dz * (1 - d) + .3 * d).normalize(); }   // hands stay planted, elbows fold out and back
+      else if (mode === 'plank') { g.up.set(0, dy, dz); g.fore.set(0, sin(th), cos(th)); }   // on the forearms
+      else if (mode === 'squat') { g.up.set(s * .08, -1 + .9 * d, .02 + d).normalize(); g.fore.set(s * .05 - s * .1 * d, -1 + .95 * d, .12 + d).normalize(); }   // arms come forward for balance
+      else setLimb(g, s, STANCE[F.stance]);
+      F.cur[s].up.lerp(g.up, kb).normalize(); F.cur[s].fore.lerp(g.fore, kb).normalize();
+    });
+    const sq = mode === 'squat' ? d : 0, lean = sq * .35;
+    u.body.rotation.set(lean, 0, 0);
+    [1, -1].forEach(s => { if (sq) u.legs[s].rotation.x = -sq * 1.15 - lean; if (u.knees) u.knees[s].rotation.x = sq * 1.45; });
+    qB.copy(u.body.quaternion).invert();
+    [1, -1].forEach(s => {
+      tv.copy(F.cur[s].up).applyQuaternion(qB); q1.setFromUnitVectors(DOWN, tv); u.arms[s].quaternion.slerp(q1, F.k);
+      tv.copy(F.cur[s].fore).applyQuaternion(qB).applyQuaternion(q2.copy(u.arms[s].quaternion).invert()); q1.setFromUnitVectors(DOWN, tv); u.elbows[s].quaternion.slerp(q1, F.k);
+    });
+    if (floor) u.head.rotation.x -= .6 * F.k;   // look ahead, not at the floor
+    F.p.av.rotation.x = th;
+    if (sq && u.feet) {   // bent knees would lift the feet: lower the body until the soles touch the floor again
+      F.p.av.updateMatrixWorld(true);
+      u.body.position.y -= (Math.min(u.feet[1].getWorldPosition(tv).y, u.feet[-1].getWorldPosition(tv2).y) - F.p.av.position.y) / world.S;
+    }
+  }
+
   /* ---------- the match ---------- */
   let m = null;
   const game = { focus: new T.Vector3(), yaw: 0, floorY: 0, step, pose };
@@ -205,10 +281,11 @@ export function createGames(T, kit, world, cb = {}) {
     cb.onPhase && cb.onPhase('over', result);
   }
   function look() {   // where the camera sits in each part of the match
-    const A = m.mine, V = world.view, play = m.phase === 'play' || m.phase === 'over', box = m.game === 'boxing';
-    game.yaw = A.face + PI + (play ? .62 : .95);   // behind you and off to one side, so you see the other player past your shoulder
-    V.dist = m.phase === 'out' ? m.view.dist : m.phase === 'over' ? 3.6 : play ? (box ? 2.8 : 4.2) : 6.4;
-    V.el = m.phase === 'out' ? m.view.el : play ? (box ? .36 : .36) : .5;
+    const A = m.mine, V = world.view, play = m.phase === 'play' || m.phase === 'over', box = m.game === 'boxing', gymG = GAMES[m.game].gym;
+    // boxing and dancing: behind you and off to one side, so you see the other player past your shoulder. The gym: in front of you both.
+    game.yaw = gymG ? A.face + (play ? .7 : 1.1) : A.face + PI + (play ? .62 : .95);
+    V.dist = m.phase === 'out' ? m.view.dist : m.phase === 'over' ? (gymG ? 4.6 : 3.6) : play ? (box ? 2.8 : gymG ? 4.1 : 4.2) : 6.4;
+    V.el = m.phase === 'out' ? m.view.el : play ? (gymG ? .3 : .36) : .5;
   }
   function env(e) {   // 0 = the island's daylight, 1 = the arena's dark hall
     isl.background.lerpColors(m.env.bg, DARK, e); isl.fog.color.lerpColors(m.env.fog, DARK, e);
@@ -236,8 +313,9 @@ export function createGames(T, kit, world, cb = {}) {
     });
     if (m.phase === 'in' && A.there) { A.stance = B.stance = m.game === 'boxing' ? 'guard' : 'rest'; [A, B].forEach(base); }
     if (m.phase === 'play') {
-      m.clock = Math.max(0, ROUND - m.T);
-      if (m.game === 'boxing') {
+      m.clock = Math.max(0, (G.secs || ROUND) - m.T);
+      if (G.kind) exercise(A, B, t, dt, G);
+      else if (m.game === 'boxing') {
         base(A); m.tracking = fromTrack(A, B, true); drivePunch(A, B, dt);
         if (!m.remote) { B.ai.t -= dt; think(B); base(B); drivePunch(B, A, dt); }
         A.bounce = B.bounce = Math.abs(sin(t * 5)) * .008;
@@ -250,16 +328,21 @@ export function createGames(T, kit, world, cb = {}) {
     }
     // camera: the middle of the two while the world changes, then just past your shoulder
     const fk = m.phase === 'play' || m.phase === 'over' ? .4 : m.phase === 'out' ? 0 : .5;
-    game.focus.set(A.p.x + (B.p.x - A.p.x) * fk, m.y + (m.phase === 'out' ? 1.5 * world.S : .9), A.p.z + (B.p.z - A.p.z) * fk);
+    if (G.gym && m.phase !== 'out') game.focus.set(m.C.x + sin(A.face) * .6, m.y + .5, m.C.z + cos(A.face) * .6);
+    else game.focus.set(A.p.x + (B.p.x - A.p.x) * fk, m.y + (m.phase === 'out' ? 1.5 * world.S : .9), A.p.z + (B.p.z - A.p.z) * fk);
     sparks.forEach(s => { if (!s.visible) return; s.userData.t += dt * 4; const k = s.userData.t; s.scale.setScalar(s.userData.big * (.4 + k)); s.material.opacity = 1 - k; s.rotation.y += dt * 9; if (k >= 1) s.visible = false; });
   }
   function pose(t, dt) {
     if (!m) return;
-    const A = m.mine, B = m.opp; applyPose(A, dt); applyPose(B, dt);
+    const A = m.mine, B = m.opp, G = GAMES[m.game];
+    if (G.kind) { exercisePose(A, t, dt, G); exercisePose(B, t, dt, G); return; }
+    applyPose(A, dt); applyPose(B, dt);
     if (m.phase === 'play' && m.game === 'boxing') { hits(A, B); if (m && !m.remote) hits(B, A); }
   }
   function begin() {
     const A = m.mine, B = m.opp; m.phase = 'play'; m.T = 0;
+    if (GAMES[m.game].kind === 'reps') A.counter = new EX.RepCounter();
+    if (GAMES[m.game].kind === 'hold') { B.holding = true; B.npc.p = 6 + Math.random() * 8; }
     if (m.game === 'boxing') [A, B].forEach(F => {   // gloves: blue for who asked, red for who accepted
       const mat = new T.MeshStandardMaterial({ color: F.role === 0 ? '#4C5FA8' : '#C2452D', roughness: .8, flatShading: true });
       [1, -1].forEach(s => { const gl = new T.Mesh(BALL, mat); gl.position.set(0, -.315, 0); gl.scale.setScalar(.001); gl.userData.size = new T.Vector3(.058, .072, .062); gl.castShadow = true; F.u.elbows[s].add(gl); F.gloves.push(gl); });
@@ -273,6 +356,7 @@ export function createGames(T, kit, world, cb = {}) {
     [A, B].forEach(F => {
       F.gloves.forEach(gl => { gl.parent && gl.parent.remove(gl); }); if (F.gloves[0]) F.gloves[0].material.dispose();
       F.u.body.rotation.set(0, 0, 0); F.p.av.rotation.x = 0; F.p.av.rotation.order = 'XYZ'; F.p.fixY = null; F.p.walkK = 0;
+      if (F.u.knees) [1, -1].forEach(s => { F.u.knees[s].rotation.x = 0; });
     });
     Object.assign(world.view, m.view); world.setGame(null); m = null;
     if (!silent) cb.onPhase && cb.onPhase('end', result);
@@ -284,7 +368,7 @@ export function createGames(T, kit, world, cb = {}) {
     prewarm() {
       if (warm) return; warm = true; const skip = new Set(); world.each(p => skip.add(p.av)); scenery(skip);
       spot.intensity = 0; isl.add(spot, spot.target);   // always in the scene (switched off), so lighting is not rebuilt mid-match
-      const gs = [arena('boxing'), arena('dance')]; gs.forEach(g => isl.add(g)); let n = 0;
+      const gs = [arena('boxing'), arena('dance'), arena('pushups')]; gs.forEach(g => isl.add(g)); let n = 0;
       const off = () => { if (++n < 3) return requestAnimationFrame(off); gs.forEach(g => { if (!m || m.arena !== g) isl.remove(g); }); }; requestAnimationFrame(off);
     },
     // o: { game, oppId, role (0 = you asked, 1 = you accepted), remote, spec }. Returns the spec so both sides can build the same arena.
@@ -296,14 +380,14 @@ export function createGames(T, kit, world, cb = {}) {
         const dx = second.x - first.x, dz = second.z - first.z, d = Math.hypot(dx, dz);
         sp = { cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2, y: (a.y + b.y) / 2, dx: d > .01 ? dx / d : 1, dz: d > .01 ? dz / d : 0 };
       }
-      const dl = Math.hypot(sp.dx, sp.dz) || 1, dx = sp.dx / dl, dz = sp.dz / dl, skip = new Set([arenas.boxing, arenas.dance, spot, spot.target, ...sparks]); world.each(p => skip.add(p.av));
+      const dl = Math.hypot(sp.dx, sp.dz) || 1, dx = sp.dx / dl, dz = sp.dz / dl, skip = new Set([...Object.values(arenas), spot, spot.target, ...sparks]); world.each(p => skip.add(p.av));
       const g = arena(o.game); g.position.set(sp.cx, sp.y, sp.cz); g.rotation.y = Math.atan2(-dz, dx);
-      m = { game: o.game, remote: !!o.remote, phase: 'in', k: 0, T: 0, clock: ROUND, tracking: false, result: null, wait: 3, arena: g, y: sp.y, C: new T.Vector3(sp.cx, sp.y, sp.cz),
+      m = { game: o.game, remote: !!o.remote, phase: 'in', k: 0, T: 0, clock: GAMES[o.game].secs || ROUND, cue: '', tracking: false, result: null, wait: 3, arena: g, y: sp.y, C: new T.Vector3(sp.cx, sp.y, sp.cz),
         scenery: scenery(skip), view: { dist: world.view.dist, el: world.view.el },
         env: { bg: isl.background.clone(), fog: isl.fog.color.clone(), near: isl.fog.near, far: isl.fog.far, lights: isl.children.filter(l => l.isLight && l !== spot).map(l => ({ light: l, was: l.intensity })) } };
       m.mine = fighter(a, role, true); m.opp = fighter(b, 1 - role, false);
       [m.mine, m.opp].forEach(F => {
-        const sgn = F.role ? 1 : -1; F.spot = { x: sp.cx + dx * gap / 2 * sgn, z: sp.cz + dz * gap / 2 * sgn }; F.face = Math.atan2(-dx * sgn, -dz * sgn);
+        const sgn = F.role ? 1 : -1; F.spot = { x: sp.cx + dx * gap / 2 * sgn, z: sp.cz + dz * gap / 2 * sgn }; F.face = GAMES[o.game].gym ? g.rotation.y : Math.atan2(-dx * sgn, -dz * sgn);   // the gym: both face the same way. Otherwise: each other
         F.p.fixY = sp.y; F.p.goal = null; F.p.av.rotation.order = 'YXZ'; protect(F.p.av);
       });
       U.uNwCenter.value.copy(m.C); game.floorY = sp.y; game.focus.set(sp.cx, sp.y + .9, sp.cz);
@@ -316,16 +400,26 @@ export function createGames(T, kit, world, cb = {}) {
     gone() { if (m) finish('gone', true); },          // the other player left
     abort() { if (m) end(true); },                    // drop everything now (you left the island)
     punch(s, zone) { const F = m && m.mine; if (F && m.phase === 'play' && m.game === 'boxing' && !F.punch && F.rest <= 0) { F.punch = { s: s > 0 ? 1 : -1, zone: zone === 'body' ? 'body' : 'head', t: 0 }; F.rest = .55; } },
-    info: () => m && { game: m.game, phase: m.phase, clock: m.clock, hp: [m.mine.hp, m.opp.hp], tracking: m.tracking, result: m.result },
+    info: () => m && { game: m.game, phase: m.phase, clock: m.clock, hp: [m.mine.hp, m.opp.hp], score: [m.mine.score, m.opp.score], cue: m.cue || '', tracking: m.tracking, result: m.result },
+    // gym games without a camera: Space (or the button). Reps: hold to go down, let go to count one. Plank: hold to hold.
+    press(down) {
+      const F = m && m.mine, G = m && GAMES[m.game]; if (!F || !G.kind || m.phase !== 'play' || m.tracking) return; const now = performance.now();
+      if (down && !F.keyDown) F.keyAt = now;
+      else if (!down && F.keyDown && G.kind === 'reps' && now - F.keyAt > 120 && now - F.lastRep > 450) { F.score++; F.lastRep = now; }
+      F.keyDown = !!down;
+    },
     // two windows: each side sends its own pose and the hits it lands
     poseOut() {
       if (!m) return null; const F = m.mine, o = [];
+      if (GAMES[m.game].kind) return [+F.depthT.toFixed(2), +F.score.toFixed(1), F.holding ? 1 : 0];
       [1, -1].forEach(s => { o.push(F.cur[s].up.x, F.cur[s].up.y, F.cur[s].up.z, F.cur[s].fore.x, F.cur[s].fore.y, F.cur[s].fore.z); });
       o.push(F.leanT.x, F.leanT.yaw, F.leanT.roll, F.headT.yaw, F.headT.pitch, F.headT.roll, F.bounce);
       return o.map(v => +v.toFixed(3));
     },
     poseIn(a) {
-      if (!m || !m.remote || !Array.isArray(a) || a.length < 19 || !a.every(Number.isFinite)) return; const F = m.opp;
+      if (!m || !m.remote || !Array.isArray(a) || !a.every(Number.isFinite)) return; const F = m.opp;
+      if (GAMES[m.game].kind) { if (a.length >= 3) { F.depthT = clamp01(a[0]); F.score = Math.max(F.score, Math.min(999, a[1])); F.holding = !!a[2]; } return; }
+      if (a.length < 19) return;
       [1, -1].forEach((s, i) => { F.goal[s].up.set(a[i * 6], a[i * 6 + 1], a[i * 6 + 2]).normalize(); F.goal[s].fore.set(a[i * 6 + 3], a[i * 6 + 4], a[i * 6 + 5]).normalize(); });
       const c = (v, lim) => Math.max(-lim, Math.min(lim, v));
       F.leanT.x = c(a[12], .4); F.leanT.yaw = c(a[13], .8); F.leanT.roll = c(a[14], .5); F.headT.yaw = c(a[15], 1); F.headT.pitch = c(a[16], .7); F.headT.roll = c(a[17], .7); F.bounce = c(a[18], .05);
