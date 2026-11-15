@@ -6,6 +6,10 @@
 //  - Push-ups, squats, plank: a 1v1 in a small gym. Your webcam counts your reps or times your hold (exercise.js). No camera: Space.
 //    The plank waits until the camera sees your whole body.
 //  - Rock paper scissors, in first person: your webcam reads your hand (rps.js). No camera: keys 1, 2, 3.
+//  - Rocket race: next to your rockets, then the drone flies into your face and you are in the cockpit, racing the
+//    other player through the same asteroid field (rocket.js). Lean or step to steer, crouch to dive. No camera: A/D, W/S.
+//  - Chess: you both sit down at a table with a board between you; the moves are played on a 2D board on the left
+//    of the screen (worldapp.js). Rules and the computer player: chess.js.
 // First-person games fly the camera into your avatar's face like a drone, and back out at the end (fpv.js).
 // Every game has a length to pick (opts): seconds, or wins for rock paper scissors. Both players use the asker's pick.
 // Everything here works on the island scene from nook3d.js (kit.isl) and the people from world.js.
@@ -13,6 +17,8 @@ import * as EX from './exercise.js';
 import * as RPS from './rps.js';
 import * as MV from './moves.js';
 import { createDrone } from './fpv.js';
+import { createRace } from './rocket.js';
+import * as CH from './chess.js';
 
 const PI = Math.PI, TAU = PI * 2, sin = Math.sin, cos = Math.cos;
 const clamp01 = v => Math.max(0, Math.min(1, v)), smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
@@ -28,11 +34,17 @@ export const GAMES = {
   pushups: { name: 'Push-ups', gap: 1.5, gym: true, kind: 'reps', mode: 'pushup', opts: [30, 60, 120], opt: 30, setup: 'Camera side-on, near the floor' },
   squats: { name: 'Squats', gap: 1.5, gym: true, kind: 'reps', mode: 'squat', opts: [30, 60, 120], opt: 30, setup: 'Stand side-on, whole body in view' },
   plank: { name: 'Plank', gap: 1.5, gym: true, kind: 'hold', waitBody: true, opts: [30, 60, 120], opt: 60, setup: 'Camera side-on, near the floor' },
-  rps: { name: 'Rock paper scissors', gap: 1.1, rps: true, fp: true, opts: [2, 3, 5], opt: 3, setup: 'Show your hand to the camera' }
+  rps: { name: 'Rock paper scissors', gap: 1.1, rps: true, fp: true, opts: [2, 3, 5], opt: 3, setup: 'Show your hand to the camera' },
+  // rocket: opts are course lengths in metres. chess: opts are minutes on each player's clock (in seconds).
+  rocket: { name: 'Rocket race', gap: 1.5, fp: true, rocket: true, opts: [600, 900, 1300], opt: 900, setup: 'Lean or step to steer, crouch to dive' },
+  chess: { name: 'Chess', gap: 1.2, chess: true, opts: [180, 300, 600], opt: 300, setup: 'Play your moves on the board on the left' }
 };
 // a game's length from a pick (falls back to the usual one), and how to say it: "30 sec", "2 min", "First to 3"
 export const pickOpt = (game, v) => { const G = GAMES[game]; return G && G.opts.includes(+v) ? +v : G ? G.opt : 0; };
-export const optLabel = (game, v) => GAMES[game] && GAMES[game].rps ? 'First to ' + v : v < 60 ? v + ' sec' : v / 60 + ' min';
+export const optLabel = (game, v) => GAMES[game] && GAMES[game].rps ? 'First to ' + v
+  : game === 'rocket' ? ({ 600: 'Short', 900: 'Medium', 1300: 'Long' }[v] || v + ' m') + ' course'
+  : game === 'chess' ? v / 60 + ' min each'
+  : v < 60 ? v + ' sec' : v / 60 + ' min';
 
 /* The effect is added to the island's own materials. Names start with "nw" so they cannot clash with other shader add-ons. */
 const GLSL = `
@@ -59,7 +71,7 @@ export function createGames(T, kit, world, cb = {}) {
   const { isl } = kit;
   const U = { uNwFront: { value: -1 }, uNwCenter: { value: new T.Vector3() }, uNwTime: { value: 0 } };
   const DOWN = new T.Vector3(0, -1, 0), tv = new T.Vector3(), tv2 = new T.Vector3(), q1 = new T.Quaternion(), q2 = new T.Quaternion(), qB = new T.Quaternion();
-  const DARK = new T.Color('#10150F');
+  const DARK = new T.Color('#10150F'), SPACE = new T.Color('#050814');
 
   /* ---------- the dissolve / appear effect ---------- */
   const hooks = new WeakMap();
@@ -91,7 +103,7 @@ export function createGames(T, kit, world, cb = {}) {
   /* ---------- arenas (built once, low-poly like the island) ---------- */
   const mats = new Map();
   const M = c => { if (!mats.has(c)) { const m = new T.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true }); fx(m, 'reveal'); mats.set(c, m); } return mats.get(c); };
-  const BOX = new T.BoxGeometry(1, 1, 1), CYL = new T.CylinderGeometry(1, 1, 1, 12), BALL = new T.IcosahedronGeometry(1, 1), STAR = new T.OctahedronGeometry(1, 0);
+  const BOX = new T.BoxGeometry(1, 1, 1), CYL = new T.CylinderGeometry(1, 1, 1, 12), BALL = new T.IcosahedronGeometry(1, 1), STAR = new T.OctahedronGeometry(1, 0), CONE = new T.ConeGeometry(1, 1, 12);
   const part = (g, geo, mat, p, s, r) => { const me = new T.Mesh(geo, mat); me.position.set(p[0], p[1], p[2]); me.scale.set(s[0], s[1], s[2]); if (r) me.rotation.set(r[0], r[1], r[2]); me.castShadow = me.receiveShadow = true; g.add(me); return me; };
   const ground = (g, drop) => {   // the dark floor and grid that take the sea's place
     const f = new T.Mesh(new T.CircleGeometry(70, 48).rotateX(-PI / 2), M('#161C14')); f.position.y = -drop; f.receiveShadow = true; g.add(f);
@@ -136,7 +148,47 @@ export function createGames(T, kit, world, cb = {}) {
     [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(c => part(g, BOX, M(c[1]), [c[0] * .42, .008, 0], [.7, .02, 1.4]).castShadow = false);
     return g;
   }
-  const arenas = {}, arena = game => { const k = GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : gym()); };
+  // rocket race: two pads, each with a rocket standing next to its player (blue for who asked, red for who accepted)
+  function launchPad() {
+    const g = new T.Group(); ground(g, .3);
+    part(g, CYL, M('#2B2A27'), [0, -.15, 0], [1.75, .3, 1.75]);
+    [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(([sg, c]) => {
+      const x = sg * 1.05, z = .62;
+      part(g, CYL, M('#3A3D44'), [x, .02, z], [.34, .04, .34]);
+      part(g, CYL, M('#F3EEE6'), [x, .52, z], [.13, .78, .13]); part(g, CONE, M(c), [x, 1.1, z], [.13, .36, .13]);
+      part(g, BALL, M('#7FB5D6'), [x, .72, z - .12], [.05, .05, .02]);
+      [0, 2.09, 4.19].forEach(a => part(g, BOX, M(c), [x + Math.sin(a) * .13, .22, z + Math.cos(a) * .13], [.03, .26, .16], [0, a, 0]));
+    });
+    return g;
+  }
+  // chess: a little table with the board, a stool for each player (the players sit at -x and +x)
+  const SQ = .056, SEAT_Y = .3;
+  function chessTable() {
+    const g = new T.Group(), h = GAMES.chess.gap / 2; ground(g, .3);
+    part(g, CYL, M('#2B2A27'), [0, -.15, 0], [1.55, .3, 1.55]);
+    part(g, CYL, M('#6B4A32'), [0, .24, 0], [.05, .48, .05]); part(g, CYL, M('#6B4A32'), [0, .02, 0], [.2, .04, .2]);
+    part(g, CYL, M('#8A6245'), [0, .49, 0], [.4, .03, .4]);
+    const board = new T.Group(); board.position.y = .508; g.add(board);
+    part(board, BOX, M('#4A3222'), [0, -.004, 0], [8 * SQ + .03, .01, 8 * SQ + .03]).castShadow = false;
+    for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) part(board, BOX, M((f + r) % 2 ? '#EADBC0' : '#8A6245'), [(r - 3.5) * SQ, .002, (f - 3.5) * SQ], [SQ, .006, SQ]).castShadow = false;
+    const pieces = new T.Group(); pieces.position.y = .005; board.add(pieces); g.userData.pieces = pieces;
+    [[-1, '#4C5FA8'], [1, '#C2452D']].forEach(([sg, c]) => { part(g, CYL, M('#3A3D44'), [sg * h, .14, 0], [.035, .28, .035]); part(g, CYL, M(c), [sg * h, SEAT_Y - .015, 0], [.15, .03, .15]); });
+    return g;
+  }
+  // one chess piece, from a few simple shapes (u: one square)
+  function pieceMesh(type, white) {
+    const g = new T.Group(), m = M(white ? '#F3EEE6' : '#2E2B28'), u = SQ;
+    part(g, CYL, m, [0, .1 * u, 0], [.36 * u, .2 * u, .36 * u]);
+    if (type === 'p') { part(g, CYL, m, [0, .4 * u, 0], [.16 * u, .45 * u, .16 * u]); part(g, BALL, m, [0, .74 * u, 0], [.22 * u, .22 * u, .22 * u]); }
+    else if (type === 'r') { part(g, CYL, m, [0, .55 * u, 0], [.26 * u, .75 * u, .26 * u]); part(g, CYL, m, [0, .98 * u, 0], [.32 * u, .18 * u, .32 * u]); }
+    else if (type === 'n') { part(g, CYL, m, [0, .45 * u, 0], [.22 * u, .55 * u, .22 * u]); part(g, BOX, m, [.06 * u, .9 * u, 0], [.5 * u, .26 * u, .24 * u], [0, 0, .5]); }
+    else if (type === 'b') { part(g, CYL, m, [0, .55 * u, 0], [.18 * u, .75 * u, .18 * u]); part(g, BALL, m, [0, 1.02 * u, 0], [.22 * u, .32 * u, .22 * u]); }
+    else if (type === 'q') { part(g, CYL, m, [0, .65 * u, 0], [.22 * u, .95 * u, .22 * u]); part(g, BALL, m, [0, 1.2 * u, 0], [.28 * u, .18 * u, .28 * u]); part(g, BALL, m, [0, 1.4 * u, 0], [.09 * u, .09 * u, .09 * u]); }
+    else { part(g, CYL, m, [0, .7 * u, 0], [.24 * u, 1.05 * u, .24 * u]); part(g, BOX, m, [0, 1.42 * u, 0], [.07 * u, .38 * u, .07 * u]); part(g, BOX, m, [0, 1.46 * u, 0], [.26 * u, .07 * u, .07 * u]); }
+    if (type === 'n') g.rotation.y = white ? 0 : Math.PI;   // the knight's head looks at the other player
+    return g;
+  }
+  const arenas = {}, arena = game => { const k = GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : k === 'rocket' ? launchPad() : k === 'chess' ? chessTable() : gym()); };
   const spot = new T.SpotLight('#FFF1DC', 0, 0, .75, .6, 0); spot.position.set(0, 5.5, 0);
   const sparks = [0, 1, 2].map(() => { const s = new T.Mesh(STAR, new T.MeshBasicMaterial({ color: '#FFF6D8', transparent: true, depthWrite: false })); s.visible = false; s.userData.t = 1; return s; });
   let warm = false;
@@ -322,6 +374,7 @@ export function createGames(T, kit, world, cb = {}) {
     if (!m || !GAMES[m.game].fp) return;
     const A = m.mine; drone.update(cam, dt, { head: A.headPos, face: A.p.ry, s: world.S }, m.opp.headPos);
     A.u.head.visible = !drone.first();   // your own head would fill the view
+    if (m.race && drone.first()) m.race.camera(cam, U.uNwTime.value);   // rocket race: past the blink you are in your cockpit
   }
   const game = { focus: new T.Vector3(), yaw: 0, floorY: 0, step, pose, camera };
   function spark(at, big) { const sp = sparks.find(s => !s.visible) || sparks[0]; sp.position.copy(at); sp.visible = true; sp.userData.t = 0; sp.userData.big = big; }
@@ -335,14 +388,18 @@ export function createGames(T, kit, world, cb = {}) {
   }
   function look() {   // where the camera sits in each part of the match
     const A = m.mine, V = world.view, play = m.phase === 'play' || m.phase === 'over' || m.phase === 'ready', box = m.game === 'boxing', gymG = GAMES[m.game].gym;
+    if (m.chess) {   // chess: behind you and a little above, looking down at the board
+      game.yaw = A.face + PI + .5; V.dist = m.phase === 'out' ? m.view.dist : play ? 2.1 : 4.4; V.el = m.phase === 'out' ? m.view.el : play ? .66 : .5; return;
+    }
     // boxing and dancing: behind you and off to one side, so you see the other player past your shoulder. The gym: in front of you both.
     game.yaw = gymG ? A.face + (play ? .7 : 1.1) : A.face + PI + (play ? .62 : .95);
     V.dist = m.phase === 'out' ? m.view.dist : m.phase === 'over' ? (gymG ? 4.6 : 3.6) : play ? (box ? 2.8 : gymG ? 4.1 : 4.2) : 6.4;
     V.el = m.phase === 'out' ? m.view.el : play ? (gymG ? .3 : .36) : .5;
   }
   function env(e) {   // 0 = the island's daylight, 1 = the arena's dark hall
-    isl.background.lerpColors(m.env.bg, DARK, e); isl.fog.color.lerpColors(m.env.fog, DARK, e);
-    isl.fog.near = m.env.near + (12 - m.env.near) * e; isl.fog.far = m.env.far + (58 - m.env.far) * e;
+    const space = !!m.race, D = space ? SPACE : DARK, nr = space ? 45 : 12, fr = space ? 175 : 58;   // the rocket race is in deep space
+    isl.background.lerpColors(m.env.bg, D, e); isl.fog.color.lerpColors(m.env.fog, D, e);
+    isl.fog.near = m.env.near + (nr - m.env.near) * e; isl.fog.far = m.env.far + (fr - m.env.far) * e;
     m.env.lights.forEach(l => { l.light.intensity = l.was * (1 - e * (l.light.isDirectionalLight ? .45 : .6)); }); spot.intensity = 2.6 * e;
   }
   function step(t, dt) {
@@ -375,6 +432,8 @@ export function createGames(T, kit, world, cb = {}) {
       if (G.kind) exercise(A, B, t, dt, G);
       else if (G.rps) playRps(A, B, dt);
       else if (m.game === 'boxing') boxing(A, B, t, dt);
+      else if (m.race) raceStep(t, dt);
+      else if (m.chess) chessStep(dt);
       else {
         base(A); m.tracking = fromTrack(A); if (!m.tracking) groove(A, t);
         if (!m.remote) groove(B, t);
@@ -384,7 +443,8 @@ export function createGames(T, kit, world, cb = {}) {
     }
     // camera: the middle of the two while the world changes, then just past your shoulder
     const fk = m.phase === 'play' || m.phase === 'over' ? .4 : m.phase === 'out' ? 0 : .5;
-    if (G.gym && m.phase !== 'out') game.focus.set(m.C.x + sin(A.face) * .6, m.y + .5, m.C.z + cos(A.face) * .6);
+    if (m.chess && m.phase !== 'out') game.focus.set(m.C.x, m.y + .48, m.C.z);
+    else if (G.gym && m.phase !== 'out') game.focus.set(m.C.x + sin(A.face) * .6, m.y + .5, m.C.z + cos(A.face) * .6);
     else game.focus.set(A.p.x + (B.p.x - A.p.x) * fk, m.y + (m.phase === 'out' ? 1.5 * world.S : .9), A.p.z + (B.p.z - A.p.z) * fk);
     sparks.forEach(s => { if (!s.visible) return; s.userData.t += dt * 4; const k = s.userData.t; s.scale.setScalar(s.userData.big * (.4 + k)); s.material.opacity = 1 - k; s.rotation.y += dt * 9; if (k >= 1) s.visible = false; });
   }
@@ -392,6 +452,7 @@ export function createGames(T, kit, world, cb = {}) {
     if (!m) return;
     const A = m.mine, B = m.opp, G = GAMES[m.game];
     if (G.kind) { exercisePose(A, t, dt, G); exercisePose(B, t, dt, G); return; }
+    if (m.chess) { [A, B].forEach(F => { const sit = F.there && m.phase !== 'out'; F.p.gameRest = sit ? 'sit' : null; F.p.fixY = sit ? m.y + SEAT_Y : m.y; }); return; }   // sit at the table
     applyPose(A, dt); applyPose(B, dt);
   }
   // One frame of boxing. Your punches and dodges come from the camera or the keys; the computer thinks for itself;
@@ -416,6 +477,60 @@ export function createGames(T, kit, world, cb = {}) {
     [A, B].forEach(F => { F.dodge += ((F === A && raw ? 0 : F.dodgeDir) - F.dodge) * Math.min(1, dt * 12); F.leanT.roll += F.dodge * .42; });
     A.bounce = B.bounce = Math.abs(sin(t * 5)) * .008;
     if (m && m.phase === 'play' && m.clock <= 0) finish(A.hp > B.hp ? 'win' : A.hp < B.hp ? 'lose' : 'draw');
+  }
+  // Rocket race: steer with the keys, or with your body. The first moments of the race learn where "straight" is;
+  // after that, moving your head left / right steers and crouching / standing tall dives and climbs.
+  const clampN = v => Math.max(-1, Math.min(1, v));
+  function raceStep(t, dt) {
+    const S = m.steer, tr = kit.track ? kit.track() : null, lm = tr && tr.raw && tr.raw.lm;
+    let x = S.kx, y = S.ky; m.tracking = false;
+    if (lm && lm[0] && lm[11] && lm[12]) {
+      const nx = lm[0].x, ny = lm[0].y, sh = Math.max(.08, Math.abs(lm[11].x - lm[12].x));
+      if (!S.cal) S.cal = { x: nx, y: ny, n: 0 };
+      if (S.cal.n < 40) { S.cal.n++; S.cal.x += (nx - S.cal.x) / S.cal.n; S.cal.y += (ny - S.cal.y) / S.cal.n; }
+      if (!S.kx && !S.ky) { x = clampN(-(nx - S.cal.x) / (sh * .9)); y = clampN(-(ny - S.cal.y) / (sh * .7)); }   // the camera picture is not mirrored: your left is its right
+      m.tracking = true;
+    }
+    S.x += (x - S.x) * Math.min(1, dt * 8); S.y += (y - S.y) * Math.min(1, dt * 8);
+    m.clock = m.T;   // the race clock counts up
+    raceEvents(m.race.update(dt, { x: S.x, y: S.y }, t));
+    if (m && m.phase === 'play' && m.T > 300) { const P = m.race.progress(); finish(P[0] >= P[1] ? 'win' : 'lose'); }   // nobody finished: furthest wins
+  }
+  function raceEvents(ev) {
+    if (!m || !ev.length) return;
+    ev.forEach(e => cb.onRace && cb.onRace(e));
+    const R = m.race;
+    if (m.phase === 'play' && ev.some(e => e.kind === 'finish')) finish(R.me.done && !R.them.done ? 'win' : R.them.done && !R.me.done ? 'lose' : R.me.z >= R.them.z ? 'win' : 'lose');
+  }
+  // Chess: the clock of whoever's turn it is runs down; the computer answers after a short think.
+  function chessStep(dt) {
+    const C = m.chess, S = CH.status(C.st); if (S.over) return;
+    C.clock[S.turn] = Math.max(0, C.clock[S.turn] - dt); m.clock = C.clock[C.me];
+    if (C.clock[S.turn] <= 0) { C.reason = 'time'; finish(S.turn === C.me ? 'lose' : 'win'); return; }
+    if (!m.remote && S.turn !== C.me) { C.think += dt; if (C.think > C.wait) { const mv = CH.bestMove(C.st, 2); if (mv) chessPlay(mv, false); } }
+  }
+  function chessPlay(uci, mine) {
+    const C = m.chess, nx = CH.play(C.st, uci); if (!nx) return false;
+    C.st = nx; C.ply++; C.think = 0; C.wait = .8 + Math.random() * 1.4; drawChess();
+    if (mine && m.remote && cb.send) cb.send({ k: 'chess', uci, n: C.ply });
+    cb.onChess && cb.onChess();
+    const S = CH.status(nx); if (S.over) { C.reason = S.result; finish(S.winner ? (S.winner === C.me ? 'win' : 'lose') : 'draw'); }
+    return true;
+  }
+  // the pieces on the table follow the game (white sits at -x, the asker's side)
+  function drawChess() {
+    const P = m && m.arena.userData.pieces; if (!P || !m.chess) return;
+    while (P.children.length) P.remove(P.children[0]);
+    for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
+      const pc = CH.pieceAt(m.chess.st, 'abcdefgh'[f] + (r + 1)); if (!pc) continue;
+      const g = pieceMesh(pc.toLowerCase(), pc === pc.toUpperCase()); g.position.set((r - 3.5) * SQ, 0, (f - 3.5) * SQ); P.add(g);
+    }
+  }
+  function chessView() {
+    const C = m.chess, S = CH.status(C.st), board = [];
+    for (let r = 7; r >= 0; r--) for (let f = 0; f < 8; f++) { const sq = 'abcdefgh'[f] + (r + 1); board.push({ sq, p: CH.pieceAt(C.st, sq) }); }
+    return { me: C.me, turn: S.turn, check: S.check, over: S.over, result: S.result, reason: C.reason, clock: { w: C.clock.w, b: C.clock.b }, last: CH.lastMove(C.st), board,
+      moves: m.phase === 'play' && S.turn === C.me && !S.over ? CH.legalMoves(C.st) : [], captured: CH.captured(C.st), ply: C.ply, thinking: !m.remote && S.turn !== C.me && !S.over && m.phase === 'play' };
   }
   // The plank only starts once the camera sees your whole body (both players, when it is two windows).
   function ready(dt) {
@@ -446,11 +561,13 @@ export function createGames(T, kit, world, cb = {}) {
     const A = m.mine, B = m.opp, result = m.result;
     U.uNwFront.value = -1; env(0); m.scenery.forEach(o => { o.obj.visible = o.was; }); world.each(p => { p.av.visible = true; });
     isl.remove(m.arena); sparks.forEach(s => { s.visible = false; isl.remove(s); });
+    if (m.race) m.race.dispose();
+    if (m.arena.userData.pieces) { const P = m.arena.userData.pieces; while (P.children.length) P.remove(P.children[0]); }
     [A, B].forEach(F => {
       F.gloves.forEach(gl => { gl.parent && gl.parent.remove(gl); }); if (F.gloves[0]) F.gloves[0].material.dispose();
       F.u.body.rotation.set(0, 0, 0); F.p.av.rotation.x = 0; F.p.av.rotation.order = 'XYZ'; F.p.fixY = null; F.p.walkK = 0;
       if (F.u.knees) [1, -1].forEach(s => { F.u.knees[s].rotation.x = 0; });
-      F.u.head.visible = true;
+      F.u.head.visible = true; F.p.gameRest = null;
     });
     drone.reset();
     Object.assign(world.view, m.view); world.setGame(null); m = null; RPS.wantHands(false);
@@ -463,7 +580,7 @@ export function createGames(T, kit, world, cb = {}) {
     prewarm() {
       if (warm) return; warm = true; const skip = new Set(); world.each(p => skip.add(p.av)); scenery(skip);
       spot.intensity = 0; isl.add(spot, spot.target);   // always in the scene (switched off), so lighting is not rebuilt mid-match
-      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps')]; gs.forEach(g => isl.add(g)); let n = 0;
+      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps'), arena('rocket'), arena('chess')]; gs.forEach(g => isl.add(g)); let n = 0;
       const off = () => { if (++n < 3) return requestAnimationFrame(off); gs.forEach(g => { if (!m || m.arena !== g) isl.remove(g); }); }; requestAnimationFrame(off);
     },
     // o: { game, oppId, role (0 = you asked, 1 = you accepted), remote, spec, opt (the length picked) }. Returns the spec so both sides can build the same arena.
@@ -487,6 +604,12 @@ export function createGames(T, kit, world, cb = {}) {
         const sgn = F.role ? 1 : -1; F.spot = { x: sp.cx + dx * gap / 2 * sgn, z: sp.cz + dz * gap / 2 * sgn }; F.face = GAMES[o.game].gym ? g.rotation.y : Math.atan2(-dx * sgn, -dz * sgn);   // the gym: both face the same way. Otherwise: each other
         F.p.fixY = sp.y; F.p.goal = null; F.p.av.rotation.order = 'YXZ'; protect(F.p.av);
       });
+      if (GAMES[o.game].rocket) {   // the course is far above the arena; the seed comes from the shared spec, so both windows build the same field
+        const seed = ((Math.round(sp.cx * 1000) * 73856093) ^ (Math.round(sp.cz * 1000) * 19349663) ^ (Math.round(sp.y * 1000) * 83492791)) >>> 0;
+        m.race = createRace(T, { seed: seed || 1, length: opt, origin: new T.Vector3(sp.cx, sp.y + 260, sp.cz), mineColor: role ? '#C2452D' : '#4C5FA8', oppColor: role ? '#4C5FA8' : '#C2452D', ai: !o.remote });
+        m.steer = { x: 0, y: 0, kx: 0, ky: 0, cal: null }; isl.add(m.race.group);
+      }
+      if (GAMES[o.game].chess) { m.chess = { st: CH.newGame(), me: role ? 'b' : 'w', clock: { w: opt, b: opt }, ply: 0, think: 0, wait: 1.5, reason: '' }; drawChess(); }   // who asked plays white
       U.uNwCenter.value.copy(m.C); game.floorY = sp.y; game.focus.set(sp.cx, sp.y + .9, sp.cz);
       spot.position.set(sp.cx, sp.y + 5.5, sp.cz); spot.target.position.set(sp.cx, sp.y, sp.cz);
       isl.add(g); sparks.forEach(s => isl.add(s)); world.setGame(game); look();
@@ -513,8 +636,14 @@ export function createGames(T, kit, world, cb = {}) {
     },
     readyIn() { if (m) m.themReady = true; },          // two windows, plank: the other player's whole body is in view
     info: () => m && { game: m.game, phase: m.phase, clock: m.clock, opt: m.opt, hp: [m.mine.hp, m.opp.hp], score: [m.mine.score, m.opp.score], cue: m.cue || '', tracking: m.tracking, result: m.result,
-      rps: m.rps ? m.rps.view() : null, hands: !!m.handsOn, dodge: m.mine.dodgeDir, fp: drone.k() },   // fp: 0 normal view .. 1 first person
+      rps: m.rps ? m.rps.view() : null, hands: !!m.handsOn, dodge: m.mine.dodgeDir, fp: drone.k(),
+      race: m.race ? { p: m.race.progress(), crashes: [m.race.me.crashes, m.race.them.crashes] } : null, chess: m.chess ? chessView() : null },   // fp: 0 normal view .. 1 first person
     // rock paper scissors without a camera: keys 1 2 3 or the buttons. From the other window: their hand for throw n.
+    // rocket race without a camera: steer('x', -1 left | 1 right, held down or let go), steer('y', 1 climb | -1 dive, ...)
+    steer(axis, dir, down) { const S = m && m.steer; if (!S) return; const k = axis === 'y' ? 'ky' : 'kx'; if (down) S[k] = dir; else if (S[k] === dir) S[k] = 0; },
+    // chess: your move from the board on the left ('e2e4', 'e7e8q'), and theirs from the other window
+    chessMove(uci) { if (!m || !m.chess || m.phase !== 'play' || CH.status(m.chess.st).turn !== m.chess.me) return false; return chessPlay(uci, true); },
+    chessIn(msg) { if (!m || !m.chess || !m.remote || m.phase !== 'play' || !msg || typeof msg.uci !== 'string' || CH.status(m.chess.st).turn === m.chess.me) return; chessPlay(msg.uci.slice(0, 5), false); },
     throwHand(pick) { if (m && m.rps && m.phase === 'play') m.rps.key(pick); },
     rpsIn(msg) { if (m && m.rps && m.remote && msg) m.rps.theirs(msg.n, msg.pick); },
     // gym games without a camera: Space (or the button). Reps: hold to go down, let go to count one. Plank: hold to hold.
@@ -527,6 +656,8 @@ export function createGames(T, kit, world, cb = {}) {
     // two windows: each side sends its own pose and the hits it lands
     poseOut() {
       if (!m) return null; const F = m.mine, o = [];
+      if (m.race) return m.race.out();   // rocket race: where your ship is, and your crashes
+      if (m.chess) return null;          // chess: only moves are sent
       if (GAMES[m.game].kind) return [+F.depthT.toFixed(2), +F.score.toFixed(1), F.holding ? 1 : 0];
       [1, -1].forEach(s => { o.push(F.cur[s].up.x, F.cur[s].up.y, F.cur[s].up.z, F.cur[s].fore.x, F.cur[s].fore.y, F.cur[s].fore.z); });
       o.push(F.leanT.x, F.leanT.yaw, F.leanT.roll, F.headT.yaw, F.headT.pitch, F.headT.roll, F.bounce);
@@ -534,6 +665,8 @@ export function createGames(T, kit, world, cb = {}) {
     },
     poseIn(a) {
       if (!m || !m.remote || !Array.isArray(a) || !a.every(Number.isFinite)) return; const F = m.opp;
+      if (m.race) { raceEvents(m.race.setThem(a)); return; }
+      if (m.chess) return;
       if (GAMES[m.game].kind) { if (a.length >= 3) { F.depthT = clamp01(a[0]); F.score = Math.max(F.score, Math.min(999, a[1])); F.holding = !!a[2]; } return; }
       if (a.length < 19) return;
       [1, -1].forEach((s, i) => { F.goal[s].up.set(a[i * 6], a[i * 6 + 1], a[i * 6 + 2]).normalize(); F.goal[s].fore.set(a[i * 6 + 3], a[i * 6 + 4], a[i * 6 + 5]).normalize(); });

@@ -36,6 +36,7 @@ Opened from any other static server the page still works, but those three show a
 | `callnet.js` | Real random calls: online count, matchmaking lobby, call rooms, live pose streaming, peer-to-peer voice. |
 | `glass.js` | Liquid Glass buttons: the bent, colour-split look behind every `.lg` element (Chrome), frosted glass elsewhere. |
 | `world.js`, `worldapp.js`, `worldgame.js` | The walkable island World and its games. |
+| `worldgen.js` | Generated worlds: a seed becomes a whole look for the island (theme, time of day, colours, decorations, weather). |
 
 ## Accounts, tags and Google sign-in
 
@@ -59,10 +60,21 @@ Google sign-in needs a one-time setup in Supabase and Google Cloud:
 
 Until step 3 is done, the Google button says Google sign-in isn't switched on yet. Email sign-in still works.
 
+## Worlds with friends
+
+**Worlds → Create a world** generates a world from a random seed: a name, a theme (Summer, Autumn, Blossom, Frost,
+Tropic, Dreamy), a time of day, roof, wall and door colours, decorations on free ground, and falling leaves, petals,
+snow or fireflies. 🎲 generates another. Tick the friends to bring and press **Create and go**: you walk in and they get
+an invite. Everyone with the same seed builds the same map, so friends who join share one world. Each world is its own
+room (`worldapp.js` tags every message with the world's id), so you only see the people in your world.
+Your worlds are listed under **Your worlds** (kept in this browser) with Join buttons. **Join Nook Island** is the open
+island everyone shares. Invites reach friends who have Nook open: signed in, over Supabase; signed out, other windows
+of the same browser.
+
 ## Real calls (like Omegle, with 3D avatars)
 
-Pressing **Call → Start a call** puts you in a shared lobby on Supabase Realtime and pairs you with the first
-compatible person anywhere (the region chips filter both ways). No account is needed. Once matched:
+Pressing **Call** puts you straight into a shared lobby on Supabase Realtime and pairs you with the first
+person anywhere in the world. No account is needed. Once matched:
 
 - each side sends its avatar look, then a live stream of its webcam body tracking (about 12 times a second),
   so you see the other person's 3D avatar move as they do. The camera picture itself never leaves the device;
@@ -79,3 +91,4 @@ match tabs of the same browser. When nobody else is searching, "Practise with a 
 ## Notes
 
 - The chat filter runs in the browser on both ends of a call; messages are not checked by a server.
+- Texts between friends (**Friends → Text**) are live-only: nothing is stored on a server, so a text only arrives while the friend has Nook open. Demo friends answer with made-up replies.

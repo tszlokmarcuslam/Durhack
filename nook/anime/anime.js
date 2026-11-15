@@ -97,6 +97,10 @@ const BODIES = [
   ['Curvy', { tw: 0.98, td: 1.04, pw: 1.24, arm: 1.02, leg: 1.2, sh: 0.98, hip: 1.18 }],
   ['Heavy', { tw: 1.3, td: 1.42, pw: 1.3, arm: 1.3, leg: 1.3, sh: 1.12, hip: 1.18 }],
 ];
+// male: narrower, sharper eyes without lash flicks; thicker, flatter brows; broader shoulders, narrower hips
+const MALE_EYES = e => ({ ...e, h: e.h * 0.84, top: e.top * 0.96, tilt: e.tilt + 0.05, lash: 0 });
+const MALE_BROWS = b => ({ ...b, thick: b.thick * 1.45, arch: b.arch * 0.45, tilt: b.tilt + 0.05 });
+const MALE_BODY = b => ({ ...b, tw: b.tw * 1.1, td: b.td * 0.97, pw: b.pw * 0.97, arm: b.arm * 1.08, leg: b.leg * 1.0, sh: b.sh * 1.08, hip: b.hip * 0.96 });
 const HEIGHTS = [['Short', 0.82], ['Medium', 1.0], ['Tall', 1.15], ['Very tall', 1.28]];
 // hair index 6 is "None", so Nook's "random look but not bald" rule (hairStyle 6 -> 1) still means the same thing
 const HAIRS = [['Neat', 'neat'], ['Spiky', 'spiky'], ['Bob', 'bob'], ['Long', 'long'], ['Ponytail', 'ponytail'], ['Twin tails', 'twintails'],
@@ -108,18 +112,18 @@ const SHIRTS = ['#3b8fe0', '#e5484d', '#3fae6b', '#f2b33d', '#8a5cd6', '#f4f4f4'
 const PANTS = ['#3d4250', '#1e2a44', '#6b4a32', '#8c8f99', '#2f5d3a', '#b33a3a'];
 const SHOES = ['#f7f7f7', '#2a2a2e', '#e5484d', '#3b8fe0', '#f2b33d'];
 export const OPTIONS = {
-  skin: SKINS, face: ['Anime', 'Simple', 'Detailed'], eyes: EYES.map(e => e[0]), eyeColor: EYECOLS, brows: BROWS.map(b => b[0]), mouth: MOUTHS,
+  body: ['Female', 'Male'], skin: SKINS, face: ['Anime', 'Simple', 'Detailed'], eyes: EYES.map(e => e[0]), eyeColor: EYECOLS, brows: BROWS.map(b => b[0]), mouth: MOUTHS,
   hairStyle: HAIRS.map(h => h[0]), hairColor: HAIRCOLS,
   build: BODIES.map(b => b[0]), height: HEIGHTS.map(h => h[0]), topColor: SHIRTS, bottomColor: PANTS, shoes: SHOES
 };
-const look = (name, skin, eyes, eyeColor, brows, mouth, hairStyle, hairColor, build, height, topColor, bottomColor, shoes) =>
-  ({ name, skin, face: 0, eyes, eyeColor, brows, mouth, hairStyle, hairColor, build, height, topColor, bottomColor, shoes });
+const look = (name, skin, eyes, eyeColor, brows, mouth, hairStyle, hairColor, build, height, topColor, bottomColor, shoes, body = 0) =>
+  ({ name, body, skin, face: 0, eyes, eyeColor, brows, mouth, hairStyle, hairColor, build, height, topColor, bottomColor, shoes });
 export const PRESETS = [
-  look('Jun', 1, 1, 0, 1, 0, 1, 1, 2, 2, 0, 0, 0),
+  look('Jun', 1, 1, 0, 1, 0, 1, 1, 2, 2, 0, 0, 0, 1),
   look('Amara', 5, 6, 0, 2, 2, 9, 1, 4, 1, 3, 1, 2),
-  look('Mateo', 3, 3, 0, 3, 4, 7, 0, 3, 2, 1, 3, 1),
+  look('Mateo', 3, 3, 0, 3, 4, 7, 0, 3, 2, 1, 3, 1, 1),
   look('Elena', 0, 2, 2, 4, 1, 3, 4, 1, 1, 4, 1, 3),
-  look('Idris', 4, 4, 0, 0, 3, 0, 1, 5, 3, 2, 4, 1),
+  look('Idris', 4, 4, 0, 0, 3, 0, 1, 5, 3, 2, 4, 1, 1),
   look('Mei', 1, 0, 4, 1, 0, 5, 7, 0, 0, 5, 5, 4),
 ];
 // any saved or remote look (old Nook keys too): every option falls back to 0 when missing or out of range
@@ -234,7 +238,7 @@ export function createAnime(T) {
     const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
     const g = cv.getContext('2d'), PX = FS / F.size;
     const toPx = (x, y) => [FS / 2 + (x - F.cx) * PX, FS / 2 - (y - F.cy) * PX];
-    const st = { blink: 0, look: { x: 0, y: 0, tx: 0, ty: 0 }, expr: 'Neutral', dirty: true };
+    const st = { blink: 0, look: { x: 0, y: 0, tx: 0, ty: 0 }, expr: 'Neutral', dirty: true }, male = state.body === 1;
     const C = h => new T.Color(h), hx = c => '#' + c.getHexString();
     const browColour = () => hx(C(HAIRCOLS[state.hairColor]).multiplyScalar(0.72).lerp(C('#4a2a1a'), 0.25));
     const lipColour = () => hx(C(SKINS[state.skin]).multiply(new T.Color(0.86, 0.62, 0.6)).lerp(C('#b0504e'), 0.12));
@@ -319,8 +323,8 @@ export function createAnime(T) {
       g.fillStyle = sh; g.fillRect(cx - W, topY - H, W * 2, H * 1.4);
       if (ex.smileEye) { g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.ellipse(cx, botY + H * 0.32, W * 0.75, H * 0.36, 0, 0, TAU); g.fill(); g.globalCompositeOperation = 'source-over'; }
       g.restore();
-      g.strokeStyle = LASH; g.lineWidth = Hf * 0.085; g.beginPath(); g.moveTo(ix, iy); upper(g); g.stroke();
-      g.fillStyle = LASH; g.beginPath(); g.moveTo(ox - side * W * 0.18, topY + H * 0.02); g.lineTo(ox + side * W * 0.16, oy - Hf * 0.12); g.lineTo(ox + side * W * 0.02, oy + Hf * 0.06); g.closePath(); g.fill();
+      g.strokeStyle = LASH; g.lineWidth = Hf * (male ? 0.1 : 0.085); g.beginPath(); g.moveTo(ix, iy); upper(g); g.stroke();
+      if (!male) { g.fillStyle = LASH; g.beginPath(); g.moveTo(ox - side * W * 0.18, topY + H * 0.02); g.lineTo(ox + side * W * 0.16, oy - Hf * 0.12); g.lineTo(ox + side * W * 0.02, oy + Hf * 0.06); g.closePath(); g.fill(); }
       g.lineWidth = Hf * 0.03; g.beginPath(); g.moveTo(ox - side * W * 0.05, oy + Hf * 0.05); g.quadraticCurveTo(cx + side * W * 0.2, botY + H * 0.02, cx - side * W * 0.05, botY - H * 0.01); g.stroke();
       if (shape.lash) { g.lineWidth = Hf * 0.04; for (let k = 0; k < 3; k++) { const bx = ox - side * W * (0.06 + 0.12 * k), by = oy - Hf * (0.02 + 0.05 * k); g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + side * W * 0.12, by - Hf * (0.12 + 0.02 * k)); g.stroke(); } }
       if (shape.hood) { g.strokeStyle = 'rgba(60,30,30,.5)'; g.lineWidth = Hf * 0.03; g.beginPath(); g.moveTo(ix + side * W * 0.08, topY - H * 0.02); g.quadraticCurveTo(cx, topY - H * 0.3, ox, oy - Hf * 0.12); g.stroke(); }
@@ -375,12 +379,13 @@ export function createAnime(T) {
     }
     function draw() {
       g.clearRect(0, 0, FS, FS);
-      const ex = EXPRS[st.expr] || EXPRS.Neutral, shape = EYES[state.eyes][1], b = BROWS[state.brows][1], style = state.face, eyeHex = EYECOLS[state.eyeColor];
-      if (style !== 0) for (const side of [1, -1]) {
+      const ex = EXPRS[st.expr] || EXPRS.Neutral, style = state.face, eyeHex = EYECOLS[state.eyeColor];
+      const shape = male ? MALE_EYES(EYES[state.eyes][1]) : EYES[state.eyes][1], b = male ? MALE_BROWS(BROWS[state.brows][1]) : BROWS[state.brows][1];
+      if (style !== 0 && !male) for (const side of [1, -1]) {
         const [cx, cy] = toPx(side * F.eye_dx * 1.25, F.eye_y - F.eye_h * 1.05), rg = g.createRadialGradient(cx, cy, 0, cx, cy, F.eye_w * PX * 0.75);
         rg.addColorStop(0, 'rgba(235,110,100,.22)'); rg.addColorStop(1, 'rgba(235,110,100,0)'); g.fillStyle = rg; g.fillRect(cx - FS * 0.2, cy - FS * 0.2, FS * 0.4, FS * 0.4);
       }
-      if (style === 0) { drawBlush(ex.smileEye || ex.wink); for (const s of [1, -1]) { drawEyeAnime(s, shape, ex, eyeHex); drawBrow(s, b, ex, 0); } }
+      if (style === 0) { if (!male || ex.smileEye || ex.wink) drawBlush(ex.smileEye || ex.wink); for (const s of [1, -1]) { drawEyeAnime(s, shape, ex, eyeHex); drawBrow(s, b, ex, 0); } }
       else if (style === 1) { for (const s of [1, -1]) { drawEyeSimple(s, shape, ex, eyeHex); drawBrow(s, b, ex, 1); } }
       else { for (const s of [1, -1]) { drawEye(s, shape, ex, eyeHex); drawBrow(s, b, ex, 2); } }
       drawMouth(ex, style);
@@ -420,15 +425,15 @@ export function createAnime(T) {
     setC('Skin', skin); setC('Head', skin); setC('Hair', new T.Color(HAIRCOLS[state.hairColor]));
     setC('Shirt', new T.Color(SHIRTS[state.topColor])); setC('Pants', new T.Color(PANTS[state.bottomColor])); setC('Shoes', new T.Color(SHOES[state.shoes]));
     // body type and height: scale parts around their joints (same as the customizer)
-    const b = BODIES[state.build][1], hf = HEIGHTS[state.height][1], legF = hf, torsoF = 0.5 + 0.5 * hf, armF = 0.5 + 0.5 * hf;
+    const male = state.body === 1, b = male ? MALE_BODY(BODIES[state.build][1]) : BODIES[state.build][1], hf = HEIGHTS[state.height][1], legF = hf, torsoF = 0.5 + 0.5 * hf, armF = 0.5 + 0.5 * hf;
     const sc = (name, x, y, z) => { const p = P[name]; if (p) p.scale.set(REST[name].scale.x * x, REST[name].scale.y * y, REST[name].scale.z * z); };
     const mv = (name, fx, fy) => { const j = J[name]; if (j) j.position.set(REST[name].pos.x * fx, REST[name].pos.y * fy, REST[name].pos.z); };
     const morph = (name, k, f) => { const p = P[name]; if (!p || !p.morphTargetDictionary) return; p.morphTargetInfluences[p.morphTargetDictionary.thick] = (k - 1) / 0.5; p.morphTargetInfluences[p.morphTargetDictionary.long] = (f - 1) / 0.3; };
-    sc('Torso', b.tw, torsoF, b.td); sc('Pelvis', b.pw, 1, (b.td + 1) / 2); mv('neck', 1, torsoF);
+    sc('Torso', b.tw, torsoF, b.td); sc('Pelvis', b.pw, 1, (b.td + 1) / 2); mv('neck', 1, torsoF); if (male) sc('Neck', 1.14, 1, 1.12);
     for (const s of ['L', 'R']) {
       mv('shoulder_' + s, b.sh, torsoF); mv('elbow_' + s, 1, armF); mv('hand_' + s, 1, armF);
       morph('UpperArm_' + s, b.arm, armF); morph('LowerArm_' + s, b.arm, armF);
-      sc('Sleeve_' + s, b.arm, 1, b.arm); sc('Hand_' + s, 0.9 + 0.1 * b.arm, 1, 0.9 + 0.1 * b.arm);
+      sc('Sleeve_' + s, b.arm * (male ? 0.84 : 1), male ? 1.12 : 1, b.arm * (male ? 0.84 : 1));   // male: a plain T-shirt sleeve, not a puff sc('Hand_' + s, 0.9 + 0.1 * b.arm, 1, 0.9 + 0.1 * b.arm);
       mv('hip_' + s, b.hip, 1); mv('knee_' + s, 1, legF); mv('ankle_' + s, 1, legF);
       morph('UpperLeg_' + s, b.leg, legF); morph('LowerLeg_' + s, b.leg, legF); sc('Shorts_' + s, b.leg, legF, b.leg);
     }

@@ -18,6 +18,15 @@ export function createBackend(onChange) {
   const state = { configured: !!sb, user: null, profile: null, friends: [], party: null, invites: [], online: new Set(), loaded: false, error: null };
   const emit = () => onChange && onChange(state);
   let channel = null, poll = null;
+  // Texts between friends. Every player has an inbox: the Realtime broadcast channel 'nook-dm-<their user id>'.
+  // To text a friend, you join their inbox channel and broadcast a 'dm' event on it.
+  // These inbox channels are NOT private or authenticated: anyone who knows a user id can send to that inbox (or listen to it),
+  // and the sender's id inside a text is only what the sender says it is. Texts that don't come from an accepted friend are
+  // dropped on arrival. Nothing is stored on the server, so a text only arrives while the friend has Nook open.
+  // A real version needs a `messages` table with row-level security.
+  let dmInbox = null, dmHandler = null;
+  const dmOut = new Map();   // friend's user id -> { ch, ready }: their inbox channel, joined once and reused
+  const DM_FAILED = 'Could not reach the server. Try again.';
 
   /** Calls a database function. Messages raised by the SQL functions are written for players, so they are shown as-is. */
   async function rpc(fn, args) {
@@ -55,12 +64,20 @@ export function createBackend(onChange) {
       .on('presence', { event: 'sync' }, () => { state.online = new Set(Object.keys(channel ? channel.presenceState() : {})); emit(); })
       .on('broadcast', { event: 'nudge' }, ({ payload }) => { if (payload && payload.to === me) refresh(); })
       .subscribe(status => { if (status === 'SUBSCRIBED' && channel) channel.track({ since: Date.now() }); });
+    // my inbox for texts (see the note at dmInbox): only texts from accepted friends are passed on
+    dmInbox = sb.channel('nook-dm-' + me, { config: { broadcast: { self: false } } });
+    dmInbox.on('broadcast', { event: 'dm' }, ({ payload }) => {
+      const f = payload && state.friends.find(x => x.status === 'accepted' && x.userId === payload.from);
+      if (f && typeof payload.text === 'string' && dmHandler) dmHandler({ from: f.userId, name: f.displayName, text: payload.text.slice(0, 500), at: Date.now() });
+    }).subscribe();
     poll = setInterval(refresh, POLL_MS);
     refresh();
   }
   function stopSocial() {
     if (poll) clearInterval(poll); poll = null;
     if (channel && sb) sb.removeChannel(channel); channel = null;
+    if (sb) { if (dmInbox) sb.removeChannel(dmInbox); dmOut.forEach(o => sb.removeChannel(o.ch)); }
+    dmInbox = null; dmOut.clear();
     Object.assign(state, { friends: [], party: null, invites: [], online: new Set(), loaded: false, error: null });
   }
   async function loadProfile() {
@@ -172,6 +189,24 @@ export function createBackend(onChange) {
       const left = state.party, r = await act('leave_party', undefined, 'You left the party.');
       if (r.ok) nudgeParty(left);
       return r;
+    },
+    // Texts between friends (see the note at dmInbox). onDm(fn): fn({ from, name, text, at }) runs when a friend's text arrives.
+    onDm(fn) { dmHandler = fn; },
+    // Sends one text to a friend's inbox. Returns { ok: true } or { ok: false, message }. It is not stored: only send to a friend who is online.
+    async sendDm(friend, text) {
+      if (!sb || !state.user || !state.profile) return fail(sb ? 'Sign in to send texts.' : NOT_SET_UP);
+      let out = dmOut.get(friend.userId);
+      if (!out) {   // join their inbox channel: wait until the server confirms, give up after 5 seconds
+        const ch = sb.channel('nook-dm-' + friend.userId, { config: { broadcast: { self: false } } });
+        out = { ch, ready: new Promise(done => { const t = setTimeout(() => done(false), 5000); ch.subscribe(status => { if (status === 'SUBSCRIBED') { clearTimeout(t); done(true); } }); }) };
+        dmOut.set(friend.userId, out);
+      }
+      if (!await out.ready) {
+        if (dmOut.get(friend.userId) === out) { dmOut.delete(friend.userId); sb.removeChannel(out.ch); }
+        return fail(DM_FAILED);
+      }
+      const sent = await out.ch.send({ type: 'broadcast', event: 'dm', payload: { from: state.user.id, text: String(text).slice(0, 500) } });
+      return sent === 'ok' ? { ok: true } : fail(DM_FAILED);
     },
     // Speak text with ElevenLabs (via the app's /api/tts; the key stays on the server). Resolves when playback ends.
     async speak(text) {
