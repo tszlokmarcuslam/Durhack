@@ -11,6 +11,7 @@
     "seed": "node --env-file=.env scripts/seed.mjs",
     "e2e": "node --env-file=.env scripts/e2e-search.mjs",
     "e2e:social": "node --env-file=.env scripts/e2e-social.mjs",
+    "bot": "node --env-file=.env scripts/world-bot.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
