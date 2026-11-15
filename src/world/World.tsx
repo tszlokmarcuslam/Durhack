@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Player } from './Player';
 import { Pet } from './Pet';
+import { RemotePlayers } from './RemotePlayers';
 import { WORLD_HALF_SIZE } from './playerState';
 
 // Fixed placeholder scenery: [x, z, height]
@@ -48,6 +49,7 @@ export function World({ playerName, idle = false }: { playerName: string; idle?:
       ))}
 
       <Player name={playerName} />
+      <RemotePlayers />
       <Pet />
 
       {/* idle = home screen: the camera slowly circles the scene behind the menu */}

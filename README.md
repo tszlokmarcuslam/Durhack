@@ -37,6 +37,11 @@ Run `supabase/migrations/005_friends_parties.sql` once (it prints `ok - friends 
 All friend and party rules live in database functions; the tables can't be read or written directly.
 `npm run e2e:social` checks the rules live with throwaway players.
 
+**Multiplayer:** players in the world share positions over Supabase Realtime (`src/world/multiplayer.ts`).
+Other players are drawn by `src/world/RemotePlayers.tsx`; both they and your own avatar use
+`src/world/AvatarBody.tsx`, so swap the character model there. To test alone, run a second player:
+`npm run bot` (walks in a circle for 60 s) or `npm run bot -- 60 still` (stands still).
+
 **Right-click menu for other players' avatars** (for whoever adds multiplayer avatars):
 
 ```tsx

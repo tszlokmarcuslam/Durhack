@@ -217,3 +217,20 @@ describe('community tags', () => {
     expect(validateSearchFilters({ interests: ['###'] }).ok).toBe(false);
   });
 });
+
+describe('multiplayer messages', () => {
+  it('accepts valid positions and clamps them to the world', async () => {
+    const { parsePosition } = await import('../src/world/multiplayer');
+    expect(parsePosition({ x: 1, z: -2, h: 0.5 })).toEqual({ x: 1, z: -2, heading: 0.5 });
+    expect(parsePosition({ x: 1e9, z: -1e9, h: 0 })).toEqual({ x: 19, z: -19, heading: 0 });
+  });
+  it('rejects malformed positions and identities', async () => {
+    const { parsePosition, parseIdentity } = await import('../src/world/multiplayer');
+    expect(parsePosition({ x: 'a', z: 0, h: 0 })).toBeNull();
+    expect(parsePosition({ x: NaN, z: 0, h: 0 })).toBeNull();
+    expect(parsePosition(null)).toBeNull();
+    expect(parseIdentity({ displayName: '' })).toBeNull();
+    expect(parseIdentity({ displayName: 'x'.repeat(80), username: 'bad name!' })).toEqual({ displayName: 'x'.repeat(40), username: '' });
+    expect(parseIdentity({ displayName: ' Ada ', username: 'ada_l' })).toEqual({ displayName: 'Ada', username: 'ada_l' });
+  });
+});
