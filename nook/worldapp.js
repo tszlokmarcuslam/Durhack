@@ -504,6 +504,8 @@ export function createWorldApp(o) {
 
   const api = {
     active: () => active,
+    // where you are on the island, for the companion robot that follows you (null in a match or off the island)
+    me: () => { const p = active && !match ? world.me() : null; return p ? { x: p.x, y: p.y, z: p.z, ry: p.ry, s: world.S, cam: world.view.yaw } : null; },   // cam: which way the camera looks from
     // both are safe to call again and again: the page calls them whenever the screen changes
     join() {
       if (active) return; active = true; closeInvite();

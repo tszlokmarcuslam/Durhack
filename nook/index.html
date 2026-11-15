@@ -710,7 +710,7 @@ class Component extends DCLogic {
       this.nook.setAvatar(this.state.cfg);
       const fthumbs = {}; this.state.friendsAdded.concat(this.state.party).forEach(f => { if (!fthumbs[f.id]) fthumbs[f.id] = this.nook.thumb(f.cfg); });
       this.setState({ fthumbs });
-      this.initWorld(T);
+      this.initWorld(T); this.initBot(T);
       this.initArena();
       this.sync(true); this.forceUpdate();
     });
@@ -734,6 +734,7 @@ class Component extends DCLogic {
     if (this.arena) this.arena.dispose();
     this.leaveLink(); if (this.net) this.net.close();
     if (this.wf) this.wf.dispose();
+    if (this.bot) { this.nook.setFrameHook(null); this.bot.dispose(); }
     if (this.nook) this.nook.dispose();
   }
   layout() {
@@ -783,6 +784,22 @@ class Component extends DCLogic {
         tracking: () => ({ on: this.state.camOn, state: this.state.track, err: this.state.camErr })
       });
       this.forceUpdate();
+    });
+  }
+  /* ---------- the flying companion robot (bot.js), rebuilt from the React app's Pet ---------- */
+  initBot(T) {
+    import(new URL('bot.js', document.baseURI).href).then(B => {
+      if (!this.alive) return;
+      this.bot = B.createBot(T, {
+        stage: this.nook.kit.stage, island: this.nook.kit.isl, onTap: () => this.setComp({ open: true }),
+        state: () => {
+          const st = this.state, c = st.comp, last = c.msgs.length ? c.msgs[c.msgs.length - 1] : null;
+          return { chatOpen: c.open, thinking: c.busy, last, reply: last && last.who === 'ai' ? last : null, failed: !!(last && last.who === 'sys'),
+            quiet: !!(st.pickOpen || st.accountOpen || st.prof.open), me: this.wf ? this.wf.me() : null };
+        }
+      });
+      this.nook.setFrameHook((t, dt, view) => this.bot.frame(t, dt, view));
+      window.nookBot = this.bot;   // for the browser console, e.g. nookBot.perform('Hello!', 'love')
     });
   }
   /* ---------- Settings > profile, tags & privacy (profile.js: the same profiles row as the React app) ---------- */
@@ -1255,7 +1272,7 @@ class Component extends DCLogic {
     const history = c.msgs.filter(m => m.who === 'you' || m.who === 'ai').slice(-10).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', text: m.text }));
     this.setComp({ draft: '', busy: true }); this.compSay({ who: 'you', text });
     this.be.askCompanion(text, history)
-      .then(r => { this.setComp({ busy: false, mode: r.mode }); this.compSay({ who: 'ai', text: r.reply, players: r.players || [] }); })
+      .then(r => { this.setComp({ busy: false, mode: r.mode }); this.compSay({ who: 'ai', text: r.reply, players: r.players || [], expression: r.expression }); })
       .catch(e => { this.setComp({ busy: false }); this.compSay({ who: 'sys', text: e.message }); });
   }
   accountVals(st, v, url) {

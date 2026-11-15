@@ -329,7 +329,7 @@ export function createNook(T, els, cb) {
 
   /* ================= renderer, layout, input ================= */
   const rW = new T.WebGLRenderer({ canvas: els.world, antialias: true, preserveDrawingBuffer: true }); rW.shadowMap.enabled = true;
-  let view = 'home', worldTick = null;
+  let view = 'home', worldTick = null, frameHook = null;
   const LAY = {
     world: ['position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab', 'display:none'],
     home: ['position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none', 'position:absolute;right:3vw;bottom:84px;height:min(76vh,54vw);aspect-ratio:.72;display:block;pointer-events:none'],
@@ -349,6 +349,7 @@ export function createNook(T, els, cb) {
   const tick = now => {
     if (!alive) return; raf = requestAnimationFrame(tick);
     const t = now / 1000, dt = Math.min(.05, t - last); last = t;
+    if (frameHook) frameHook(t, dt, view);   // the companion robot (bot.js) moves before anything is drawn
     if (view === 'home' || view === 'world') {   // the world is the same island, seen from the ground (world.js draws it)
       if (orbitOn && view === 'home') orbit += dt * .025;
       const e = .68; camI.position.set(distI * cos(e) * sin(orbit), distI * sin(e), distI * cos(e) * cos(orbit)); camI.lookAt(0, 1, 0);
@@ -471,8 +472,9 @@ export function createNook(T, els, cb) {
     setZoom(z) { zoomT = z; },
     setOrbit(on) { orbitOn = on; },
     // The walkable world (world.js) borrows the island, the avatars and the renderer, and draws each frame while view is 'world'.
-    kit: { isl, hAt, rAt, R, buildAvatar, pose, disposeObj, renderer: rW, track: () => track },   // track: the latest webcam pose, for the island games
+    kit: { isl, hAt, rAt, R, buildAvatar, pose, disposeObj, renderer: rW, track: () => track, stage: { canvas: els.avatar } },   // track: the latest webcam pose, for the island games
     setWorldTick(fn) { worldTick = fn; },
+    setFrameHook(fn) { frameHook = fn; },   // called once a frame with (t, dt, view)
     wave(on) { wave = on; },
     dispose() { alive = false; cancelAnimationFrame(raf); ro.disconnect(); window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); els.avatar.removeEventListener('pointerdown', onDownA); rW.dispose(); rA.dispose(); }
   };
