@@ -34,10 +34,10 @@
             <span style="font-size:22px;line-height:1">{{ myFlag }}</span>
             <span style="white-space:nowrap">{{ myCode }}</span>
           </button>
-          <button type="button" title="Edit your look" style="pointer-events:auto;height:44px;padding:0 14px 0 6px;display:flex;align-items:center;gap:10px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
+          <button type="button" onClick="{{ toggleAccount }}" title="Your account" style="pointer-events:auto;height:44px;padding:0 14px 0 6px;display:flex;align-items:center;gap:10px;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:999px;box-shadow:0 6px 18px rgba(43,42,39,.1);font:600 15px 'Figtree',sans-serif;transition:transform .18s ease" style-hover="transform:translateY(-1px)">
             <span style="width:32px;height:32px;border-radius:50%;background-color:#E4E6D2;background-size:cover;background-position:center;background-image:{{ pfp }};flex:none"></span>
-            <span style="white-space:nowrap">Your name</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B665E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20z"></path></svg>
+            <span style="white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">{{ myName }}</span>
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ acctDot }};flex:none"></span>
           </button>
         </div>
       </div>
@@ -72,14 +72,29 @@
       <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,38vw);max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;pointer-events:auto">
         <div style="font-weight:700;font-size:28px;letter-spacing:-.02em;text-align:center;padding-bottom:6px">{{ menuTitle }}</div>
         <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ canAddByName }}">
+            <div style="display:flex;gap:8px;flex:none">
+              <input value="{{ addName }}" onChange="{{ onAddName }}" onKeyDown="{{ onAddKey }}" placeholder="Add a friend by username" aria-label="Friend's username" style="flex:1;min-width:0;height:46px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:14px;background:#FBF8F1;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+              <button type="button" onClick="{{ sendAddName }}" style="height:46px;padding:0 16px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:14px;font:600 15px 'Figtree',sans-serif;opacity:{{ addOp }}">Add</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ friendsNote }}"><div style="flex:none;padding:8px 12px;background:#EEF0E2;color:#4E5733;border-radius:12px;font:500 13px/1.4 'Figtree',sans-serif">{{ friendsNote }}</div></sc-if>
           <div style="display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0">
-            <sc-for list="{{ friends }}" as="f" hint-placeholder-count="5">
-              <div style="display:flex;align-items:center;gap:12px;height:50px;flex:none;padding:0 14px 0 8px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:16px">
-                <span style="width:34px;height:34px;border-radius:50%;background-color:#ECE6D9;background-size:cover;background-position:center;background-image:{{ f.bg }};flex:none"></span>
-                <span style="font-weight:600;font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
-                <span style="font-size:13px;color:#6B665E;white-space:nowrap">{{ f.status }}</span>
-                <span style="width:8px;height:8px;border-radius:50%;background:{{ f.dot }};flex:none"></span>
-              </div>
+            <sc-for list="{{ friendRows }}" as="f" hint-placeholder-count="5">
+              <sc-if value="{{ f.head }}"><div style="flex:none;padding:8px 6px 0;font:700 12px 'Figtree',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6B665E">{{ f.head }}</div></sc-if>
+              <sc-if value="{{ f.row }}">
+                <div style="display:flex;align-items:center;gap:10px;min-height:52px;flex:none;box-sizing:border-box;padding:6px 10px 6px 8px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:16px">
+                  <span style="width:34px;height:34px;border-radius:50%;background-color:{{ f.avBg }};background-size:cover;background-position:center;background-image:{{ f.bg }};flex:none;display:flex;align-items:center;justify-content:center;font-size:18px">{{ f.emoji }}</span>
+                  <span style="display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.25">
+                    <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+                    <span style="font-size:12.5px;color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.status }}</span>
+                  </span>
+                  <sc-for list="{{ f.actions }}" as="a">
+                    <button type="button" onClick="{{ a.pick }}" style="height:32px;padding:0 11px;flex:none;border:none;cursor:pointer;background:{{ a.bg }};color:{{ a.fg }};border-radius:10px;font:600 13px 'Figtree',sans-serif">{{ a.label }}</button>
+                  </sc-for>
+                  <sc-if value="{{ f.dot }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ f.dot }};flex:none"></span></sc-if>
+                </div>
+              </sc-if>
             </sc-for>
           </div>
         </sc-if>
@@ -130,11 +145,83 @@
         </div>
       </div>
 
-      <div style="position:absolute;right:3vw;bottom:20px;width:calc(min(76vh,54vw) * .72);display:flex;justify-content:center">
+      <div style="position:absolute;right:3vw;bottom:20px;width:calc(min(76vh,54vw) * .72);display:flex;justify-content:center;gap:10px">
         <button type="button" onClick="{{ openScan }}" aria-label="Body scan" title="Body scan: your camera moves your avatar" style="pointer-events:auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ camBg }};color:{{ camFg }};border-radius:50%;box-shadow:0 8px 22px rgba(43,42,39,.14);transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="3"></rect><path d="M15 10.5l5-3v9l-5-3"></path></svg>
         </button>
+        <button type="button" onClick="{{ toggleCompanion }}" aria-label="AI companion" title="Ask the AI companion: chat, or find people to meet" style="pointer-events:auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(43,42,39,.07);cursor:pointer;background:{{ compBtnBg }};color:{{ compBtnFg }};border-radius:50%;box-shadow:0 8px 22px rgba(43,42,39,.14);transition:transform .18s ease" style-hover="transform:translateY(-2px)" style-active="transform:scale(.95)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"></path><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg>
+        </button>
       </div>
+
+      <!-- a friend invited you to their party -->
+      <sc-if value="{{ inviteShow }}">
+        <div style="position:absolute;top:76px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;background:#2B2A27;color:#F8F4EC;border-radius:18px;box-shadow:0 12px 30px rgba(43,42,39,.25);pointer-events:auto;font:600 14px 'Figtree',sans-serif;white-space:nowrap;max-width:calc(100% - 32px);box-sizing:border-box;animation:nookMenu .3s ease-out">
+          <span style="font-size:20px">🎉</span>
+          <span style="overflow:hidden;text-overflow:ellipsis">{{ inviteText }}</span>
+          <button type="button" onClick="{{ inviteJoin }}" style="height:34px;padding:0 14px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:11px;font:600 14px 'Figtree',sans-serif">Join</button>
+          <button type="button" onClick="{{ inviteSkip }}" style="height:34px;padding:0 12px;border:none;cursor:pointer;background:rgba(248,244,236,.14);color:#F8F4EC;border-radius:11px;font:600 14px 'Figtree',sans-serif">Not now</button>
+        </div>
+      </sc-if>
+
+      <!-- your account: sign in, pick a username, sign out -->
+      <sc-if value="{{ accountOpen }}">
+        <div onClick="{{ closeAccount }}" style="position:absolute;inset:0;pointer-events:auto"></div>
+        <div style="position:absolute;top:74px;right:24px;width:min(360px,calc(100% - 48px));box-sizing:border-box;padding:18px;display:flex;flex-direction:column;gap:10px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:22px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;animation:nookMenu .16s ease-out">
+          <div style="font-weight:700;font-size:18px">{{ acctTitle }}</div>
+          <div style="font-size:13px;line-height:1.45;color:#6B665E">{{ acctSub }}</div>
+          <sc-if value="{{ acctShowLogin }}">
+            <input value="{{ acctEmail }}" onChange="{{ onAcctEmail }}" type="email" placeholder="Email" autocomplete="email" aria-label="Email" style="height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <input value="{{ acctPassword }}" onChange="{{ onAcctPassword }}" onKeyDown="{{ onAcctKey }}" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" style="height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <div style="display:flex;gap:8px">
+              <button type="button" onClick="{{ doSignIn }}" disabled="{{ acctBusy }}" style="flex:1;height:44px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:13px;font:600 15px 'Figtree',sans-serif">Sign in</button>
+              <button type="button" onClick="{{ doSignUp }}" disabled="{{ acctBusy }}" style="flex:1;height:44px;border:1px solid rgba(43,42,39,.12);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:13px;font:600 15px 'Figtree',sans-serif">Create account</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ acctShowProfile }}">
+            <input value="{{ acctUsername }}" onChange="{{ onAcctUsername }}" placeholder="Username (letters, numbers, _)" aria-label="Username" style="height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <input value="{{ acctDisplay }}" onChange="{{ onAcctDisplay }}" onKeyDown="{{ onProfileKey }}" placeholder="Name people will see" aria-label="Display name" style="height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:13px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <button type="button" onClick="{{ doSaveProfile }}" disabled="{{ acctBusy }}" style="height:44px;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:13px;font:600 15px 'Figtree',sans-serif">Save</button>
+          </sc-if>
+          <sc-if value="{{ acctShowSignOut }}">
+            <button type="button" onClick="{{ doSignOut }}" style="height:44px;border:1px solid rgba(43,42,39,.12);cursor:pointer;background:#FBF8F1;color:#2B2A27;border-radius:13px;font:600 15px 'Figtree',sans-serif">Sign out</button>
+          </sc-if>
+          <sc-if value="{{ acctMsg }}"><div style="font:500 13px/1.4 'Figtree',sans-serif;color:{{ acctMsgColor }}">{{ acctMsg }}</div></sc-if>
+        </div>
+      </sc-if>
+
+      <!-- AI companion (Gemini, via the app's /api/companion) -->
+      <sc-if value="{{ compOpen }}">
+        <div style="position:absolute;top:74px;right:24px;bottom:84px;width:min(380px,calc(100% - 48px));display:flex;flex-direction:column;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:24px;box-shadow:0 16px 40px rgba(43,42,39,.16);pointer-events:auto;overflow:hidden;animation:nookMenu .2s ease-out">
+          <div style="display:flex;align-items:center;gap:10px;padding:14px 12px 10px 16px">
+            <span style="width:36px;height:36px;border-radius:12px;background:#5E683C;color:#F8F4EC;display:flex;align-items:center;justify-content:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"></path><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg></span>
+            <div style="flex:1;min-width:0;line-height:1.2">
+              <div style="font-weight:700;font-size:17px">Companion</div>
+              <div style="font-size:12.5px;color:#6B665E">{{ compSub }}</div>
+            </div>
+            <button type="button" onClick="{{ toggleCompanion }}" aria-label="Close the companion" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#ECE6D9;color:#2B2A27;border-radius:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div ref="{{ compRef }}" style="flex:1;min-height:0;overflow:auto;padding:8px 14px 12px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ compMsgs }}" as="m">
+              <div style="align-self:{{ m.align }};max-width:86%;padding:9px 13px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font:{{ m.font }};line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap">{{ m.text }}</div>
+              <sc-for list="{{ m.players }}" as="pl">
+                <div style="align-self:flex-start;width:86%;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;background:#F1ECE2;border-radius:14px">
+                  <span style="display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.3">
+                    <span style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pl.name }}</span>
+                    <span style="font-size:12.5px;color:#6B665E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pl.line }}</span>
+                  </span>
+                  <button type="button" onClick="{{ pl.add }}" style="height:32px;padding:0 11px;flex:none;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:10px;font:600 13px 'Figtree',sans-serif">Add friend</button>
+                </div>
+              </sc-for>
+            </sc-for>
+            <sc-if value="{{ compBusy }}"><div style="align-self:flex-start;padding:10px 14px;background:#ECE6D9;border-radius:16px 16px 16px 4px;display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#6B665E;animation:nookDot 1s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:#6B665E;animation:nookDot 1s .2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:#6B665E;animation:nookDot 1s .4s infinite"></span></div></sc-if>
+          </div>
+          <div style="display:flex;gap:8px;padding:12px">
+            <input value="{{ compDraft }}" onChange="{{ onCompDraft }}" onKeyDown="{{ onCompKey }}" placeholder="{{ compPlaceholder }}" aria-label="Message the companion" style="flex:1;min-width:0;height:46px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(43,42,39,.12);border-radius:14px;background:#F3EEE6;color:#2B2A27;font:500 15px 'Figtree',sans-serif;outline:none">
+            <button type="button" onClick="{{ sendCompanion }}" aria-label="Send" style="width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;background:#5E683C;color:#F8F4EC;border-radius:14px;opacity:{{ compSendOp }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-7z"></path></svg></button>
+          </div>
+        </div>
+      </sc-if>
 
       <sc-if value="{{ pickOpen }}">
         <div onClick="{{ closePick }}" style="position:absolute;inset:0;pointer-events:auto"></div>
@@ -503,15 +590,22 @@ class Component extends DCLogic {
     call: null, chatOpen: false, chat: [], chatDraft: '', unread: 0, strikes: 0, lockUntil: 0,
     friendsAdded: LS.get('nook.friends', []), fthumbs: {}, toast: '', track: 'off', camErr: '',
     // call extras: options menu on the other person, party, 1v1 boxing
-    party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false
+    party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false,
+    // accounts, real friends and parties, AI companion (backend.js, served by the app's dev server)
+    beV: 0, accountOpen: false, acct: { email: '', password: '', username: '', display: '', msg: '', ok: true, busy: false }, addName: '', friendsMsg: '',
+    comp: { open: false, msgs: [], draft: '', busy: false, mode: '' }, skippedInvite: null
   };
-  rootRef = React.createRef(); worldRef = React.createRef(); avatarRef = React.createRef(); labelsRef = React.createRef(); chatRef = React.createRef(); chatInputRef = React.createRef(); camStageRef = React.createRef(); fxRef = React.createRef();
+  rootRef = React.createRef(); worldRef = React.createRef(); avatarRef = React.createRef(); labelsRef = React.createRef(); chatRef = React.createRef(); chatInputRef = React.createRef(); camStageRef = React.createRef(); fxRef = React.createRef(); compRef = React.createRef();
   timers = []; callN = 0;
 
   view() { return this.state.view || ({ 'Home': 'home', 'Character creator': 'creator', 'Courtyard': 'world', 'Call': 'call', 'Body scan': 'scan' })[this.props.screen] || 'home'; }
   componentDidMount() {
     this.alive = true;
     import(new URL('moderation.js', document.baseURI).href).then(m => { this.mod = m; });
+    // the app's backend (accounts, friends, parties, AI companion); only reachable through `npm run dev`
+    import(new URL('backend.js', document.baseURI).href)
+      .then(B => { if (!this.alive) return; this.B = B; this.be = B.createBackend(() => this.onBackend()); this.onBackend(); })
+      .catch(e => { console.warn('[nook] backend unavailable (open the page via npm run dev):', e); this.beFailed = true; this.forceUpdate(); });
     this.iv = setInterval(() => {
       if (!this.alive) return;
       const patch = { now: Date.now() };
@@ -543,6 +637,9 @@ class Component extends DCLogic {
     this.syncTracking();
     const st = this.state, n = st.chat.length, el = this.chatRef.current;
     if (n !== this.chatN) { this.chatN = n; if (el) el.scrollTop = el.scrollHeight; }
+    const cn = st.comp.msgs.length + (st.comp.busy ? 1 : 0), ce = this.compRef.current;
+    if (cn !== this.compN || (st.comp.open && !this.compWasOpen)) { this.compN = cn; if (ce) ce.scrollTop = ce.scrollHeight; }
+    this.compWasOpen = st.comp.open;
     if (st.chatOpen !== this.chatWasOpen) { this.chatWasOpen = st.chatOpen; if (st.chatOpen) { if (el) el.scrollTop = el.scrollHeight; if (this.chatInputRef.current) this.chatInputRef.current.focus(); } }
   }
   componentWillUnmount() {
@@ -844,6 +941,137 @@ class Component extends DCLogic {
   }
   // skip / end call: drop the match and the ring at once
   stopMatch() { if (this.arena) this.arena.reset(); if (this.state.match || this.state.keyGuard) this.setState({ match: null, keyGuard: false }); }
+  /* ---------- accounts, real friends and parties, AI companion (backend.js -> the app's Supabase + /api/companion) ---------- */
+  onBackend() {
+    if (!this.alive || !this.be) return;
+    const s = this.be.state, add = {};
+    // a face for every real friend / party member (made up from their id until profiles store avatars)
+    if (this.nook && this.N) s.friends.map(f => f.userId).concat(s.party ? s.party.members.map(m => m.userId) : [])
+      .forEach(id => { if (!this.state.fthumbs[id] && !add[id]) add[id] = this.nook.thumb(this.lookFor(id)); });
+    this.setState(st => ({ beV: st.beV + 1, fthumbs: Object.keys(add).length ? Object.assign({}, st.fthumbs, add) : st.fthumbs }));
+  }
+  lookFor(id) {
+    const O = this.N.OPTIONS, c = {}; let h = 7;
+    for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    Object.keys(O).forEach((k, i) => { h = (h * 1103515245 + 12345 + i) | 0; c[k] = Math.abs(h >> 4) % O[k].length; });
+    if (c.hairStyle === 6) c.hairStyle = 1;
+    return c;
+  }
+  setAcct(p) { this.setState(s => ({ acct: Object.assign({}, s.acct, p) })); }
+  acctRun(fn) {
+    this.setAcct({ busy: true, msg: '' });
+    return fn().then(r => { this.setAcct({ busy: false, msg: r ? r.message : '', ok: !r || r.ok }); return r; });
+  }
+  doSignIn() { const a = this.state.acct; if (this.be) this.acctRun(() => this.be.signIn(a.email.trim(), a.password)).then(r => r && r.ok && this.setAcct({ password: '' })); }
+  doSignUp() { const a = this.state.acct; if (this.be) this.acctRun(() => this.be.signUp(a.email.trim(), a.password)); }
+  doSaveProfile() { const a = this.state.acct; if (this.be) this.acctRun(() => this.be.saveProfile(a.username.trim(), a.display)); }
+  doSignOut() { if (this.be) this.be.signOut(); this.setAcct({ msg: '' }); }
+  // run a friends/party action and show its message for a few seconds
+  friendAct(p) {
+    return p.then(r => {
+      this.setState({ friendsMsg: r.message }); this.flash(r.message);
+      clearTimeout(this.fmT); this.fmT = setTimeout(() => this.alive && this.setState({ friendsMsg: '' }), 4500);
+      return r;
+    });
+  }
+  sendAddName() {
+    const n = this.state.addName.trim().replace(/^@/, ''); if (!n || !this.be) return;
+    this.friendAct(this.be.addFriend(n)).then(r => { if (r.ok) this.setState({ addName: '' }); });
+  }
+  setComp(p) { this.setState(s => ({ comp: Object.assign({}, s.comp, p) })); }
+  compSay(m) { this.setState(s => ({ comp: Object.assign({}, s.comp, { msgs: s.comp.msgs.concat(m).slice(-60) }) })); }
+  sendCompanion() {
+    const c = this.state.comp, text = c.draft.trim(); if (!text || c.busy) return;
+    if (this.mod && !this.mod.checkMessage(text).ok) { this.setComp({ draft: '' }); this.compSay({ who: 'sys', text: 'Not sent: that message contains hateful language.' }); return; }
+    if (!this.be) { this.setComp({ draft: '' }); this.compSay([{ who: 'you', text }, { who: 'sys', text: 'The companion runs on the app server. Start it with npm run dev and open localhost:5173/nook/.' }]); return; }
+    const history = c.msgs.filter(m => m.who === 'you' || m.who === 'ai').slice(-10).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', text: m.text }));
+    this.setComp({ draft: '', busy: true }); this.compSay({ who: 'you', text });
+    this.be.askCompanion(text, history)
+      .then(r => { this.setComp({ busy: false, mode: r.mode }); this.compSay({ who: 'ai', text: r.reply, players: r.players || [] }); })
+      .catch(e => { this.setComp({ busy: false }); this.compSay({ who: 'sys', text: e.message }); });
+  }
+  accountVals(st, v, url) {
+    const be = this.be, s = be ? be.state : null, a = st.acct, ACT = this.B ? this.B.ACTIVITIES : {};
+    const configured = !!(s && s.configured), user = s ? s.user : null, prof = s ? s.profile : null, ready = !!(user && prof);
+    const online = s ? s.online : new Set(), actLabel = k => ACT[k] ? ACT[k].icon + ' ' + ACT[k].label : 'Party';
+    const btn = (label, pick, primary) => ({ label, pick, bg: primary ? '#5E683C' : '#ECE6D9', fg: primary ? '#F8F4EC' : '#2B2A27' });
+    const row = o => Object.assign({ row: true, head: '', avBg: '#ECE6D9', bg: 'none', emoji: '', status: '', actions: [], dot: '' }, o);
+    const head = t => ({ head: t, row: false });
+
+    // Friends menu rows
+    const rows = [];
+    if (ready) {
+      s.invites.forEach(inv => rows.push(row({ emoji: '🎉', avBg: '#E4E6D2', name: inv.inviterDisplayName + ' invited you', status: actLabel(inv.activity) + ' · ' + inv.memberCount + ' in the party', actions: [btn('Join', () => this.friendAct(be.respondInvite(inv, true)), true), btn('No', () => this.friendAct(be.respondInvite(inv, false)))] })));
+      if (s.party) rows.push(row({ emoji: ACT[s.party.activity] ? ACT[s.party.activity].icon : '🎉', avBg: '#E4E6D2', name: 'Your party · ' + (ACT[s.party.activity] ? ACT[s.party.activity].label : ''), status: s.party.members.map(m => m.userId === user.id ? 'You' : m.displayName).join(', '), actions: [btn('Leave', () => this.friendAct(be.leaveParty()))] }));
+      const incoming = s.friends.filter(f => f.status === 'pending' && f.incoming), outgoing = s.friends.filter(f => f.status === 'pending' && !f.incoming);
+      const accepted = s.friends.filter(f => f.status === 'accepted').sort((x, y) => (online.has(y.userId) - online.has(x.userId)) || x.displayName.localeCompare(y.displayName));
+      if (incoming.length) { rows.push(head('Requests')); incoming.forEach(f => rows.push(row({ bg: url(st.fthumbs[f.userId]), name: f.displayName, status: '@' + f.username + ' wants to be friends', actions: [btn('Accept', () => this.friendAct(be.respond(f, true)), true), btn('Decline', () => this.friendAct(be.respond(f, false)))] }))); }
+      rows.push(head(accepted.length ? 'Friends · ' + accepted.filter(f => online.has(f.userId)).length + ' online' : 'Friends'));
+      if (!accepted.length) rows.push(row({ emoji: '👋', avBg: '#E4E6D2', name: s.loaded ? 'No friends yet' : 'Loading…', status: 'Add someone by their username above' }));
+      accepted.forEach(f => {
+        const on = online.has(f.userId), inParty = !!(s.party && s.party.members.some(m => m.userId === f.userId));
+        rows.push(row({ bg: url(st.fthumbs[f.userId]), name: f.displayName, status: '@' + f.username + ' · ' + (inParty ? 'in your party' : on ? 'online' : 'offline'), dot: on ? '#5E683C' : '#B8B0A2', actions: inParty ? [] : [btn('Invite', () => this.friendAct(be.invite(f)))] }));
+      });
+      outgoing.forEach(f => rows.push(row({ bg: url(st.fthumbs[f.userId]), name: f.displayName, status: '@' + f.username + ' · request sent', actions: [btn('Cancel', () => this.friendAct(be.remove(f)))] })));
+    } else {
+      rows.push(row({ emoji: '🔑', avBg: '#E4E6D2', name: 'Add real friends', status: user ? 'Pick a username to start' : 'Sign in for friends and parties', actions: [btn(user ? 'Set up' : 'Sign in', () => this.setState({ accountOpen: true, menu: null }), true)] }));
+    }
+    if (st.friendsAdded.length) { rows.push(head('Met on calls')); st.friendsAdded.forEach(f => { const fc = BY[f.code]; rows.push(row({ bg: url(st.fthumbs[f.id]), name: f.name, status: (fc ? fc.flag + ' ' : '') + f.city + ' · demo match' })); }); }
+    if (!ready) { const PR = this.N ? this.N.PRESETS : []; rows.push(head('Examples')); PR.slice(1).forEach((p, i) => rows.push(row({ bg: url(st.thumbs[i + 1]), name: p.name, status: i < 3 ? 'Online' : 'Offline', dot: i < 3 ? '#5E683C' : '#B8B0A2' }))); }
+    const badge = ready ? s.friends.filter(f => f.status === 'pending' && f.incoming).length + s.invites.length : st.friendsAdded.length;
+
+    // party strip: real party members + people invited on demo calls
+    const realOthers = ready && s.party ? s.party.members.filter(m => m.userId !== user.id) : [];
+    const faces = realOthers.map(m => ({ bg: url(st.fthumbs[m.userId]) })).concat(st.party.map(f => ({ bg: url(st.fthumbs[f.id]) })));
+    const names = realOthers.map(m => m.displayName).concat(st.party.map(f => f.name));
+
+    // companion
+    const c = st.comp;
+    const CM = { you: ['flex-end', '#5E683C', '#F8F4EC', '16px 16px 4px 16px', "500 15px 'Figtree',sans-serif"], ai: ['flex-start', '#ECE6D9', '#2B2A27', '16px 16px 16px 4px', "500 15px 'Figtree',sans-serif"], sys: ['center', '#F4E4DA', '#8A4A34', '12px', "600 13px 'Figtree',sans-serif"] };
+    const greeting = { who: 'ai', text: "Hi! I'm your Nook companion. Ask me anything, or ask me to find people to meet, like \"someone in Manchester who studies maths\"." };
+    const inv = ready && s.invites.length ? s.invites[0] : null;
+
+    return {
+      // name pill + account panel
+      myName: prof ? prof.displayName : user ? 'Set up profile' : 'Sign in', acctDot: ready ? '#5E683C' : '#C9C2B5',
+      accountOpen: st.accountOpen && v === 'home', toggleAccount: () => this.setState(s2 => ({ accountOpen: !s2.accountOpen, pickOpen: false, comp: Object.assign({}, s2.comp, { open: false }) })), closeAccount: () => this.setState({ accountOpen: false }),
+      acctTitle: !configured ? 'Accounts' : !user ? 'Sign in to Nook' : !prof ? 'Pick a username' : prof.displayName,
+      acctSub: this.beFailed || !be ? 'Accounts, friends and the AI companion run on the app server. Start it with npm run dev and open localhost:5173/nook/.'
+        : !configured ? 'Accounts are not set up on this computer yet. Put your team\'s Supabase keys in a .env file in the repo (see .env.example) and restart npm run dev.'
+        : !user ? 'Friends, parties and the AI companion need an account.' : !prof ? 'Friends add you by your username.' : '@' + prof.username + (user.email ? ' · ' + user.email : ''),
+      acctShowLogin: configured && !user, acctShowProfile: configured && !!user && !prof, acctShowSignOut: configured && !!user,
+      acctEmail: a.email, acctPassword: a.password, acctUsername: a.username, acctDisplay: a.display, acctBusy: a.busy,
+      onAcctEmail: e => this.setAcct({ email: e.target.value }), onAcctPassword: e => this.setAcct({ password: e.target.value }),
+      onAcctUsername: e => this.setAcct({ username: e.target.value.slice(0, 24) }), onAcctDisplay: e => this.setAcct({ display: e.target.value.slice(0, 40) }),
+      onAcctKey: e => { if (e.key === 'Enter') this.doSignIn(); }, onProfileKey: e => { if (e.key === 'Enter') this.doSaveProfile(); },
+      doSignIn: () => this.doSignIn(), doSignUp: () => this.doSignUp(), doSaveProfile: () => this.doSaveProfile(), doSignOut: () => this.doSignOut(),
+      acctMsg: a.msg, acctMsgColor: a.ok ? '#5E683C' : '#B9694C',
+      // friends menu
+      friendRows: rows, hasNewFriends: badge > 0, friendCount: badge,
+      canAddByName: ready, addName: st.addName, onAddName: e => this.setState({ addName: e.target.value.slice(0, 25) }), onAddKey: e => { if (e.key === 'Enter') this.sendAddName(); },
+      sendAddName: () => this.sendAddName(), addOp: st.addName.trim() ? 1 : .5, friendsNote: st.friendsMsg || (s && s.error) || '',
+      // party
+      showParty: faces.length > 0 && (v === 'home' || (v === 'call' && !st.match)), partyFaces: faces.slice(0, 4), partyCount: faces.length + 1, partyNames: 'Your party: you, ' + names.join(', '),
+      inviteShow: !!inv && inv.inviteId !== st.skippedInvite && v === 'home', inviteText: inv ? inv.inviterDisplayName + ' invited you to their party · ' + actLabel(inv.activity) : '',
+      inviteJoin: () => inv && this.friendAct(be.respondInvite(inv, true)), inviteSkip: () => inv && this.setState({ skippedInvite: inv.inviteId }),
+      // companion
+      compOpen: c.open && v === 'home', compRef: this.compRef,
+      toggleCompanion: () => this.setState(s2 => ({ comp: Object.assign({}, s2.comp, { open: !s2.comp.open }), accountOpen: false, pickOpen: false })),
+      compBtnBg: c.open ? '#5E683C' : '#FBF8F1', compBtnFg: c.open ? '#F8F4EC' : '#2B2A27',
+      compSub: c.mode === 'dev' ? 'Local dev mode: replies are not from the AI' : 'AI · chat, or find people to meet',
+      compMsgs: [greeting].concat(c.msgs).map(m => {
+        const k = CM[m.who] || CM.sys;
+        return { text: m.text, align: k[0], bg: k[1], fg: k[2], radius: k[3], font: k[4], players: (m.players || []).map(p => ({
+          name: p.displayName + ' @' + p.username,
+          line: [p.city, p.university, p.subject].filter(Boolean).join(' · ') || (p.interests || []).map(t => '#' + t).join(' ') || 'Nook player',
+          add: () => ready ? this.friendAct(be.addFriend(p.username)).then(r => this.compSay({ who: 'sys', text: r.message })) : this.compSay({ who: 'sys', text: 'Sign in to add friends.' })
+        })) };
+      }),
+      compBusy: c.busy, compDraft: c.draft, onCompDraft: e => this.setComp({ draft: e.target.value.slice(0, 500) }), onCompKey: e => { if (e.key === 'Enter') this.sendCompanion(); },
+      sendCompanion: () => this.sendCompanion(), compSendOp: c.draft.trim() && !c.busy ? 1 : .45,
+      compPlaceholder: ready ? 'Ask the companion…' : 'Ask the companion (sign in first)…'
+    };
+  }
   // what the options menu, the party strip and the boxing HUD show
   callExtras(st, v, p, isFriend, stageX, url) {
     const m = st.match, live = !!p, inArena = v === 'call' && !!m;
@@ -947,7 +1175,7 @@ class Component extends DCLogic {
         const menu = st.menu || null, open = m => () => this.setState({ menu: m, pickOpen: false }), it = (label, pick, primary) => ({ label, pick, bg: primary ? '#5E683C' : '#FBF8F1', fg: primary ? '#F8F4EC' : '#2B2A27' }), no = () => {};
         const ITEMS = {
           call: [it('Start a call', () => this.startCall(), true), it('Join with a code', no)],
-          friends: [it('Add a friend', no)],
+          friends: [],
           world: [it('Join the world', () => this.joinWorld(), true), it('Invite friends', () => this.wf && this.wf.openInvite())],
           settings: [it('Country: ' + me.flag + ' ' + me.name, () => this.setState({ pickOpen: true })), it('Camera: ' + (st.camOn ? 'On' : 'Off'), () => this.setState(s => ({ camOn: !s.camOn }))), it('Island motion: ' + (st.orbitOff ? 'Off' : 'On'), () => this.setState(s => ({ orbitOff: !s.orbitOff })))]
         };
@@ -1012,6 +1240,7 @@ class Component extends DCLogic {
       sendChat: () => this.sendChat(), sendOp: !live || locked || !st.chatDraft.trim() ? .45 : 1,
 
       ...this.callExtras(st, v, p, isFriend, stageX, url),
+      ...this.accountVals(st, v, url),
       hasToast: !!st.toast, toast: st.toast, toastX: v === 'call' && !st.match ? stageX : '50%', toastBottom: v === 'call' ? 100 : 28
     };
   }

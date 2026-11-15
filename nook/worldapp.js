@@ -97,21 +97,22 @@ const CSS = `
 .nw-tag{pointer-events:auto;cursor:pointer;transition:background .2s ease,color .2s ease}
 .nw-tag--near{background:#2B2A27;color:#F8F4EC}
 .nw-tag--near:after{content:'  ›';opacity:.8}
-.nw-mini{display:flex;align-items:center;gap:10px;padding:2px 4px 8px}
-.nw-mini .nw-av{width:44px;height:44px}
-.nw-mini span{flex:1;min-width:0;text-align:left}
-.nw-mini strong{display:block;font:700 15px/1.2 'Figtree',sans-serif}
-.nw-mini small{display:block;font:500 12px/1.3 'Figtree',sans-serif;color:#6B665E}
-.nw-contact{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 6px 10px}
-.nw-contact .nw-av{width:96px;height:96px;border:4px solid #FBF8F1;box-shadow:0 8px 22px rgba(43,42,39,.16)}
-.nw-contact h3{margin:12px 0 2px;font:700 23px/1.15 'Figtree',sans-serif;letter-spacing:-.02em}
-.nw-contact p{margin:0;font:500 13px/1.4 'Figtree',sans-serif;color:#6B665E}
-.nw-near{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 11px;border-radius:999px;background:#E4E6D2;color:#5E683C;font:600 12px 'Figtree',sans-serif}
-.nw-near:before{content:'';width:7px;height:7px;border-radius:50%;background:#5E683C}
-.nw button.nw-act{width:100%;height:56px;margin-top:8px;display:flex;align-items:center;gap:12px;padding:0 14px;box-sizing:border-box;border-radius:18px;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);font:600 16px 'Figtree',sans-serif;text-align:left;transition:transform .15s ease}
-.nw button.nw-act:hover{transform:translateY(-1px)}
-.nw button.nw-act.go{background:#5E683C;color:#F8F4EC;border-color:transparent;box-shadow:0 8px 20px rgba(60,66,38,.22)}
-.nw-dots{display:flex;gap:6px;margin:14px 0 4px}
+.nw-pop{position:absolute;left:24px;top:50%;width:min(300px,calc(100vw - 28px));padding:12px;box-sizing:border-box;background:#FBF8F1;border:1px solid rgba(43,42,39,.07);border-radius:24px;box-shadow:0 16px 40px rgba(43,42,39,.2);pointer-events:auto;transform:translateY(-50%);transition:transform .28s cubic-bezier(.2,.9,.3,1.1),opacity .2s ease}
+.nw-pop.off{transform:translate(-30px,-50%);opacity:0;pointer-events:none}
+.nw.game .nw-pop{display:none}
+.nw-pop-head{display:flex;align-items:center;gap:12px;padding:2px 2px 8px}
+.nw-pop-head .nw-av{width:52px;height:52px}
+.nw-pop-head span{flex:1;min-width:0}
+.nw-pop-head strong{display:block;font:700 18px/1.2 'Figtree',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nw-pop-head small{display:block;margin-top:2px;font:500 13px/1.3 'Figtree',sans-serif;color:#6B665E}
+.nw button.nw-pop-x{flex:none;align-self:flex-start;display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:#ECE6D9;border-radius:11px}
+.nw-pop-label{padding:8px 4px 6px;font:700 11px 'Figtree',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6B665E}
+.nw-pop .nw-game{margin-bottom:2px}
+.nw-pop-wait{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 2px;text-align:center}
+.nw-pop-wait b{font:700 16px 'Figtree',sans-serif}
+.nw-pop-wait small{font:500 13px 'Figtree',sans-serif;color:#6B665E}
+.nw button.nw-pop-no{margin-top:10px;width:100%;height:44px;border-radius:14px;background:#ECE6D9;font:600 15px 'Figtree',sans-serif}
+.nw-dots{display:flex;gap:6px;margin:6px 0 4px}
 .nw-dots i{width:9px;height:9px;border-radius:50%;background:#5E683C;animation:nwDot 1s ease-in-out infinite}
 .nw-dots i:nth-child(2){animation-delay:.15s}.nw-dots i:nth-child(3){animation-delay:.3s}
 @keyframes nwDot{50%{transform:translateY(-6px);opacity:.4}}
@@ -140,14 +141,13 @@ const CSS = `
 .nw-chip.live{background:#5E683C}
 .nw-punch{pointer-events:auto}
 .nw-quit{position:absolute;right:24px;bottom:22px;pointer-events:auto}
-@media (max-width:620px){.nw-quit{right:14px}.nw-ctl{bottom:74px;max-width:calc(100vw - 28px)}.nw-top{left:14px;right:14px}.nw-pill{padding:0 12px}.nw-here span,.nw-faces,.nw-row>svg{display:none}.nw-inv{right:16px}}
+@media (max-width:620px){.nw-pop{left:14px;top:auto;bottom:150px;transform:none}.nw-pop.off{transform:translateX(-30px)}.nw-quit{right:14px}.nw-ctl{bottom:74px;max-width:calc(100vw - 28px)}.nw-top{left:14px;right:14px}.nw-pill{padding:0 12px}.nw-here span,.nw-faces,.nw-row>svg{display:none}.nw-inv{right:16px}}
 `;
 
 const ICON = d => '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
 const I = {
   back: '<path d="M15 6l-6 6 6 6"/>', close: '<path d="M6 6l12 12M18 6L6 18"/>',
   invite: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5"/><path d="M19 8v6M16 11h6"/>',
-  duel: '<path d="M13 2L4 14h6l-1 8 9-12h-6z"/>', pad: '<rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7 10.5v3M5.5 12h3M15.5 11h.01M18 13h.01"/>',
   glove: '<path d="M7 11V7a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H9a2 2 0 0 1-2-2z"/><path d="M7 11H5.5a2 2 0 0 0 0 4H7M8 17v4h8v-4"/>',
   mark: '<svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"/><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"/><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"/></svg>'
 };
@@ -227,7 +227,7 @@ export function createWorldApp(o) {
     if (inWorld != null) pr.inWorld = !!inWorld;
     return pr;
   }
-  function drop(id) { const pr = peers.get(id); if (!pr) return; if (match && match.opp.id === id) games.gone(); if (contact && contact.id === id) setPhone(false); if (pr.thumb) URL.revokeObjectURL(pr.thumb); peers.delete(id); sent.delete(id); world.remove(id); refresh(); }
+  function drop(id) { const pr = peers.get(id); if (!pr) return; if (match && match.opp.id === id) games.gone(); if (contact && contact.id === id) closePop(); if (pr.thumb) URL.revokeObjectURL(pr.thumb); peers.delete(id); sent.delete(id); world.remove(id); refresh(); }
   function onNet(e) {
     const m = e.data; if (!m || typeof m !== 'object' || typeof m.from !== 'string' || !m.from) return;
     if (m.from === uid) { if (m.t === 'hello') { uid = rid(); uname = ''; SS.set('nook.uid', uid); SS.set('nook.uname', ''); hello(true); } return; }   // a duplicated tab took our id: get a new one
@@ -319,7 +319,6 @@ export function createWorldApp(o) {
   function setPhone(open) {
     phone.classList.toggle('off', !open); phoneBtn.classList.toggle('off', open); phoneTip.classList.add('off');
     if (open) { clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); drawGames(); }
-    else { cancelAsk(); if (contact) { world.hold(contact.id, 0); contact = null; } }   // putting the phone away lets them walk off again
   }
   phoneBtn.onclick = () => setPhone(true); homebar.onclick = () => setPhone(false);
 
@@ -346,39 +345,33 @@ export function createWorldApp(o) {
     const b = el('button', 'nw-game'), ico = html('i', 'nw-ico', ICON(g.icon)), tx = el('span'); b.type = 'button'; ico.style.background = g.color;
     tx.append(el('strong', null, g.name), el('small', null, g.line)); b.append(ico, tx); if (g.soon) b.appendChild(el('i', 'nw-soon', 'Soon')); b.onclick = pick; return b;
   };
-  // the phone when you click someone standing near you
+  // The menu on the left when you click someone standing near you: who they are, and the games you can start with them.
+  const pop = el('div', 'nw-pop off'); hud.appendChild(pop);
+  const PICKS = [
+    { id: 'boxing', mode: '1v1', group: 'Challenge to a 1v1', name: 'Boxing', line: 'Your own arms throw the punches', color: '#C2452D', icon: I.glove },
+    { id: 'dance', mode: 'together', group: 'Play together', name: 'Dance floor', line: 'Dance together, your body leads', color: '#5C5E78', icon: GAMES[1].icon }
+  ];
   function openContact(id) {
     const c = who(id); if (!c || match || games.active()) return;
-    if (pending) cancelAsk(); if (contact && contact.id !== id) world.hold(contact.id, 0);
-    contact = c; world.hold(id, 90); phone.classList.remove('off'); phoneBtn.classList.add('off'); phoneTip.classList.add('off');
-    clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); drawContact();
+    if (contact && contact.id !== id) closePop();
+    contact = c; world.hold(id, 90); drawPop(); pop.classList.remove('off');
   }
-  function drawContact() {
-    const c = contact; if (!c) return drawGames(); body.textContent = '';
-    const card = el('div', 'nw-contact'), a1 = html('button', 'nw-act go', ICON(I.duel) + '<span>Challenge to a 1v1</span>'), a2 = html('button', 'nw-act', ICON(I.pad) + '<span>Play a game together</span>');
-    card.append(face('nw-av', c.thumb), el('h3', null, label(c)), el('p', null, c.place), el('div', 'nw-near', 'Right next to you'));
-    a1.type = a2.type = 'button'; a1.onclick = () => drawPick('1v1'); a2.onclick = () => drawPick('together');
-    body.append(card, a1, a2); body.scrollTop = 0;
+  function closePop() { cancelAsk(); if (contact) world.hold(contact.id, 0); contact = null; pop.classList.add('off'); }
+  function drawPop() {
+    const c = contact; if (!c) return; pop.textContent = '';
+    const head = el('div', 'nw-pop-head'), tx = el('span'), x = html('button', 'nw-pop-x', ICON(I.close)); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.onclick = closePop;
+    tx.append(el('strong', null, label(c)), el('small', null, c.place)); head.append(face('nw-av', c.thumb), tx, x); pop.appendChild(head);
+    if (pending) {   // you asked: wait for their answer
+      const wait = el('div', 'nw-pop-wait'), no = el('button', 'nw-pop-no', 'Cancel'); no.type = 'button'; no.onclick = () => { cancelAsk(); drawPop(); };
+      wait.append(html('div', 'nw-dots', '<i></i><i></i><i></i>'), el('b', null, 'Asking ' + c.name + '…'), el('small', null, MATCHES[pending.game].name + ' starts when they accept.'), no); pop.appendChild(wait); return;
+    }
+    PICKS.forEach(g => pop.append(el('div', 'nw-pop-label', g.group), gameRow(g, () => ask(g.id, g.mode))));
   }
-  const mini = c => { const h = el('div', 'nw-mini'), tx = el('span'); tx.append(el('strong', null, label(c)), el('small', null, c.place)); h.append(face('nw-av', c.thumb), tx); return h; };
-  function drawPick(mode) {
-    const c = contact; if (!c) return; body.textContent = '';
-    const back = html('button', 'nw-back', ICON(I.back) + '<span>Back</span>'); back.type = 'button'; back.onclick = drawContact;
-    body.append(back, mini(c), el('div', 'nw-h', mode === '1v1' ? '1v1' : 'Play together'), el('div', 'nw-sub', (mode === '1v1' ? 'Pick what to fight over. ' : 'Pick something to do together. ') + c.name + ' has to accept.'));
-    const ready = mode === '1v1' ? [{ id: 'boxing', name: 'Boxing', line: 'Your own arms throw the punches', color: '#C2452D', icon: I.glove }] : [{ id: 'dance', name: 'Dance floor', line: 'Dance together, your body leads', color: '#5C5E78', icon: GAMES[1].icon }];
-    ready.forEach(g => body.appendChild(gameRow(g, () => ask(g.id, mode))));
-    (mode === '1v1' ? [GAMES[1]] : [GAMES[0], GAMES[2], GAMES[3], GAMES[4]]).forEach(g => body.appendChild(gameRow(Object.assign({ soon: true }, g), () => drawGame(g))));
-    body.scrollTop = 0;
-  }
-  function drawWaiting(c, gameName) {
-    body.textContent = '';
-    const card = el('div', 'nw-contact'), dots = html('div', 'nw-dots', '<i></i><i></i><i></i>'), no = el('button', 'nw-act', 'Cancel'); no.type = 'button'; no.style.justifyContent = 'center';
-    card.append(face('nw-av', c.thumb), el('h3', null, 'Asking ' + c.name), el('p', null, gameName + ' starts as soon as they accept.'), dots);
-    no.onclick = () => { cancelAsk(); drawContact(); }; body.append(card, no); body.scrollTop = 0;
-  }
+  // walk away and the menu closes
+  const nearCheck = setInterval(() => { if (!contact || pending || !active) return; const a = world.me(), b = world.person(contact.id); if (!a || !b || Math.hypot(a.x - b.x, a.z - b.z) > 3.4) closePop(); }, 600);
   function ask(game, mode) {
     const c = contact; if (!c || pending || match) return;
-    pending = { id: c.id, kind: c.kind, game, n: rid() }; world.hold(c.id, 90); drawWaiting(c, MATCHES[game].name);
+    pending = { id: c.id, kind: c.kind, game, n: rid() }; world.hold(c.id, 90); drawPop();
     if (c.kind === 'peer') post({ t: 'game', k: 'ask', to: c.id, game, mode, n: pending.n, p: myCard() });
     else { const n = pending.n; later(() => { if (pending && pending.n === n) accepted(null); }, 1300 + Math.random() * 1400); }   // simulated people always say yes
   }
@@ -387,7 +380,7 @@ export function createWorldApp(o) {
   // Both said yes: the island turns into the arena (worldgame.js) and the screen switches to the match.
   function startMatch(q) {
     const opp = who(q.oppId), sp = opp && active ? games.start(q) : null; if (!sp) return null;
-    match = { opp, game: q.game, remote: !!q.remote }; pending = null; setPhone(false); closeInvite(); hud.classList.add('game');
+    match = { opp, game: q.game, remote: !!q.remote }; pending = null; closePop(); setPhone(false); closeInvite(); hud.classList.add('game');
     const mk = (side, name, thumb, red) => { side.textContent = ''; side.classList.toggle('red', red); const d = el('div'), hp = el('div', 'nw-hp'); hp.appendChild(el('u')); d.append(el('b', null, name), hp); side.append(face('nw-av', thumb), d); };
     mk(sideMe, 'You', o.profile().thumb, !!q.role); mk(sideThem, label(opp), opp.thumb, !q.role);   // blue for who asked, red for who accepted
     if (o.onMatch) o.onMatch(true);   // turns the camera on for body tracking
@@ -433,7 +426,7 @@ export function createWorldApp(o) {
       asks.set(String(m.n), close);
     } else if (m.k === 'cancel') { const c = asks.get(String(m.n)); if (c) { asks.delete(String(m.n)); c(); } }
     else if (m.k === 'yes') { if (pending && pending.n === m.n && pending.id === pr.id) accepted(m.spec); }
-    else if (m.k === 'no') { if (pending && pending.n === m.n) { pending = null; note({ thumb: pr.thumb, parts: [{ b: pr.name }, ' can’t play right now'] }); if (contact) drawContact(); } }
+    else if (m.k === 'no') { if (pending && pending.n === m.n) { pending = null; note({ thumb: pr.thumb, parts: [{ b: pr.name }, ' can’t play right now'] }); drawPop(); } }
     else if (match && match.remote && match.opp.id === pr.id) { if (m.k === 'pose') games.poseIn(m.a); else if (m.k === 'hit') games.hitIn(m); else if (m.k === 'end') games.gone(); }
   }
 
@@ -454,7 +447,7 @@ export function createWorldApp(o) {
   joy.addEventListener('pointermove', e => { if (e.pointerId === jid) stick(e); });
   const unstick = e => { if (e.pointerId !== jid) return; jid = null; knob.style.transform = ''; world.setJoy(0, 0); };
   joy.addEventListener('pointerup', unstick); joy.addEventListener('pointercancel', unstick);
-  const onEsc = e => { if (e.key !== 'Escape') return; if (invWrap.classList.contains('on')) closeInvite(); else if (active) setPhone(false); };
+  const onEsc = e => { if (e.key !== 'Escape') return; if (invWrap.classList.contains('on')) closeInvite(); else if (contact) closePop(); else if (active) setPhone(false); };
   window.addEventListener('keydown', onEsc);
 
   const api = {
@@ -467,7 +460,7 @@ export function createWorldApp(o) {
       games.prewarm(); hud.classList.add('on'); hint.classList.remove('gone'); setPhone(false); phoneTip.classList.remove('off'); later(() => phoneTip.classList.add('off'), 7000);
       hello(false); refresh();
     },
-    leave() { if (!active) return; if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.abort(); endMatch(null); active = false; world.leave(); hud.classList.remove('on'); closeInvite(); setPhone(false); hello(false); },
+    leave() { if (!active) return; if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.abort(); endMatch(null); closePop(); active = false; world.leave(); hud.classList.remove('on'); closeInvite(); setPhone(false); hello(false); },
     openInvite,
     // for the World page on the home screen
     lobby() {
@@ -476,7 +469,7 @@ export function createWorldApp(o) {
     },
     dispose() {
       api.leave(); clearInterval(beat); clearInterval(pulse); timers.forEach(clearTimeout); post({ t: 'bye' }); if (bc) bc.close();
-      window.removeEventListener('pagehide', onHide); window.removeEventListener('keydown', onEsc); window.removeEventListener('keydown', onGameKey); clearInterval(barsTimer);
+      window.removeEventListener('pagehide', onHide); window.removeEventListener('keydown', onEsc); window.removeEventListener('keydown', onGameKey); clearInterval(barsTimer); clearInterval(nearCheck);
       nook.setWorldTick(null); world.dispose(); hud.remove(); invWrap.remove(); notes.remove();
     }
   };

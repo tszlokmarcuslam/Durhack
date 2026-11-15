@@ -105,7 +105,7 @@ export function createWorld(T, kit, canvas, tagLayer, cb = {}) {
       v3.set(p.x, p.y, p.z).project(cam); const fx = (v3.x * .5 + .5) * W, fy = (-v3.y * .5 + .5) * H, z = v3.z;
       if (z > 1 || z < -1) return;
       v3.set(p.x, p.y + 1.85 * S, p.z).project(cam); const hy = (-v3.y * .5 + .5) * H;
-      if (Math.abs(cx - fx) < Math.max(14, (fy - hy) * .3) && cy > hy - 8 && cy < fy + 8 && z < bestZ) { best = p; bestZ = z; }
+      if (Math.abs(cx - fx) < Math.max(22, (fy - hy) * .45) && cy > hy - 14 && cy < fy + 10 && z < bestZ) { best = p; bestZ = z; }
     });
     return best;
   }
@@ -215,7 +215,7 @@ export function createWorld(T, kit, canvas, tagLayer, cb = {}) {
   }
 
   /* ---------- input ---------- */
-  const onDown = e => { if (!active) return; canvas.setPointerCapture(e.pointerId); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, yaw: view.yaw, el: view.el, moved: false, t: performance.now() }; canvas.style.cursor = 'grabbing'; };
+  const onDown = e => { if (!active) return; try { canvas.setPointerCapture(e.pointerId); } catch (er) {} drag = { id: e.pointerId, x: e.clientX, y: e.clientY, yaw: view.yaw, el: view.el, moved: false, t: performance.now() }; canvas.style.cursor = 'grabbing'; };
   const onMove = e => {
     if (!drag && active && !game && e.pointerType === 'mouse') { const r = canvas.getBoundingClientRect(); canvas.style.cursor = personAt(e.clientX - r.left, e.clientY - r.top) ? 'pointer' : 'grab'; }
     if (!drag || e.pointerId !== drag.id) return;
