@@ -26,11 +26,38 @@ Opened from any other static server the page still works, but those three show a
 | --- | --- |
 | `index.html` | All screens: home, Body scan, call, boxing HUD, World. Uses the design runtime in `support.js`. |
 | `nook3d.js` | three.js scenes: home island, avatar builder, call room, searching globe. |
-| `tracking.js` | Webcam tracking with MediaPipe (face + full body). The picture stays in the browser. |
+| `tracking.js` | Webcam tracking with MediaPipe (face + full body, plus hands only during rock paper scissors). The picture stays in the browser. |
+| `rps.js` | Rock paper scissors in World: reads fist / open hand / two fingers from the hand points, runs the rounds (first to 2, 3 or 5). Tests: `npx vitest run nook/rps.test.mjs`. |
+| `moves.js` | World boxing rules (jab beats standing still, a dodge beats a jab, a hook catches a dodge to its side), reading dodges and punches from the camera, and the plank's whole-body check. Tests: `npx vitest run nook/moves.test.mjs`. |
+| `fpv.js` | First-person view for World boxing and rock paper scissors: the drone-style camera move into your avatar's eyes and back out. |
 | `arena.js` | 1v1 boxing in a call: Matrix-style dissolve of the room into a ring, punches, guard, KO. |
 | `moderation.js` | Chat filter that blocks hateful language (slurs, hate phrases, l33t/spaced variants). |
 | `backend.js` | Accounts, friends, parties and who's online (same Supabase functions as the React app) and the AI companion. |
 | `callnet.js` | Real random calls: online count, matchmaking lobby, call rooms, live pose streaming, peer-to-peer voice. |
+| `glass.js` | Liquid Glass buttons: the bent, colour-split look behind every `.lg` element (Chrome), frosted glass elsewhere. |
+| `world.js`, `worldapp.js`, `worldgame.js` | The walkable island World and its games. |
+
+## Accounts, tags and Google sign-in
+
+Tap **Sign in** (top right) and choose **Continue with Google**, or use an email and password.
+The first time anyone signs in, they get a personal tag made from their name, like `@damon_4821`.
+Tapping the tag (in the account panel, or under **Friends**) copies it. Friends add each other by pasting a tag
+into **Friends → Add a friend by tag**. Capitals and a leading `@` don't matter.
+
+Google sign-in needs a one-time setup in Supabase and Google Cloud:
+
+1. In `.env` set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API), then restart `npm run dev`.
+   Run `supabase/schema.sql` and the files in `supabase/migrations/` in the SQL editor if this project doesn't have them yet.
+2. In Google Cloud Console → APIs & Services:
+   - set up the **OAuth consent screen** (External). While it is in Testing, add each teammate as a test user, or publish it.
+     Name, email and photo need no Google review.
+   - create **Credentials → OAuth client ID → Web application**:
+     - Authorised JavaScript origins: `http://localhost:5173` (plus the deployed site's address)
+     - Authorised redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+3. In Supabase → Authentication → Sign In / Providers → **Google**: switch it on and paste the client ID and secret.
+4. In Supabase → Authentication → URL Configuration → Redirect URLs, add `http://localhost:5173/**` (and the deployed site, for example `https://your-site.vercel.app/**`).
+
+Until step 3 is done, the Google button says Google sign-in isn't switched on yet. Email sign-in still works.
 
 ## Real calls (like Omegle, with 3D avatars)
 
@@ -48,9 +75,7 @@ compatible person anywhere (the region chips filter both ways). No account is ne
 Everyone must use the same Supabase project (the keys in `.env`) to find each other: either all run the app
 locally with the same keys, or open the same deployed site. Without keys, calls run in **test mode** and only
 match tabs of the same browser. When nobody else is searching, "Practise with a bot" starts the old simulated match.
-| `world.js`, `worldapp.js`, `worldgame.js` | The walkable island World and its games. |
 
 ## Notes
 
-- Call matches, replies, challenges and party invites are **simulated** until there is a matching server.
-- The chat filter runs in the browser; a server must run the same check before relaying messages.
+- The chat filter runs in the browser on both ends of a call; messages are not checked by a server.
