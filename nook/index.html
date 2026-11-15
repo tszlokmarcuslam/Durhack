@@ -1314,7 +1314,7 @@ class Component extends DCLogic {
     view: null, cfg: LS.get('nook.avatar', null) || { skin: 1, face: 0, eyes: 0, eyeColor: 0, brows: 1, mouth: 0, hairStyle: 2, hairColor: 0, build: 1, height: 1, topColor: 0, bottomColor: 0, shoes: 0 }, tab: 'Face', thumbs: [], pfp: '', msgs: [], nearby: [], friendsOpen: false, draft: '', camOn: false,
     me: LS.get('nook.country', null) || guessCountry(), region: 'Anywhere', theme: ['dark', 'light'].includes(LS.get('nook.theme', 'auto')) ? LS.get('nook.theme', 'auto') : 'auto', worlds: (LS.get('nook.worlds', []) || []).filter(w => w && typeof w.id === 'string'), worldSpec: null, make: null, pickOpen: false, now: Date.now(), online: 1200 + Math.floor(Math.random() * 300),
     call: null, chatOpen: false, chat: [], chatDraft: '', unread: 0, strikes: 0, lockUntil: 0,
-    friendsAdded: LS.get('nook.friends', []), favs: LS.get('nook.favs', []), hiddenEx: LS.get('nook.hiddenEx', []), friendsEdit: false, sure: null, fthumbs: {}, toast: '', track: 'off', camErr: '', musicOn: LS.get('nook.music', true) !== false, sfxOn: LS.get('nook.sfx', true) !== false,
+    friendsAdded: (LS.get('nook.friends', []) || []).filter(f => f && String(f.id).startsWith('net-')),   /* only real people: no practice-bot friends (owner, 2026-11-15) */ favs: LS.get('nook.favs', []), hiddenEx: LS.get('nook.hiddenEx', []), friendsEdit: false, sure: null, fthumbs: {}, toast: '', track: 'off', camErr: '', musicOn: LS.get('nook.music', true) !== false, sfxOn: LS.get('nook.sfx', true) !== false,
     // call extras: options menu on the other person, party, 1v1 boxing
     party: LS.get('nook.party', []), partyPending: null, peerMenu: null, challenge: null, match: null, hintUntil: 0, keyGuard: false,
     // accounts, real friends and parties, AI companion (backend.js, served by the app's dev server)
@@ -1461,12 +1461,11 @@ class Component extends DCLogic {
       if (!this.alive) return;
       this.wf = W.createWorldApp({
         T, nook: this.nook, canvas: this.worldRef.current, options: O, crowd, net: () => this.net,   // voice on the island uses the call network (callnet.js)
-        sfx: n => { if (!this.snd) return; if (n.startsWith('jingle-')) this.snd.jingle(n.slice(7)); else this.snd.play(n); },
+        sfx: n => { if (!this.snd) return; if (n.startsWith('jingle-')) this.snd.jingle(n.slice(7)); else if (n.startsWith('note:')) this.snd.note(+n.slice(5)); else if (n === 'thud') this.snd.thud(); else this.snd.play(n); },
         profile: () => { const me = BY[this.state.me] || BY.GB; return { flag: me.flag, names: me.names, cfg: this.state.cfg, thumb: this.state.pfp }; },
         friends: () => {
           const st = this.state;
-          return st.friendsAdded.map(f => { const fc = BY[f.code]; return { id: f.id, name: f.name, flag: fc ? fc.flag : '', sub: (fc ? fc.flag + ' ' : '') + f.city, thumb: st.fthumbs[f.id], online: true, cfg: f.cfg }; })
-            .concat(this.N.PRESETS.slice(1).map((p, i) => ({ id: 'demo-' + p.name, name: p.name, flag: '', sub: i < 3 ? 'Online' : 'Offline', thumb: st.thumbs[i + 1], online: i < 3, cfg: p })));
+          return st.friendsAdded.map(f => { const fc = BY[f.code]; return { id: f.id, name: f.name, flag: fc ? fc.flag : '', sub: (fc ? fc.flag + ' ' : '') + f.city, thumb: st.fthumbs[f.id], online: true, cfg: f.cfg }; });   // real friends only, no made-up examples
         },
         onEnter: w => this.enterWorld(w),
         onPetEvent: (kind, ctx) => { if (this.bot && this.bot.react) this.bot.react(kind, ctx); },   // the pet robot comments on the match
@@ -1628,7 +1627,7 @@ class Component extends DCLogic {
   syncSound() {
     const s = this.snd, st = this.state; if (!s) return;
     const v = this.view(); s.ring(!!(st.ringIn || st.ringOut));
-    s.duck(v === 'call' || (v === 'world' && !!(this.wf && this.wf.talking && this.wf.talking())));
+    s.duck(v === 'call' || (v === 'world' && !!(this.wf && ((this.wf.talking && this.wf.talking()) || (this.wf.matchGame && this.wf.matchGame() === 'notes')))));   // music walls play their own song
     const menu = st.menu || null; if (menu !== this.sMenu) { if (this.sMenu !== undefined) s.play(menu ? 'open' : 'back'); this.sMenu = menu; }
     if (v !== this.sView) { if (v === 'world' && this.sView !== undefined) s.play('join'); this.sView = v; }
     if (!!st.friendIn !== !!this.sFriendIn) { if (st.friendIn) s.play('request'); this.sFriendIn = !!st.friendIn; }
@@ -1814,7 +1813,7 @@ class Component extends DCLogic {
   // Add friend sends a request. Until the other person accepts (the notice shows top-left for them) you are not friends.
   addFriend() {
     const st = this.state, call = st.call; if (!call || call.phase !== 'live') return;
-    const p = call.peer; if (st.friendsAdded.some(f => f.id === p.id) || st.friendReq === p.id) return;
+    const p = call.peer; if (!p.real || st.friendsAdded.some(f => f.id === p.id) || st.friendReq === p.id) return;   // practice bots can't be friends
     const n = this.callN; this.setState({ friendReq: p.id });
     this.flash('Friend request sent to ' + p.name + ' ' + p.flag);
     if (p.real) { if (this.link) this.link.send('friend-req'); return; }
@@ -2390,8 +2389,8 @@ class Component extends DCLogic {
     } else {
       rows.push(row({ emoji: '🔑', avBg: '#E4E6D2', name: 'Add real friends', status: user ? 'Pick a username to start' : 'Sign in for friends and parties', actions: [btn(user ? 'Set up' : 'Sign in', () => this.setState({ accountOpen: true, menu: null }), true)] }));
     }
-    if (st.friendsAdded.length) { st.friendsAdded.slice().sort(byFav(f => 'm:' + f.id)).forEach(f => { const fc = BY[f.code]; rows.push(row({ bg: url(st.fthumbs[f.id]), name: f.name, status: (fc ? fc.flag + ' ' : '') + f.city + ' · demo match', actions: editing ? [favBtn('m:' + f.id), rmBtn('m:' + f.id, 'Remove', () => this.removeMet(f.id))] : [dmBtn({ id: 'm:' + f.id, kind: 'm', name: f.name, thumb: st.fthumbs[f.id], city: f.city, tz: fc ? fc.tz : '' }), btn('Call', () => this.callFriend(this.callEntry(st, f)))] })); }); }
-    if (!ready) { const PR = this.N ? this.N.PRESETS : []; PR.slice(1).forEach((p, i) => !hidden.has(p.name) && rows.push(row({ bg: url(st.thumbs[i + 1]), name: p.name, status: i < 3 ? 'Online' : 'Offline', dot: i < 3 ? '#5E683C' : '#B8B0A2', actions: editing ? [rmBtn('x:' + p.name, 'Hide', () => this.hideExample(p.name))] : [dmBtn({ id: 'x:' + p.name, kind: 'x', name: p.name, thumb: st.thumbs[i + 1] })] }))); }
+    if (st.friendsAdded.length) { st.friendsAdded.slice().sort(byFav(f => 'm:' + f.id)).forEach(f => { const fc = BY[f.code]; rows.push(row({ bg: url(st.fthumbs[f.id]), name: f.name, status: (fc ? fc.flag + ' ' : '') + f.city + ' · met on a call', actions: editing ? [favBtn('m:' + f.id), rmBtn('m:' + f.id, 'Remove', () => this.removeMet(f.id))] : [dmBtn({ id: 'm:' + f.id, kind: 'm', name: f.name, thumb: st.fthumbs[f.id], city: f.city, tz: fc ? fc.tz : '' }), btn('Call', () => this.callFriend(this.callEntry(st, f)))] })); }); }
+    // (no made-up example friends any more: only real friends and people you met on calls)
     const badge = (ready ? s.friends.filter(f => f.status === 'pending' && f.incoming).length + s.invites.length : st.friendsAdded.length) + Object.values(st.dmUnread).reduce((a, n) => a + n, 0);
 
     // party strip: real party members + people invited on demo calls
@@ -2525,8 +2524,8 @@ class Component extends DCLogic {
       peerCity: p ? p.city + ', ' + p.country : '',
       peerActions: p ? [
         soft(inParty ? 'In your party' : pending ? 'Invite sent…' : full ? 'Your party is full' : 'Invite to your party', inParty ? 'You can play and call together' : 'Party ' + (st.party.length + 1) + '/4 · play and call together', ICON.party, () => this.inviteParty(), inParty || pending || full),
-        Object.assign(soft(isFriend ? 'Friends' : sent ? 'Request sent' : 'Add friend', isFriend ? 'Already in your friends list' : sent ? 'Waiting for ' + p.name + ' to accept' : 'They get a request to accept', isFriend ? ICON.ok : ICON.add, () => { this.addFriend(); this.setState({ peerMenu: null }); }, isFriend || sent),
-          isFriend || sent ? {} : { bg: '#5E683C', fg: '#F8F4EC', iconBg: 'rgba(248,244,236,.16)' })
+        Object.assign(soft(isFriend ? 'Friends' : sent ? 'Request sent' : 'Add friend', isFriend ? 'Already in your friends list' : !p.real ? 'Practice bots can’t be friends' : sent ? 'Waiting for ' + p.name + ' to accept' : 'They get a request to accept', isFriend ? ICON.ok : ICON.add, () => { this.addFriend(); this.setState({ peerMenu: null }); }, isFriend || sent || !p.real),
+          isFriend || sent || !p.real ? {} : { bg: '#5E683C', fg: '#F8F4EC', iconBg: 'rgba(248,244,236,.16)' })
       ] : [],
       closePeerMenu: () => this.setState({ peerMenu: null }),
       openPeerCard: e => { const r = e.currentTarget.getBoundingClientRect(); this.openPeerMenu(r.left + r.width / 2 - 144, r.bottom + 8); },

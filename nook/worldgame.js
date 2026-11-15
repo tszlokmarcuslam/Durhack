@@ -12,6 +12,9 @@
 //    most ups when time runs out wins. No camera: Space or the up arrow is one up.
 //  - Chess: you both sit down at a table with a board between you; the moves are played on a 2D board on the left
 //    of the screen (worldapp.js). Rules and the computer player: chess.js.
+//  - Music walls, in first person: walls fly at you with a hole shaped like a pose. Strike the pose with your arms to
+//    pass through and the wall plays its note; wall after wall you play a song (notewall.js). Most walls passed wins.
+//    No camera: W / S move your left arm, up / down your right arm.
 // First-person games fly the camera into your avatar's face like a drone, and back out at the end (fpv.js).
 // Every game has a length to pick (opts): seconds, or wins for rock paper scissors. Both players use the asker's pick.
 // Everything here works on the island scene from nook3d.js (kit.isl) and the people from world.js.
@@ -22,6 +25,7 @@ import { createDrone } from './fpv.js';
 import { createRace } from './rocket.js';
 import { createUpCounter } from './sixseven.js';
 import * as CH from './chess.js';
+import { createNoteWalls, KEY_ANGLES, POSES, armAngle, fits } from './notewall.js';
 
 const PI = Math.PI, TAU = PI * 2, sin = Math.sin, cos = Math.cos;
 const clamp01 = v => Math.max(0, Math.min(1, v)), smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
@@ -41,7 +45,8 @@ export const GAMES = {
   // rocket: opts are course lengths in metres. chess: opts are minutes on each player's clock (in seconds).
   rocket: { name: 'Rocket race', gap: 1.5, fp: true, rocket: true, opts: [600, 900, 1300], opt: 900, setup: 'Lean or step to steer, crouch to dive' },
   six: { name: '6-7', gap: 1.5, gym: true, six: true, opts: [10, 20, 30], opt: 20, setup: 'Palms up, hands up and down as fast as you can' },
-  chess: { name: 'Chess', gap: 1.2, chess: true, opts: [180, 300, 600], opt: 300, setup: 'Play your moves on the board on the left' }
+  chess: { name: 'Chess', gap: 1.2, chess: true, opts: [180, 300, 600], opt: 300, setup: 'Play your moves on the board on the left' },
+  notes: { name: 'Music walls', gap: 1.6, fp: true, notes: true, opts: [30, 60, 90], opt: 60, setup: 'Match each hole with your arms' }
 };
 // a game's length from a pick (falls back to the usual one), and how to say it: "30 sec", "2 min", "First to 3"
 export const pickOpt = (game, v) => { const G = GAMES[game]; return G && G.opts.includes(+v) ? +v : G ? G.opt : 0; };
@@ -247,7 +252,16 @@ export function createGames(T, kit, world, cb = {}) {
     if (type === 'n') g.rotation.y = white ? 0 : Math.PI;   // the knight's head looks at the other player
     return g;
   }
-  const arenas = {}, arena = game => { const k = GAMES[game].six ? 'six' : GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : k === 'rocket' ? launchPad() : k === 'chess' ? chessTable() : k === 'six' ? sixRoom() : gym()); };
+  // music walls: a dark stage with two long lanes and little lights along them (the walls come from notewall.js)
+  function noteStage() {
+    const g = new T.Group(); ground(g, .01);
+    [-1, 1].forEach(sx => {
+      part(g, BOX, M('#26303B'), [sx * .8, -.004, 8], [1.4, .02, 20]).castShadow = false;
+      for (let z = 1; z <= 17; z += 2) part(g, CYL, neon(z % 4 === 1 ? '#8FD1C8' : '#B9A4FF'), [sx * 1.7, .3, z], [.05, .6, .05]).castShadow = false;
+    });
+    return g;
+  }
+  const arenas = {}, arena = game => { const k = GAMES[game].six ? 'six' : GAMES[game].gym ? 'gym' : game; return arenas[k] || (arenas[k] = k === 'boxing' ? ring() : k === 'dance' ? dance() : k === 'rps' ? rpsMat() : k === 'rocket' ? launchPad() : k === 'chess' ? chessTable() : k === 'notes' ? noteStage() : k === 'six' ? sixRoom() : gym()); };
   const spot = new T.SpotLight('#FFF1DC', 0, 0, .75, .6, 0); spot.position.set(0, 5.5, 0);
   const sparks = [0, 1, 2].map(() => { const s = new T.Mesh(STAR, new T.MeshBasicMaterial({ color: '#FFF6D8', transparent: true, depthWrite: false })); s.visible = false; s.userData.t = 1; return s; });
   let warm = false;
@@ -429,9 +443,11 @@ export function createGames(T, kit, world, cb = {}) {
   let m = null;
   const drone = createDrone(T);
   // camera: after world.js has placed its normal camera, first-person games fly it into your avatar's eyes (fpv.js)
+  const fpAhead = new T.Vector3();
   function camera(cam, dt) {
     if (!m || !GAMES[m.game].fp) return;
-    const A = m.mine; drone.update(cam, dt, { head: A.headPos, face: A.p.ry, s: world.S }, m.opp.headPos);
+    const A = m.mine, target = m.notes ? fpAhead.set(sin(A.face) * 12, -1.2, cos(A.face) * 12).add(A.headPos) : m.opp.headPos;   // music walls: look down your lane, not at the other player
+    drone.update(cam, dt, { head: A.headPos, face: A.p.ry, s: world.S }, target);
     A.u.head.visible = !drone.first();   // your own head would fill the view
     if (m.race && drone.first()) m.race.camera(cam, U.uNwTime.value);   // rocket race: past the blink you are in your cockpit
   }
@@ -495,6 +511,7 @@ export function createGames(T, kit, world, cb = {}) {
       else if (m.race) raceStep(t, dt);
       else if (m.chess) chessStep(dt);
       else if (G.six) sixStep(A, B, t, dt);
+      else if (G.notes) notesStep(A, B, t, dt);
       else {
         base(A); m.tracking = fromTrack(A); if (!m.tracking) groove(A, t);
         if (!m.remote) groove(B, t);
@@ -581,6 +598,28 @@ export function createGames(T, kit, world, cb = {}) {
     }
     if (m.clock <= 0) finish(A.score > B.score ? 'win' : B.score > A.score ? 'lose' : 'draw');
   }
+  // Music walls. Your arms come from the camera or the keys; the computer strikes most poses and misses a few.
+  const straightArm = (F, side, deg) => { const a = deg * PI / 180, l = F.goal[side]; l.up.set(side * sin(a), -cos(a), .06).normalize(); l.fore.copy(l.up); };
+  const armsOf = F => [armAngle(F.goal[1].up, F.goal[1].fore, 1), armAngle(F.goal[-1].up, F.goal[-1].fore, -1)];   // [your left, your right]
+  function notesStep(A, B, t, dt) {
+    const N = m.notes;
+    base(A); m.tracking = fromTrack(A);
+    if (!m.tracking) [1, -1].forEach(sd => straightArm(A, sd, KEY_ANGLES[N.keys[sd]]));
+    let oppAng = null;
+    if (!m.remote) {   // the computer: strikes the next pose a moment before its wall arrives, right about 4 times in 5
+      base(B); const nx = N.next(1, m.T);
+      if (nx && nx.at - m.T < 1) {
+        if (!N.ai[nx.i]) N.ai[nx.i] = Math.random() < .8 ? nx.pose : POSES[(POSES.indexOf(nx.pose) + 1 + Math.floor(Math.random() * (POSES.length - 1))) % POSES.length];
+        straightArm(B, 1, N.ai[nx.i][0]); straightArm(B, -1, N.ai[nx.i][1]);
+      }
+      oppAng = armsOf(B);
+    }
+    const mine = armsOf(A), ev = N.update(m.T, dt, mine, oppAng);
+    ev.mine.forEach(e => { if (e.fit) { A.score++; cb.note && cb.note(e.midi); } else if (cb.miss) cb.miss(); });
+    ev.opp.forEach(e => { if (e.fit) B.score++; });
+    const nx = N.next(0, m.T); N.setGhost(A.cur, !!nx && fits(mine, nx.pose), dt);
+    if (m.clock <= 0 || N.over(m.T)) finish(A.score > B.score ? 'win' : B.score > A.score ? 'lose' : 'draw');
+  }
   // Chess: the clock of whoever's turn it is runs down; the computer answers after a short think.
   function chessStep(dt) {
     const C = m.chess, S = CH.status(C.st); if (S.over) return;
@@ -635,6 +674,7 @@ export function createGames(T, kit, world, cb = {}) {
       const mat = new T.MeshStandardMaterial({ color: F.role === 0 ? '#4C5FA8' : '#C2452D', roughness: .8, flatShading: true });
       [1, -1].forEach(s => { const gl = new T.Mesh(BALL, mat); gl.position.set(0, -.315, 0); gl.scale.setScalar(.001); gl.userData.size = new T.Vector3(.058, .072, .062); gl.castShadow = true; F.u.elbows[s].add(gl); F.gloves.push(gl); });
     });
+    if (m.notes) m.notes.group.visible = true;
     look(); cb.onPhase && cb.onPhase('play');
   }
   function end(silent) {
@@ -642,6 +682,7 @@ export function createGames(T, kit, world, cb = {}) {
     U.uNwFront.value = -1; env(0); m.scenery.forEach(o => { o.obj.visible = o.was; }); world.each(p => { p.av.visible = true; });
     isl.remove(m.arena); sparks.forEach(s => { s.visible = false; isl.remove(s); });
     if (m.race) m.race.dispose();
+    if (m.notes) { isl.remove(m.notes.group); m.notes.dispose(); }
     if (m.arena.userData.pieces) { const P = m.arena.userData.pieces; while (P.children.length) P.remove(P.children[0]); }
     [A, B].forEach(F => {
       F.gloves.forEach(gl => { gl.parent && gl.parent.remove(gl); }); if (F.gloves[0]) F.gloves[0].material.dispose();
@@ -660,7 +701,7 @@ export function createGames(T, kit, world, cb = {}) {
     prewarm() {
       if (warm) return; warm = true; const skip = new Set(); world.each(p => skip.add(p.av)); scenery(skip);
       spot.intensity = 0; isl.add(spot, spot.target);   // always in the scene (switched off), so lighting is not rebuilt mid-match
-      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps'), arena('rocket'), arena('chess'), arena('six')]; gs.forEach(g => isl.add(g)); let n = 0;
+      const gs = [arena('boxing'), arena('dance'), arena('pushups'), arena('rps'), arena('rocket'), arena('chess'), arena('six'), arena('notes')]; gs.forEach(g => isl.add(g)); let n = 0;
       const off = () => { if (++n < 3) return requestAnimationFrame(off); gs.forEach(g => { if (!m || m.arena !== g) isl.remove(g); }); }; requestAnimationFrame(off);
     },
     // o: { game, oppId, role (0 = you asked, 1 = you accepted), remote, spec, opt (the length picked) }. Returns the spec so both sides can build the same arena.
@@ -681,7 +722,7 @@ export function createGames(T, kit, world, cb = {}) {
         env: { bg: isl.background.clone(), fog: isl.fog.color.clone(), near: isl.fog.near, far: isl.fog.far, lights: isl.children.filter(l => l.isLight && l !== spot).map(l => ({ light: l, was: l.intensity })) } };
       m.mine = fighter(a, role, true); m.opp = fighter(b, 1 - role, false);
       [m.mine, m.opp].forEach(F => {
-        const sgn = F.role ? 1 : -1; F.spot = { x: sp.cx + dx * gap / 2 * sgn, z: sp.cz + dz * gap / 2 * sgn }; F.face = GAMES[o.game].gym ? g.rotation.y : Math.atan2(-dx * sgn, -dz * sgn);   // the gym: both face the same way. Otherwise: each other
+        const sgn = F.role ? 1 : -1; F.spot = { x: sp.cx + dx * gap / 2 * sgn, z: sp.cz + dz * gap / 2 * sgn }; F.face = GAMES[o.game].gym || GAMES[o.game].notes ? g.rotation.y : Math.atan2(-dx * sgn, -dz * sgn);   // the gym: both face the same way. Otherwise: each other
         F.p.fixY = sp.y; F.p.goal = null; F.p.av.rotation.order = 'YXZ'; protect(F.p.av);
       });
       if (GAMES[o.game].rocket) {   // the course is far above the arena; the seed comes from the shared spec, so both windows build the same field
@@ -691,6 +732,12 @@ export function createGames(T, kit, world, cb = {}) {
         isl.add(m.race.group);
       }
       if (GAMES[o.game].chess) { m.chess = { st: CH.newGame(), me: role ? 'b' : 'w', clock: { w: opt, b: opt }, ply: 0, think: 0, wait: 1.5, reason: '' }; drawChess(); }   // who asked plays white
+      if (GAMES[o.game].notes) {   // both windows build the same walls: the seed comes from the shared spec
+        const seed = ((Math.round(sp.cx * 1000) * 73856093) ^ (Math.round(sp.cz * 1000) * 19349663)) >>> 0, half = GAMES[o.game].gap / 2;
+        m.notes = createNoteWalls(T, { seed: seed || 1, secs: opt, me: role ? half : -half, them: role ? -half : half, s: world.S || 1 });
+        m.notes.group.position.set(sp.cx, sp.y, sp.cz); m.notes.group.rotation.y = g.rotation.y; m.notes.group.visible = false; isl.add(m.notes.group);
+        m.notes.keys = { 1: 0, [-1]: 0 }; m.notes.ai = {};
+      }
       U.uNwCenter.value.copy(m.C); game.floorY = sp.y; game.focus.set(sp.cx, sp.y + .9, sp.cz);
       spot.position.set(sp.cx, sp.y + 5.5, sp.cz); spot.target.position.set(sp.cx, sp.y, sp.cz);
       isl.add(g); sparks.forEach(s => isl.add(s)); world.setGame(game); look();
@@ -718,13 +765,15 @@ export function createGames(T, kit, world, cb = {}) {
     readyIn() { if (m) m.themReady = true; },          // two windows, plank: the other player's whole body is in view
     info: () => m && { game: m.game, phase: m.phase, clock: m.clock, opt: m.opt, hp: [m.mine.hp, m.opp.hp], score: [m.mine.score, m.opp.score], cue: m.cue || '', tracking: m.tracking, result: m.result,
       rps: m.rps ? m.rps.view() : null, hands: !!m.handsOn, dodge: m.mine.dodgeDir, fp: drone.k(),
-      race: m.race ? { p: m.race.progress(), crashes: [m.race.me.crashes, m.race.them.crashes] } : null, chess: m.chess ? chessView() : null },   // fp: 0 normal view .. 1 first person
+      race: m.race ? { p: m.race.progress(), crashes: [m.race.me.crashes, m.race.them.crashes] } : null, chess: m.chess ? chessView() : null, song: m.notes ? m.notes.song.name : '' },   // fp: 0 normal view .. 1 first person
     // rock paper scissors without a camera: keys 1 2 3 or the buttons. From the other window: their hand for throw n.
     // rocket race without a camera: steer('x', -1 left | 1 right, held down or let go), steer('y', 1 climb | -1 dive, ...)
     steer(axis, dir, down) { const S = m && m.steer; if (!S) return; const k = axis === 'y' ? 'ky' : 'kx'; if (down) S[k] = dir; else if (S[k] === dir) S[k] = 0; },
     // chess: your move from the board on the left ('e2e4', 'e7e8q'), and theirs from the other window
     chessMove(uci) { if (!m || !m.chess || m.phase !== 'play' || CH.status(m.chess.st).turn !== m.chess.me) return false; return chessPlay(uci, true); },
     chessIn(msg) { if (!m || !m.chess || !m.remote || m.phase !== 'play' || !msg || typeof msg.uci !== 'string' || CH.status(m.chess.st).turn === m.chess.me) return; chessPlay(msg.uci.slice(0, 5), false); },
+    // music walls without a camera: arm(1 your left | -1 your right, 1 raise | -1 lower)
+    arm(side, dir) { const N = m && m.notes; if (!N || m.phase !== 'play') return; const s = side < 0 ? -1 : 1; N.keys[s] = Math.max(0, Math.min(KEY_ANGLES.length - 1, N.keys[s] + (dir < 0 ? -1 : 1))); },
     throwHand(pick) { if (m && m.rps && m.phase === 'play') m.rps.key(pick); },
     rpsIn(msg) { if (m && m.rps && m.remote && msg) m.rps.theirs(msg.n, msg.pick); },
     // gym games without a camera: Space (or the button). Reps: hold to go down, let go to count one. Plank: hold to hold.
@@ -744,7 +793,7 @@ export function createGames(T, kit, world, cb = {}) {
       if (GAMES[m.game].kind) return [+F.depthT.toFixed(2), +F.score.toFixed(1), F.holding ? 1 : 0];
       [1, -1].forEach(s => { o.push(F.cur[s].up.x, F.cur[s].up.y, F.cur[s].up.z, F.cur[s].fore.x, F.cur[s].fore.y, F.cur[s].fore.z); });
       o.push(F.leanT.x, F.leanT.yaw, F.leanT.roll, F.headT.yaw, F.headT.pitch, F.headT.roll, F.bounce);
-      if (GAMES[m.game].six) o.push(F.score);   // 6-7: your count goes with your arms
+      if (GAMES[m.game].six || GAMES[m.game].notes) o.push(F.score);   // music walls too   // 6-7: your count goes with your arms
       return o.map(v => +v.toFixed(3));
     },
     poseIn(a) {
@@ -756,7 +805,7 @@ export function createGames(T, kit, world, cb = {}) {
       [1, -1].forEach((s, i) => { F.goal[s].up.set(a[i * 6], a[i * 6 + 1], a[i * 6 + 2]).normalize(); F.goal[s].fore.set(a[i * 6 + 3], a[i * 6 + 4], a[i * 6 + 5]).normalize(); });
       const c = (v, lim) => Math.max(-lim, Math.min(lim, v));
       F.leanT.x = c(a[12], .4); F.leanT.yaw = c(a[13], .8); F.leanT.roll = c(a[14], .6); F.headT.yaw = c(a[15], 1); F.headT.pitch = c(a[16], .7); F.headT.roll = c(a[17], .7); F.bounce = c(a[18], .05);
-      if (GAMES[m.game].six && a.length >= 20) F.score = Math.max(F.score, Math.min(9999, Math.round(a[19])));
+      if ((GAMES[m.game].six || GAMES[m.game].notes) && a.length >= 20) F.score = Math.max(F.score, Math.min(9999, Math.round(a[19])));
     }
   };
   return api;

@@ -71,6 +71,20 @@ export function createSound(o = {}) {
     notes.forEach((m, i) => pluck(hz(m), t0 + i * (kind === 'win' ? .11 : .2), kind === 'win' ? .9 : 1.1, .22, fxBus));
   }
 
+  // music walls: one note of the song (a soft bell-like tone with a little of the music's reverb), and a wall's bump
+  function note(midi) {
+    if (!sfxOn || !ctx || !unlocked) return;
+    const t = ctx.currentTime + .01, out = ctx.createGain(); out.connect(fxBus);
+    if (verb) { const send = ctx.createGain(); send.gain.value = .35; out.connect(send); send.connect(verb); }
+    pluck(hz(midi), t, 1.6, .34, out); pluck(hz(midi + 12), t, .6, .07, out);
+  }
+  function thud() {
+    if (!sfxOn || !ctx || !unlocked) return;
+    const t = ctx.currentTime + .01, os = ctx.createOscillator(), g = ctx.createGain();
+    os.type = 'sine'; os.frequency.setValueAtTime(130, t); os.frequency.exponentialRampToValueAtTime(55, t + .18);
+    g.gain.setValueAtTime(.5, t); g.gain.exponentialRampToValueAtTime(.001, t + .25); os.connect(g); g.connect(fxBus); os.start(t); os.stop(t + .3);
+  }
+
   /* ---------- the music ---------- */
   let nextBar = 0, bar = 0, prog = PROGS[0], sched = null;
   function pad(freq, t, dur, vol) {   // a soft, slowly swelling chord tone
@@ -116,7 +130,7 @@ export function createSound(o = {}) {
   }
 
   return {
-    play, ring, jingle,
+    play, ring, jingle, note, thud,
     setSfx(on) { sfxOn = !!on; if (!sfxOn) ring(false); },
     setMusic(on) { musicOn = !!on; if (!ctx) return; if (musicOn && unlocked) startMusic(); else if (!musicOn) { fadeMusic(); setTimeout(() => { if (!musicOn) stopMusic(); }, 1300); } },
     // fade the music out while people talk (calls, voice on the island), back in afterwards

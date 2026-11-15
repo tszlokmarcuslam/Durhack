@@ -203,6 +203,7 @@ const I = {
   glove: '<path d="M7 11V7a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H9a2 2 0 0 1-2-2z"/><path d="M7 11H5.5a2 2 0 0 0 0 4H7M8 17v4h8v-4"/>',
   rocket: '<path d="M12 2.5c2.8 2.3 4.2 5.6 4.2 9.8L12 15.6l-4.2-3.3c0-4.2 1.4-7.5 4.2-9.8z"/><circle cx="12" cy="9" r="1.6"/><path d="M7.8 12.3L5 15.2l2.8.6M16.2 12.3l2.8 2.9-2.8.6M10.3 17.5L12 21l1.7-3.5"/>',
   six: '<path d="M7 21V9M3.5 12.5L7 9l3.5 3.5M17 3v12M13.5 11.5L17 15l3.5-3.5"/>',
+  notes: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
   chess: '<circle cx="12" cy="5.5" r="2.5"/><path d="M9.5 10.5h5l-1 7h-3zM8 21h8M7.5 18h9"/>',
   rps: '<path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V11M12 11V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M7 12a2 2 0 0 1 2-1h7a2 2 0 0 1 2 2v2a6 6 0 0 1-6 6h-1a5 5 0 0 1-5-5z"/>',
   mark: '<svg width="34" height="34" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#5E683C"/><path d="M10 23v-8a6 6 0 0 1 12 0v8" stroke="#F8F4EC" stroke-width="3.2" stroke-linecap="round"/><circle cx="16" cy="21.5" r="2" fill="#F8F4EC"/></svg>'
@@ -463,6 +464,7 @@ export function createWorldApp(o) {
 
   /* ---------- playing with someone: their contact card, asking them, and the match screen ---------- */
   const games = createGames(T, nook.kit, world, {
+    note: midi => { if (o.sfx) o.sfx('note:' + midi); }, miss: () => { if (o.sfx) o.sfx('thud'); },   // music walls
     onPhase: (ph, result) => matchPhase(ph, result),
     // h: { onMe, res: 'hit' | 'miss', type }. The side that got hit shakes; a short word says what happened.
     onHit: h => {
@@ -524,6 +526,7 @@ export function createWorldApp(o) {
     { id: 'rps', mode: '1v1', name: 'Rock paper scissors', line: 'First person, your real hand plays', color: '#8A6245', icon: I.rps },
     { id: 'rocket', mode: '1v1', name: 'Rocket race', line: 'Fly your rocket: lean to dodge asteroids', color: '#3D4A7A', icon: I.rocket },
     { id: 'six', mode: '1v1', name: '6-7', line: 'Hands up, hands down: most ups wins', color: '#C27352', icon: I.six },
+    { id: 'notes', mode: '1v1', name: 'Music walls', line: 'Strike the pose, play the song', color: '#8E6CD8', icon: I.notes },
     { id: 'chess', mode: '1v1', name: 'Chess', line: 'Sit down and play on the board', color: '#6B4A32', icon: I.chess },
     { id: 'dance', mode: 'together', group: 'Play together', name: 'Dance floor', line: 'Dance together, your body leads', color: '#5C5E78', icon: GAMES.find(g => g.name === 'Dance off').icon }
   ];
@@ -598,7 +601,7 @@ export function createWorldApp(o) {
     if (ph === 'in') say(G.name.toUpperCase(), 'with ' + nm + ' · ' + optLabel(match.game, match.opt) + (G.setup ? ' · ' + G.setup : ''), true);
     else if (ph === 'ready') say('GET IN POSITION', 'The plank starts when the camera sees your whole body');
     else if (ph === 'play' && G.rps) drawRps();   // the countdown words take over the banner
-    else if (ph === 'play') { say(G.rocket ? 'LAUNCH!' : G.chess ? (match.role ? 'YOU ARE BLACK' : 'YOU ARE WHITE') : G.kind || G.six ? 'GO!' : box ? 'FIGHT!' : 'DANCE!', G.chess ? (match.role ? match.opp.name + ' moves first' : 'You move first') : ''); later(() => { if (match && games.info() && games.info().phase === 'play') say(''); }, 1300); }
+    else if (ph === 'play') { say(G.rocket ? 'LAUNCH!' : G.chess ? (match.role ? 'YOU ARE BLACK' : 'YOU ARE WHITE') : G.kind || G.six || G.notes ? 'GO!' : box ? 'FIGHT!' : 'DANCE!', G.chess ? (match.role ? match.opp.name + ' moves first' : 'You move first') : G.notes ? '\u266A ' + ((games.info() || {}).song || '') : ''); later(() => { if (match && games.info() && games.info().phase === 'play') say(''); }, 1300); }
     else if (ph === 'over') { const why = overWhy(); if (result === 'win') say('YOU WIN', why); else if (result === 'lose') say(nm.toUpperCase() + ' WINS', why); else if (result === 'draw') say('DRAW', why); else if (result === 'gone') say('MATCH OVER', nm + ' left'); else if (result === 'time') say('TIME’S UP', 'Nice moves'); else say(''); }
     else if (ph === 'out') say('');
     else if (ph === 'end') endMatch(result);
@@ -616,13 +619,13 @@ export function createWorldApp(o) {
     if (cpu && mm.opp.id === cpu.id) { world.remove(cpu.id); cpu = null; }   // the computer player leaves with the match
  clearInterval(barsTimer); hud.classList.remove('game'); say(''); chessSel = null; drawChess(null);
     if (o.onMatch) o.onMatch(false);
-    const M = MATCHES[mm.game], G = M.name, sc = (M.kind || M.rps || M.six) && mm.last ? ', ' + mm.last[0] + ' to ' + mm.last[1] : '';
+    const M = MATCHES[mm.game], G = M.name, sc = (M.kind || M.rps || M.six || M.notes) && mm.last ? ', ' + mm.last[0] + ' to ' + mm.last[1] : '';
     const t = result === 'win' ? ['You beat ', { b: mm.opp.name }, ' at ' + G + sc] : result === 'lose' ? [{ b: mm.opp.name }, ' beat you at ' + G + sc] : result === 'draw' ? ['A draw with ', { b: mm.opp.name }, sc] : null;
     if (t) note({ thumb: mm.opp.thumb, parts: t });
   }
   function drawBars() {
     const i = games.info(); if (!i || !match) return;
-    const G = MATCHES[match.game], box = match.game === 'boxing', gym = !!G.kind || !!G.six, hold = G.kind === 'hold', rps = !!G.rps, tr = o.tracking ? o.tracking() : {}, playing = i.phase === 'play';
+    const G = MATCHES[match.game], box = match.game === 'boxing', gym = !!G.kind || !!G.six || !!G.notes, hold = G.kind === 'hold', rps = !!G.rps, tr = o.tracking ? o.tracking() : {}, playing = i.phase === 'play';
     if (G.rocket || G.chess) { raceOrChessBars(i, tr, G); return; }
     bars.classList.remove('race'); chip.style.display = '';
     bars.style.display = box || gym || rps ? '' : 'none'; bars.classList.toggle('nums', gym || rps);
@@ -630,13 +633,13 @@ export function createWorldApp(o) {
     if (gym || rps) { const show = v => hold ? Math.floor(v) + 's' : String(Math.round(v)); match.last = i.score.map(show); sideMe.querySelector('em').textContent = match.last[0]; sideThem.querySelector('em').textContent = match.last[1]; }
     const secs = Math.ceil(i.clock);   // round up first, so 59.9 seconds shows as 1:00, not 0:00
     clockEl.textContent = rps ? 'First to ' + i.opt : Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
-    const camera = tr.on && tr.state !== 'on' ? 'Starting your camera…' : tr.on ? (gym && !G.six ? 'Step back so the camera sees your whole body' : 'Step back so the camera sees your arms') : '';
-    const noCam = box ? 'No camera: J jab · U / I hook · hold A / D to dodge' : G.six ? 'No camera: tap Space or ↑ for each hand up' : hold ? 'No camera: hold Space to hold your plank' : gym ? 'No camera: hold Space to go down, let go to count a rep' : 'No camera: your avatar dances by itself';
+    const camera = tr.on && tr.state !== 'on' ? 'Starting your camera…' : tr.on ? (gym && !G.six && !G.notes ? 'Step back so the camera sees your whole body' : 'Step back so the camera sees your arms') : '';
+    const noCam = box ? 'No camera: J jab · U / I hook · hold A / D to dodge' : G.notes ? 'No camera: W / S move your left arm, \u2191 / \u2193 your right' : G.six ? 'No camera: tap Space or ↑ for each hand up' : hold ? 'No camera: hold Space to hold your plank' : gym ? 'No camera: hold Space to go down, let go to count a rep' : 'No camera: your avatar dances by itself';
     const live = box ? (i.dodge ? 'Dodging ' + (i.dodge < 0 ? 'left' : 'right') : 'Jab, hook, or lean to dodge') : 'Body tracking on';
-    const text = rps ? rpsHint(i, tr) : (playing || i.phase === 'ready') && i.cue ? i.cue : i.tracking ? live : camera || noCam;   // i.cue: what the game needs from you, e.g. "Keep a hip, knee and ankle in view."
+    const text = G.notes && playing ? '\u266A ' + i.song + ' \u00B7 ' + (i.tracking ? 'match each hole with your arms' : noCam.replace('No camera: ', '')) : rps ? rpsHint(i, tr) : (playing || i.phase === 'ready') && i.cue ? i.cue : i.tracking ? live : camera || noCam;   // i.cue: what the game needs from you, e.g. "Keep a hip, knee and ankle in view."
     if (chip.textContent !== text) chip.textContent = text; chip.classList.toggle('live', rps ? !!(i.rps && i.rps.live) : !!i.tracking && !(playing && i.cue));
     const keys = box && playing && !i.tracking; boxBtns.forEach(b => { b.style.display = keys ? '' : 'none'; });
-    repBtn.style.display = gym && playing && !i.tracking ? '' : 'none'; repBtn.textContent = hold ? 'Hold' : G.six ? 'Up ↑' : 'Rep';
+    repBtn.style.display = gym && !G.notes && playing && !i.tracking ? '' : 'none'; repBtn.textContent = hold ? 'Hold' : G.six ? 'Up ↑' : 'Rep';
     if (G.six && match && !match.hit67 && i.score[0] >= 67) { match.hit67 = true; flash('6️⃣ 7️⃣ !!'); pet('sixSeven'); }   // the magic number
     if (G.six && match && !match.them67 && i.score[1] >= 67) { match.them67 = true; pet('sixSevenThem'); }
     handBtns.forEach(b => { b.style.display = rps && playing && !i.hands ? '' : 'none'; });
@@ -722,12 +725,14 @@ export function createWorldApp(o) {
   repBtn.onpointerdown = e => { try { repBtn.setPointerCapture(e.pointerId); } catch (er) {} press(true); }; repBtn.onpointerup = repBtn.onpointercancel = () => press(false);
   const DODGE_KEYS = { KeyA: -1, ArrowLeft: -1, KeyD: 1, ArrowRight: 1 };   // boxing: hold to lean out of the way
   // rocket race: hold to steer, climb or dive
+  const NOTE_KEYS = { KeyW: [1, 1], KeyS: [1, -1], ArrowUp: [-1, 1], ArrowDown: [-1, -1] };   // music walls: W / S your left arm, up / down your right
   const STEER = { KeyA: ['x', -1], ArrowLeft: ['x', -1], KeyD: ['x', 1], ArrowRight: ['x', 1], KeyW: ['y', 1], ArrowUp: ['y', 1], KeyS: ['y', -1], ArrowDown: ['y', -1] };
   const onGameKeyUp = e => { if (!match) return; if (e.code === 'Space' || (MATCHES[match.game].six && (e.code === 'ArrowUp' || e.code === 'KeyW'))) press(false); if (DODGE_KEYS[e.code]) games.dodge(DODGE_KEYS[e.code], false); if (STEER[e.code]) games.steer(STEER[e.code][0], STEER[e.code][1], false); };
   window.addEventListener('keyup', onGameKeyUp);
   const onGameKey = e => { if (!match || e.metaKey || e.ctrlKey) return; if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) press(true); return; } if (e.repeat) return;
     const hk = /^(?:Digit|Numpad)([123])$/.exec(e.code); if (hk && MATCHES[match.game].rps) { games.throwHand(HAND_KEYS[hk[1] - 1]); return; }   // rock paper scissors: 1 rock, 2 paper, 3 scissors
     if (MATCHES[match.game].six && (e.code === 'ArrowUp' || e.code === 'KeyW')) { e.preventDefault(); if (!e.repeat) press(true); return; }   // 6-7: one up
+    if (MATCHES[match.game].notes) { const nk = NOTE_KEYS[e.code]; if (nk) { e.preventDefault(); games.arm(nk[0], nk[1]); } return; }
     if (MATCHES[match.game].rocket) { const st = STEER[e.code]; if (st) { e.preventDefault(); games.steer(st[0], st[1], true); } return; }
     if (match.game !== 'boxing') return;   // boxing: J or K jab, U left hook, I right hook, A / D or the arrows dodge
     if (e.code === 'KeyJ' || e.code === 'KeyK') games.punch('jab'); else if (e.code === 'KeyU') games.punch('hook', -1); else if (e.code === 'KeyI') games.punch('hook', 1);
@@ -801,7 +806,8 @@ export function createWorldApp(o) {
     leave() { if (!active) return; voice.stop(); if (match && match.remote) post({ t: 'game', k: 'end', to: match.opp.id }); games.abort(); endMatch(null); closePop(); active = false; world.leave(); if (dress) { dress.dispose(); dress = null; } roomTag.classList.remove('on'); hud.classList.remove('on'); closeInvite(); setPhone(false); hello(false); },
     openInvite,
     room: () => room,
-    talking: () => voice.size > 0,   // someone else is in this world with you (the music fades out)
+    talking: () => voice.size > 0,
+    matchGame: () => match && match.game,   // someone else is in this world with you (the music fades out)
     // who could get an invite (for the Create a world panel): { id, kind: 'peer' | 'sim' | 'away', name, sub, thumb, online, here }
     friends: () => friendRows(),
     inviteIds(ids) { const rows = friendRows(); (ids || []).forEach(id => { const f = rows.find(x => x.id === id); if (f) invite(f); }); },
