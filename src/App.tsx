@@ -13,6 +13,7 @@ import { PlayerMenu } from './components/PlayerMenu';
 import { useSocialStore } from './store/socialStore';
 import { HomeScreen } from './components/HomeScreen';
 import { playerState } from './world/playerState';
+import { joinWorld, leaveWorld } from './world/multiplayer';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -46,6 +47,14 @@ export default function App() {
   }, []);
 
   const playerName = profile?.displayName || session?.user.email?.split('@')[0] || 'You';
+  const username = profile?.username ?? '';
+
+  // Share your position with everyone else in the world while you're in it.
+  useEffect(() => {
+    if (screen !== 'world' || !userId) return;
+    joinWorld({ userId, username, displayName: playerName });
+    return leaveWorld;
+  }, [screen, userId, username, playerName]);
 
   return (
     <div className="relative h-full w-full">

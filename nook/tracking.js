@@ -2,10 +2,13 @@
 //  - Face Landmarker: head turn, nod and tilt
 //  - Pose Landmarker: shoulders, elbows and wrists, so the avatar copies your arms and body lean
 // The camera picture is shown in `stage` (mirrored, with a skeleton drawn over it) and never leaves the browser.
+// A third model, Hand Landmarker (21 points per hand, about 8 MB), only loads and runs while a game asks for it by
+// setting globalThis.nookWantHands (rock paper scissors, rps.js). Its points come out as `hands` in onPose.
 const VER = '0.10.14';
 const CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}`;
 const FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 // Mirror mode: you turn right, the avatar turns to the screen's right. Flip a sign if one axis feels backwards.
 const SIGN = { yaw: -1, pitch: -1, roll: -1 };
 const clamp = (v, a) => Math.max(-a, Math.min(a, v));
@@ -16,11 +19,11 @@ const JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
 export async function startTracking({ stage, onPose }) {
   // Ask for the camera first so the permission prompt appears straight away.
   const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 960 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
-  let face, pose;
+  let face, pose, vision, make, hand = null, handTried = false;
   try {
-    const vision = await import(`${CDN}/vision_bundle.mjs`);
+    vision = await import(`${CDN}/vision_bundle.mjs`);
     const files = await vision.FilesetResolver.forVisionTasks(`${CDN}/wasm`);
-    const make = (Task, model, extra) => {
+    make = (Task, model, extra) => {
       const opts = delegate => Object.assign({ baseOptions: { modelAssetPath: model, delegate }, runningMode: 'VIDEO' }, extra);
       return Task.createFromOptions(files, opts('GPU')).catch(() => Task.createFromOptions(files, opts('CPU')));
     };
@@ -67,7 +70,15 @@ export async function startTracking({ stage, onPose }) {
         roll: clamp(Math.atan2(sh[1], sh[0]), .35), yaw: clamp(Math.atan2(-sh[2], sh[0]), .7)
       };
     }
-    onPose({ head, body, raw: lm ? { lm, wl: wl || [], aspect: video.videoWidth / Math.max(1, video.videoHeight) } : null });   // raw: untouched landmarks, for counting exercises (exercise.js)
+    // hands: null while no game wants them (or the model is still loading), else [{ lm, wl, aspect }] for each hand seen
+    const aspect = video.videoWidth / Math.max(1, video.videoHeight), wantHands = !!globalThis.nookWantHands;
+    if (wantHands && !handTried) {
+      handTried = true;
+      make(vision.HandLandmarker, HAND_MODEL, { numHands: 1 }).then(h => { if (alive) hand = h; else h.close(); }).catch(e => console.warn('[nook] hand tracking could not start', e));
+    }
+    let hands = null;
+    if (wantHands && hand) { const hr = hand.detectForVideo(video, ts); hands = (hr.landmarks || []).map((hl, i) => ({ lm: hl, wl: (hr.worldLandmarks || [])[i] || [], aspect })); }
+    onPose({ head, body, hands, raw: lm ? { lm, wl: wl || [], aspect } : null });   // raw: untouched landmarks, for counting exercises (exercise.js)
 
     // skeleton overlay
     if (cv.width !== video.videoWidth) { cv.width = video.videoWidth; cv.height = video.videoHeight; }
@@ -79,12 +90,13 @@ export async function startTracking({ stage, onPose }) {
       JOINTS.forEach(i => { if (!ok(i)) return; const p = P(i); g.beginPath(); g.arc(p[0], p[1], 4.5 * u, 0, Math.PI * 2); g.fillStyle = '#5E683C'; g.fill(); g.lineWidth = 2 * u; g.strokeStyle = '#F8F4EC'; g.stroke(); });
       if (ok(0) && ok(7) && ok(8)) { const n = P(0), r = Math.hypot(P(7)[0] - P(8)[0], P(7)[1] - P(8)[1]) * .62; g.beginPath(); g.arc(n[0], n[1] - r * .2, r, 0, Math.PI * 2); g.lineWidth = 3 * u; g.strokeStyle = 'rgba(248,244,236,.85)'; g.stroke(); }
     }
+    if (hands) hands.forEach(h => h.lm.forEach(p => { g.beginPath(); g.arc(p.x * cv.width, p.y * cv.height, 3 * cv.width / 320, 0, Math.PI * 2); g.fillStyle = '#C08A3A'; g.fill(); }));   // finger points
   };
   loop();
   return {
     stop() {
       alive = false; cancelAnimationFrame(raf); stream.getTracks().forEach(t => t.stop());
-      face.close(); pose.close(); video.remove(); cv.remove(); onPose(null);
+      face.close(); pose.close(); if (hand) hand.close(); video.remove(); cv.remove(); onPose(null);
     }
   };
 }
