@@ -37,6 +37,8 @@ Opened from any other static server the page still works, but those three show a
 | `glass.js` | Liquid Glass buttons: the bent, colour-split look behind every `.lg` element (Chrome), frosted glass elsewhere. |
 | `world.js`, `worldapp.js`, `worldgame.js` | The walkable island World and its games. |
 | `worldgen.js` | Generated worlds: a seed becomes a whole look for the island (theme, time of day, colours, decorations, weather). |
+| `rocket.js` | Rocket race (World game): fly the same seeded asteroid field as the other player from your cockpit, steer with your body or A/D/W/S, crashes and progress show at the top. |
+| `chess.js` | Chess rules and the computer player (World game: sit at the table, play on the 2D board on the left). Tests: `npx vitest run nook/chess.test.mjs`. |
 
 ## Accounts, tags and Google sign-in
 

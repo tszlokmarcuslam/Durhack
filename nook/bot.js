@@ -3,10 +3,42 @@
 // Home screen: it has its own see-through layer over the page, so it can rest by your avatar's shoulder, then perch
 // next to the chat panel and fly around while the companion answers, without being hidden behind the panel.
 // Island: it is a real object in the island scene and follows you around.
+// Games: it perches at the top right of the screen and comments on the match (react(): fixed lines, no AI), e.g.
+// it roasts you when your rocket hits an asteroid.
 // Its colours are the ones picked in the React app (localStorage "echoworld-pet"), so it is the same robot.
 const PI = Math.PI, sin = Math.sin, cos = Math.cos;
 const FACE_Z = .262, SLEEP_AFTER = 45, GESTURE_SECONDS = 1.8, SPARKS = 18, BUBBLE_CHARS = 220;
 const GESTURES = ['swing', 'open', 'point', 'beat', 'wave', 'swing', 'beat'];
+// What it says in games. A key with _game (start_rocket) wins over the plain key (start). {name}: the other player.
+const QUIPS = {
+  start: [['Let’s gooo, don’t embarrass me', 'happy'], ['I brought snacks. Show me something', 'happy'], ['Warm up, champ. I’m watching', 'wink']],
+  start_rocket: [['Buckle up, space cadet 🚀', 'happy'], ['Try not to hit EVERY rock this time', 'wink'], ['Asteroids are not speed bumps, ok?', 'surprised']],
+  start_chess: [['Big brain time 🧠', 'thinking'], ['Don’t hang your queen. I’m begging', 'sad'], ['Pawns first. Panic later', 'wink']],
+  start_boxing: [['Hands up, chin down 🥊', 'happy'], ['Float like a butterfly, dodge like you mean it', 'wink']],
+  crash: [['Bro that asteroid was the size of a HOUSE 💀', 'surprised'], ['Who taught you to fly, a fridge?', 'wink'], ['Asteroids: 1. You: 0.', 'sad'],
+    ['That rock had right of way 😭', 'surprised'], ['Insurance is NOT covering that', 'sad'], ['Did you close your eyes??', 'surprised'], ['It’s called STEERING. Look it up', 'wink'],
+    ['Space is 99% empty and you found the 1%', 'surprised'], ['Another one?? I’m telling everyone', 'happy'], ['NASA just blocked you', 'sad'], ['Bumper cars is a different game, bro', 'wink']],
+  theyCrash: [['LMAO {name} just ate a rock', 'happy'], ['{name} found the asteroid. With their face', 'happy'], ['Rest in pieces, {name} 💥', 'wink'], ['{name} drives like you, ngl', 'wink']],
+  gotHit: [['Hands UP bro 🥊', 'surprised'], ['You felt that one in 4K', 'sad'], ['Bro is blocking with his face', 'surprised'], ['That’s gonna leave a mark', 'sad']],
+  landed: [['OOF clean hit!', 'happy'], ['Do it again, do it again!', 'love'], ['{name} felt that one', 'wink']],
+  dodged: [['Matrix moves 😎', 'happy'], ['Too slow, {name}!', 'wink']],
+  take: [['Yoink 😤', 'happy'], ['Nom nom, free piece', 'happy'], ['{name} didn’t need that anyway', 'wink']],
+  takeQueen: [['YOU TOOK THE QUEEN 👑', 'love'], ['Queen’s gone. {name} is crying rn', 'happy']],
+  lost: [['Hey, that was ours!', 'sad'], ['Bro gave it away for free', 'surprised'], ['We call that a “sacrifice”. Right? RIGHT?', 'thinking']],
+  lostQueen: [['Bro… your QUEEN 💀', 'surprised'], ['She deserved better', 'sad'], ['Never speak to me again', 'sad']],
+  check: [['Check! Look at you, Magnus', 'happy'], ['Run, king, run', 'wink']],
+  inCheck: [['Your king is sweating rn', 'surprised'], ['Check?! Do something!', 'surprised']],
+  rpsWin: [['Called it 😎', 'happy'], ['Big brain hands', 'wink']],
+  rpsLose: [['Bro threw the worst hand possible', 'surprised'], ['{name} read you like a book', 'sad']],
+  rpsTie: [['Great minds… or both bad', 'thinking']],
+  win: [['GG EZ 😎', 'love'], ['I knew you had it in you (I didn’t)', 'happy'], ['Screenshot that, it won’t happen again', 'wink']],
+  win_rocket: [['First place! Somehow!', 'love'], ['Fastest pilot in the galaxy (today)', 'happy']],
+  win_chess: [['Grandmaster vibes 🧠', 'love'], ['Checkmate! Put it on your CV', 'happy']],
+  lose: [['{name} cooked you 🍳', 'sad'], ['Losing builds character. You have SO much character', 'wink'], ['I’m not mad. Just disappointed', 'sad'], ['Rematch. Now. My honour is at stake', 'surprised']],
+  lose_rocket: [['{name} lapped you. In SPACE', 'sad'], ['Maybe stick to walking', 'wink']],
+  lose_chess: [['Your king just retired', 'sad'], ['Maybe try checkers?', 'wink']],
+  draw: [['A draw?? Boring. Again!', 'thinking'], ['Nobody wins, everybody’s sad', 'sad']]
+};
 // arm poses as [rotation.x, rotation.z]; x < 0 swings the arm forward, z = side * angle swings it outward
 function gesturePose(g, side, t) {
   if (g === 'swing') return [sin(t * 4 + (side > 0 ? PI : 0)) * .7, side * .15];        // explaining while moving
@@ -20,7 +52,8 @@ const CSS = `.nb-layer{position:fixed;inset:0;width:100%;height:100%;z-index:14;
 .nb-bubble:after{content:'';position:absolute;left:50%;bottom:-6px;width:12px;height:12px;margin-left:-6px;background:#FBF8F1;border-right:1px solid rgba(43,42,39,.07);border-bottom:1px solid rgba(43,42,39,.07);transform:rotate(45deg)}
 .nb-bubble:hover{filter:brightness(.98)}`;
 
-// o: { stage: { canvas }, island: scene, state(): { chatOpen, thinking, last, reply, failed, quiet, me }, onTap() }
+// o: { stage: { canvas }, island: scene, state(): { chatOpen, thinking, last, reply, failed, quiet, me, game }, onTap() }
+//   game: true while a match runs on the island (the robot perches at the top right of the screen).
 //   last: the newest chat message (any kind), to notice a new one. reply: it, if it is the companion's answer { text, expression }. me: { x, y, z, ry, s, cam, to } while you walk the island (cam: the camera's angle, to: island point -> screen pixels).
 export function createBot(T, o) {
   let saved = {}; try { saved = (JSON.parse(localStorage.getItem('echoworld-pet')) || {}).state || {}; } catch (e) {}
@@ -102,10 +135,11 @@ export function createBot(T, o) {
   let scene = null, flight = 0, clock = 0, lastActive = 0, sleepy = false, blinkAt = 2, twitchAt = 4, sparkClock = 0, nextSpark = 0, stageLast, stageUntil = 0, onStage = null, said = '';
   function frame(t, dt, view) {
     const st = o.state(), home = view === 'home', W = window.innerWidth, H = window.innerHeight; clock = t;
+    const corner = view === 'world' && !!st.game, flat = home || corner;   // flat: drawn on its own layer, in window pixels
     // where it sits on the home screen, in window pixels: by your avatar's shoulder, or beside the chat panel while that is open
     const stage = home ? o.stage.canvas.getBoundingClientRect() : null;
-    const perch = !home || st.quiet ? null : st.chatOpen ? (W >= 620 ? [Math.max(84, W - 384 - 92), 158] : null) : stage.width ? [stage.left + stage.width * .84, stage.top + stage.height * .2] : null;
-    const want = home ? (perch ? own : null) : view === 'world' && st.me ? o.island : null;
+    const perch = corner ? [W - 92, 205] : !home || st.quiet ? null : st.chatOpen ? (W >= 620 ? [Math.max(84, W - 384 - 92), 158] : null) : stage.width ? [stage.left + stage.width * .84, stage.top + stage.height * .2] : null;
+    const want = flat ? (perch ? own : null) : view === 'world' && st.me ? o.island : null;
     layerEl.style.display = want === own ? 'block' : 'none';
     if (want !== scene) {   // moved between the home screen and the island (or off screen)
       if (scene) { scene.remove(root); sparks.forEach(s => { scene.remove(s.m); s.life = 0; s.m.visible = false; }); }
@@ -123,11 +157,12 @@ export function createBot(T, o) {
 
     // who it keeps company: your avatar on the home screen (standing at the middle of its stage) or on the island
     // u: the length of "one metre" where it is now (pixels on the home screen, island units on the island)
-    const p = home ? { x: perch[0], y: H - perch[1], z: 0, h: 0 } : { x: st.me.x, y: st.me.y, z: st.me.z, h: st.me.ry }, u = home ? Math.max(150, Math.min(210, H * .26)) : st.me.s, size = .5 * u;
+    const p = flat ? { x: perch[0], y: H - perch[1], z: 0, h: 0 } : { x: st.me.x, y: st.me.y, z: st.me.z, h: st.me.ry }, u = corner ? Math.max(110, Math.min(150, H * .19)) : home ? Math.max(150, Math.min(210, H * .26)) : st.me.s, size = .5 * u;
     let stiff;
     if (talking) {   // fairy flight: flit around you on a looping path that swells, dips and darts
-      flight += dt * (1.1 + .6 * sin(t * .8)); const a = flight, r = (home ? .52 + .1 * sin(a * 1.7 + 1) : 1.1 + .3 * sin(a * 1.7 + 1)) * u;
-      if (home) {   // around your avatar's head, or just left of the chat panel; never off the edge of the window
+      flight += dt * (1.1 + .6 * sin(t * .8)); const a = flight, r = (corner ? .2 + .05 * sin(a * 1.7 + 1) : home ? .52 + .1 * sin(a * 1.7 + 1) : 1.1 + .3 * sin(a * 1.7 + 1)) * u;
+      if (corner) target.set(p.x - .2 * u + sin(a) * r, p.y + (sin(a * 2.1) * .18 + sin(t * 5.3) * .04) * u, cos(a) * r);   // little loops in its corner
+      else if (home) {   // around your avatar's head, or just left of the chat panel; never off the edge of the window
         const cx = st.chatOpen ? p.x - 34 : Math.min(stage.left + stage.width * .5, W - r - 70);
         target.set(Math.max(r + 60, cx) + sin(a) * r + sin(a * 2.3) * .08 * u, p.y + (sin(a * 2.1) * .3 + sin(t * 5.3) * .04) * u, cos(a) * r);
       }
@@ -136,17 +171,17 @@ export function createBot(T, o) {
     } else {         // rest beside your shoulder, bobbing gently
       const bob = sin(t * 2) * (sleepy ? .02 : .05) * u;
       // island: beside your character as the camera sees it, a little towards the camera. On the right; on the left while the chat panel covers the right
-      const c = home ? 0 : st.me.cam, side = st.chatOpen ? -.95 : .95;
-      if (home) target.set(p.x, p.y + bob, 0); else target.set(p.x + (cos(c) * side + sin(c) * .25) * u, p.y + 1.4 * u + bob, p.z + (-sin(c) * side + cos(c) * .25) * u);
+      const c = flat ? 0 : st.me.cam, side = st.chatOpen ? -.95 : .95;
+      if (flat) target.set(p.x, p.y + bob, 0); else target.set(p.x + (cos(c) * side + sin(c) * .25) * u, p.y + 1.4 * u + bob, p.z + (-sin(c) * side + cos(c) * .25) * u);
       flight = Math.atan2(root.position.x - p.x, root.position.z - p.z); stiff = home && st.chatOpen ? 12 : 7;   // take off from where it is
     }
     if (root.userData.fresh) { root.position.copy(target); vel.set(0, 0, 0); root.userData.fresh = false; }
     // a critically damped spring: smooth take-off and a smooth glide home, no snapping
     const damp = 2 * Math.sqrt(stiff); vel.x += ((target.x - root.position.x) * stiff - vel.x * damp) * dt; vel.y += ((target.y - root.position.y) * stiff - vel.y * damp) * dt; vel.z += ((target.z - root.position.z) * stiff - vel.z * damp) * dt;
     root.position.addScaledVector(vel, dt);
-    root.scale.setScalar(home ? size * (1 + root.position.z / (u * 6)) : size);   // home: a little bigger when it swings towards you
+    root.scale.setScalar(flat ? size * (1 + root.position.z / (u * 6)) : size);   // home: a little bigger when it swings towards you
     // it mostly looks out at whoever is at the keyboard: straight out of the home screen, towards the camera on the island
-    const look = home ? (st.chatOpen ? .38 : -.32) + sin(t * .7) * .06 : st.me.cam + (st.chatOpen ? .3 : -.3) + sin(t * .7) * .08, turn = Math.atan2(sin(look - root.rotation.y), cos(look - root.rotation.y));
+    const look = corner ? .55 + sin(t * .7) * .06 : home ? (st.chatOpen ? .38 : -.32) + sin(t * .7) * .06 : st.me.cam + (st.chatOpen ? .3 : -.3) + sin(t * .7) * .08, turn = Math.atan2(sin(look - root.rotation.y), cos(look - root.rotation.y));
     root.rotation.y += turn * Math.min(1, dt * 5);
     const yaw = root.rotation.y, sideways = (vel.x * cos(yaw) - vel.z * sin(yaw)) / u, ahead = (vel.x * sin(yaw) + vel.z * cos(yaw)) / u, k6 = Math.min(1, dt * 6);
     body.rotation.z += (Math.max(-.45, Math.min(.45, -sideways * .18)) + sin(t * 1.3) * .04 - body.rotation.z) * k6;   // bank into the turn
@@ -166,17 +201,28 @@ export function createBot(T, o) {
     mouthG.scale.y = talking ? .6 + Math.abs(sin(t * 14)) * .9 : 1;                    // the mouth moves while it talks
 
     // the bubble above its ears: tap it to open the chat (home screen and island)
-    if (home) paint.render(own, cam);
-    const text = st.chatOpen ? '' : thinking ? '…' : onStage ? (onStage.text.length > BUBBLE_CHARS ? onStage.text.slice(0, BUBBLE_CHARS) + '…' : onStage.text) : sleepy ? '💤 Tap to wake me' : '💬 Tap to chat';
+    if (flat) paint.render(own, cam);
+    const text = corner ? (onStage ? onStage.text : '') : st.chatOpen ? '' : thinking ? '…' : onStage ? (onStage.text.length > BUBBLE_CHARS ? onStage.text.slice(0, BUBBLE_CHARS) + '…' : onStage.text) : sleepy ? '💤 Tap to wake me' : '💬 Tap to chat';
     if (!text) { bubble.style.display = 'none'; return; }
     if (text !== said) { said = text; bubble.textContent = text; bubble.setAttribute('aria-label', 'Your companion says: ' + text + '. Open the chat'); }
-    const at = home ? [root.position.x, H - root.position.y - 1.22 * size] : st.me.to ? st.me.to(root.position.x, root.position.y + 1.22 * size, root.position.z) : null;
+    const at = flat ? [root.position.x, H - root.position.y - 1.22 * size] : st.me.to ? st.me.to(root.position.x, root.position.y + 1.22 * size, root.position.z) : null;
     if (!at) { bubble.style.display = 'none'; return; }
     bubble.style.display = 'block';
     bubble.style.transform = 'translate(-50%,-100%) translate(' + Math.max(124, Math.min(W - 124, at[0])).toFixed(1) + 'px,' + (at[1] - 8).toFixed(1) + 'px)';
   }
+  let quipAt = -99; const lastPick = {};
+  // kind: 'crash', 'win', 'takeQueen'… (see QUIPS). ctx: { name: the other player, game }. Small things wait their turn
+  // (it never talks over itself); the start and the result always get a line.
+  function react(kind, ctx = {}) {
+    const key = QUIPS[kind + '_' + ctx.game] ? kind + '_' + ctx.game : kind, L = QUIPS[key]; if (!L) return false;
+    if (!/^(start|win|lose|draw)/.test(kind) && clock - quipAt < 2.8) return false;
+    let i = Math.floor(Math.random() * L.length); if (L.length > 1 && i === lastPick[key]) i = (i + 1) % L.length; lastPick[key] = i;
+    const text = L[i][0].replace(/\{name\}/g, ctx.name || 'they');
+    quipAt = clock; lastActive = clock; onStage = { text, expression: L[i][1] }; stageUntil = clock + Math.min(6, 2.6 + text.length * .05);
+    return true;
+  }
   return {
-    frame, setFace,
+    frame, setFace, react,
     // make it act out a line as if the companion had just said it (handy for demos: nookBot.perform('Hello!', 'love'))
     perform(text, expression) { onStage = { text: String(text || ''), expression: expression || 'happy' }; stageUntil = clock + Math.min(15, 4 + onStage.text.length * .06); },
     dispose() { if (scene) { scene.remove(root); sparks.forEach(s => scene.remove(s.m)); } bubble.remove(); layerEl.remove(); paint.dispose(); root.traverse(n => { if (n.geometry) n.geometry.dispose(); }); sparkGeo.dispose(); [shell, trim, lid, glow, visor].forEach(m => m.dispose()); }

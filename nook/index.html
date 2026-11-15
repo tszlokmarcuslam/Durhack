@@ -1468,7 +1468,9 @@ class Component extends DCLogic {
           return st.friendsAdded.map(f => { const fc = BY[f.code]; return { id: f.id, name: f.name, flag: fc ? fc.flag : '', sub: (fc ? fc.flag + ' ' : '') + f.city, thumb: st.fthumbs[f.id], online: true, cfg: f.cfg }; })
             .concat(this.N.PRESETS.slice(1).map((p, i) => ({ id: 'demo-' + p.name, name: p.name, flag: '', sub: i < 3 ? 'Online' : 'Offline', thumb: st.thumbs[i + 1], online: i < 3, cfg: p })));
         },
-        onEnter: w => this.enterWorld(w), onLeave: () => this.setState({ view: 'home', menu: null }),
+        onEnter: w => this.enterWorld(w),
+        onPetEvent: (kind, ctx) => { if (this.bot && this.bot.react) this.bot.react(kind, ctx); },   // the pet robot comments on the match
+        onLeave: () => this.setState({ view: 'home', menu: null }),
         // signed in (backend.js): the island, invites and challenges reach your real friends
         backend: () => this.be, friendThumb: id => this.state.fthumbs[id],
         // a match on the island turns the camera on for body tracking, and puts it back the way it was afterwards
@@ -1487,7 +1489,7 @@ class Component extends DCLogic {
         state: () => {
           const st = this.state, c = st.comp, last = c.msgs.length ? c.msgs[c.msgs.length - 1] : null;
           return { chatOpen: c.open, thinking: c.busy, last, reply: last && last.who === 'ai' ? last : null, failed: !!(last && last.who === 'sys'),
-            quiet: !!(st.pickOpen || st.accountOpen || st.prof.open || st.menu === 'settings' || st.dm.open), me: this.wf ? this.wf.me() : null };
+            quiet: !!(st.pickOpen || st.accountOpen || st.prof.open || st.menu === 'settings' || st.dm.open), me: this.wf ? this.wf.me() : null, game: !!(this.wf && this.wf.inMatch && this.wf.inMatch()) };   // game: perch top right and comment on the match
         }
       });
       this.nook.setFrameHook((t, dt, view) => this.bot.frame(t, dt, view));
