@@ -218,6 +218,20 @@ describe('community tags', () => {
   });
 });
 
+describe('production static files', () => {
+  it('serves files and folder index pages, and nothing outside the site folder', async () => {
+    const { findFile } = await import('../server/lib/staticFiles');
+    const { resolve, join } = await import('node:path');
+    const root = resolve('nook');
+    expect(await findFile(root, '/')).toBe(join(root, 'index.html'));
+    expect(await findFile(root, '/bot.js')).toBe(join(root, 'bot.js'));
+    expect(await findFile(root, '/missing.js')).toBeNull();
+    for (const evil of ['/../.env', '/..%2f.env', '/%2e%2e/package.json', '/%E0%A4%A']) {
+      expect(await findFile(root, evil)).toBeNull();
+    }
+  });
+});
+
 describe('multiplayer messages', () => {
   it('accepts valid positions and clamps them to the world', async () => {
     const { parsePosition } = await import('../src/world/multiplayer');

@@ -101,11 +101,18 @@ To go live: create a Supabase project, run `supabase/schema.sql` in its SQL edit
 
 Checks: `npm run typecheck`, `npm test`, `npm run build`.
 
-## Deploy to Vercel
+## Deploy to Render
 
-1. Push to GitHub and import the repo in Vercel (framework preset: Vite).
-2. Add every variable from `.env.example` in Project → Settings → Environment Variables. Leave `ECHO_DEV_MODE` unset.
-3. Deploy. `api/companion.ts` is picked up automatically as an Edge function.
+`render.yaml` describes one free web service that follows the `nookmeet` branch and redeploys on every push.
+`server/render.ts` serves `dist/` and runs `/api/companion` and `/api/tts` with the same handlers as the dev server.
+
+1. Render → New → Blueprint → pick this repo. Fill in the keys it asks for (from your `.env`). Never add `ECHO_DEV_MODE`.
+2. Supabase → Authentication → URL Configuration: set Site URL to the Render address and add `https://<name>.onrender.com/**`
+   to Redirect URLs. Add the same address to the Google OAuth client's Authorised JavaScript origins.
+3. Free services sleep after about 15 minutes idle; the first visit after that takes up to a minute.
+
+Try the production server locally: `npm run build && npm run build:server`, then
+`ECHO_DEV_MODE=false PORT=5195 node --env-file=.env dist-server/render.js`.
 
 ## Manual test checklist
 

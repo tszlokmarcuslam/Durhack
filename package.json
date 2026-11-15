@@ -12,7 +12,12 @@
     "e2e": "node --env-file=.env scripts/e2e-search.mjs",
     "e2e:social": "node --env-file=.env scripts/e2e-social.mjs",
     "bot": "node --env-file=.env scripts/world-bot.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:server": "vite build --ssr server/render.ts --outDir dist-server",
+    "start": "node dist-server/render.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@react-three/drei": "^9.117.3",

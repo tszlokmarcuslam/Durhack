@@ -1,0 +1,32 @@
+# Render Blueprint: one free web service that serves the site and the /api routes (server/render.ts).
+# Keys marked sync: false are typed into Render's dashboard when the Blueprint is created; they are never stored here.
+services:
+  - type: web
+    name: nook-meet
+    runtime: node
+    plan: free
+    branch: nookmeet
+    autoDeploy: true
+    buildCommand: npm ci && npm run build && npm run build:server
+    startCommand: npm start
+    healthCheckPath: /nook/
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # public: built into the page
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      # server only
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      # ECHO_DEV_MODE is left out on purpose: it must never be on for a public site.
